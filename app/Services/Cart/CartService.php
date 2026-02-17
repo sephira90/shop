@@ -1,0 +1,222 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Cart;
+
+use App\Enums\CartStatus;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\ProductVariant;
+use App\Models\User;
+use DomainException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+final class CartService
+{
+    /**
+     * Resolve active cart for user or guest token.
+     */
+    public function resolve(?User $user, ?string $guestToken = null): Cart
+    {
+        if ($user !== null) {
+            $cart = Cart::query()
+                ->where('user_id', $user->id)
+                ->where('status', CartStatus::ACTIVE->value)
+                ->with('items.variant.inventory')
+                ->latest('created_at')
+                ->first();
+
+            if ($cart instanceof Cart) {
+                return $cart;
+            }
+
+            return Cart::query()->create([
+                'user_id' => $user->id,
+                'currency' => 'USD',
+                'status' => CartStatus::ACTIVE->value,
+            ])->load('items.variant.inventory');
+        }
+
+        $token = $guestToken ?: Str::lower(Str::random(48));
+
+        return DB::transaction(function () use ($token): Cart {
+            $activeCart = Cart::query()
+                ->where('guest_token', $token)
+                ->where('status', CartStatus::ACTIVE->value)
+                ->with('items.variant.inventory')
+                ->lockForUpdate()
+                ->latest('created_at')
+                ->first();
+
+            if ($activeCart instanceof Cart) {
+                return $activeCart;
+            }
+
+            $previousCart = Cart::query()
+                ->where('guest_token', $token)
+                ->lockForUpdate()
+                ->latest('created_at')
+                ->first();
+
+            if ($previousCart instanceof Cart) {
+                // Free unique guest token to allow next active cart.
+                $previousCart->update(['guest_token' => null]);
+            }
+
+            return Cart::query()->create([
+                'guest_token' => $token,
+                'currency' => 'USD',
+                'status' => CartStatus::ACTIVE->value,
+            ])->load('items.variant.inventory');
+        });
+    }
+
+    /**
+     * Resolve latest cart for checkout retries.
+     */
+    public function resolveForCheckout(?User $user, ?string $guestToken = null): Cart
+    {
+        if ($user !== null) {
+            $cart = Cart::query()
+                ->where('user_id', $user->id)
+                ->with('items.variant.inventory')
+                ->latest('created_at')
+                ->first();
+
+            if ($cart instanceof Cart) {
+                return $cart;
+            }
+
+            return $this->resolve($user, null);
+        }
+
+        $token = trim((string) $guestToken);
+        if ($token === '') {
+            throw new DomainException('Guest token is required.');
+        }
+
+        $cart = Cart::query()
+            ->where('guest_token', $token)
+            ->with('items.variant.inventory')
+            ->latest('created_at')
+            ->first();
+
+        if ($cart instanceof Cart) {
+            return $cart;
+        }
+
+        return Cart::query()->create([
+            'guest_token' => $token,
+            'currency' => 'USD',
+            'status' => CartStatus::ACTIVE->value,
+        ])->load('items.variant.inventory');
+    }
+
+    /**
+     * Add or update cart item.
+     */
+    public function upsertItem(Cart $cart, int $variantId, int $quantity): Cart
+    {
+        $variant = ProductVariant::query()->with('inventory')->findOrFail($variantId);
+        $inventory = $variant->inventory;
+
+        if ($inventory === null || $inventory->availableQuantity() < $quantity) {
+            throw new DomainException('Insufficient stock for selected variant.');
+        }
+
+        /** @var CartItem $item */
+        $item = CartItem::query()->updateOrCreate(
+            [
+                'cart_id' => $cart->id,
+                'product_variant_id' => $variant->id,
+            ],
+            [
+                'quantity' => $quantity,
+                'unit_price' => $variant->price,
+                'line_total' => bcmul((string) $variant->price, (string) $quantity, 2),
+            ],
+        );
+
+        if ($item->quantity <= 0) {
+            $item->delete();
+        }
+
+        return $cart->fresh(['items.variant.inventory']);
+    }
+
+    /**
+     * Remove item from cart.
+     */
+    public function removeItem(Cart $cart, int $variantId): Cart
+    {
+        CartItem::query()
+            ->where('cart_id', $cart->id)
+            ->where('product_variant_id', $variantId)
+            ->delete();
+
+        return $cart->fresh(['items.variant.inventory']);
+    }
+
+    /**
+     * Merge guest cart into user cart after authentication.
+     */
+    public function mergeGuestCart(User $user, string $guestToken): Cart
+    {
+        $guestCart = Cart::query()
+            ->where('guest_token', $guestToken)
+            ->where('status', CartStatus::ACTIVE->value)
+            ->with('items.variant.inventory')
+            ->first();
+
+        $userCart = $this->resolve($user, null);
+
+        if ($guestCart === null || $guestCart->id === $userCart->id) {
+            return $userCart;
+        }
+
+        foreach ($guestCart->items as $item) {
+            $existing = $userCart->items->firstWhere('product_variant_id', $item->product_variant_id);
+            $quantity = $existing === null ? $item->quantity : $existing->quantity + $item->quantity;
+            $this->upsertItem($userCart, $item->product_variant_id, $quantity);
+        }
+
+        $guestCart->update(['status' => CartStatus::ABANDONED->value]);
+
+        return $userCart->fresh(['items.variant.inventory']);
+    }
+
+    /**
+     * Build normalized cart payload.
+     *
+     * @return array<string, mixed>
+     */
+    public function payload(Cart $cart): array
+    {
+        $subtotal = $cart->items->sum('line_total');
+
+        return [
+            'id' => $cart->id,
+            'guest_token' => $cart->guest_token,
+            'currency' => $cart->currency,
+            'status' => $cart->status->value,
+            'items' => $cart->items->map(static function (CartItem $item): array {
+                return [
+                    'product_variant_id' => $item->product_variant_id,
+                    'sku' => $item->variant?->sku,
+                    'name' => $item->variant?->name,
+                    'quantity' => $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'line_total' => (float) $item->line_total,
+                ];
+            })->values()->all(),
+            'summary' => [
+                'subtotal' => (float) $subtotal,
+                'discount_total' => 0.0,
+                'shipping_total' => 0.0,
+                'total' => (float) $subtotal,
+            ],
+        ];
+    }
+}

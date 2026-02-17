@@ -1,0 +1,85 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
+use App\Models\Category;
+use App\Services\Catalog\CatalogService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CatalogController extends Controller
+{
+    /**
+     * Create controller instance.
+     */
+    public function __construct(private readonly CatalogService $catalogService) {}
+
+    /**
+     * Return catalog list with filters.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'category_slug' => ['nullable', 'string', 'max:180'],
+            'min_price' => ['nullable', 'numeric', 'min:0'],
+            'max_price' => ['nullable', 'numeric', 'min:0'],
+            'sort' => ['nullable', 'in:newest,price_asc,price_desc,name_asc'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:60'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 12);
+        $paginator = $this->catalogService->list($validated, $perPage);
+
+        return response()->json([
+            'data' => ProductResource::collection($paginator->items()),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Return one product by slug.
+     */
+    public function show(string $slug): JsonResponse
+    {
+        $product = $this->catalogService->productBySlug($slug);
+
+        if ($product === null) {
+            return response()->json([
+                'error' => [
+                    'message' => 'Product not found.',
+                ],
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+
+    /**
+     * Return active categories.
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = Category::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name', 'slug', 'meta_title', 'meta_description']);
+
+        return response()->json([
+            'data' => $categories,
+        ]);
+    }
+}
