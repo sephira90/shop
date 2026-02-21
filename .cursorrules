@@ -5,6 +5,7 @@ Follow `AGENTS.md` as the primary project policy.
 ## Required behavior
 
 - Keep solutions production-oriented and minimal in scope.
+- Commit changes in logical blocks (one commit = one coherent concern).
 - Respect existing architecture and naming conventions.
 - Do not weaken validation, authorization, idempotency, or webhook safety.
 - Prefer explicit, typed, and testable code paths.

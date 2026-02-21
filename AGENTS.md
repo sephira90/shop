@@ -106,6 +106,7 @@ After any code change, task is considered complete only when production-readines
 ## Change discipline
 
 - Do not perform unrelated refactors in feature fixes.
+- Commit changes in logical blocks (one commit = one coherent concern).
 - Keep commits focused and reversible.
 - Document non-obvious decisions in code comments or PR notes.
 - If requirements conflict with these rules, clarify first and then implement.
