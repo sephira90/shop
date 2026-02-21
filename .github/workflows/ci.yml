@@ -78,6 +78,8 @@ jobs:
       - name: Run frontend quality checks
         run: |
           npm run lint
+          npm run lint:ox
+          npm run format:ox:check
           npm run type-check
           npm run test
           npm run build

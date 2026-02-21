@@ -80,6 +80,8 @@ Before merge, target green checks for:
 - `composer run analyse`
 - `php artisan test`
 - `npm run lint`
+- `npm run lint:ox`
+- `npm run format:ox:check`
 - `npm run type-check`
 - `npm run test`
 - `npm run build`
@@ -93,6 +95,8 @@ After any code change, task is considered complete only when production-readines
 - `composer run analyse`
 - `php artisan test`
 - `npm run lint`
+- `npm run lint:ox`
+- `npm run format:ox:check`
 - `npm run type-check`
 - `npm run test`
 - `npm run build`

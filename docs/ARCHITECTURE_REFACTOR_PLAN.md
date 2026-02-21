@@ -146,7 +146,7 @@
 - Добавить unit tests для сервисов и policy/authorization rules.
 - Добавить integration tests для checkout/webhook/idempotency цепочек.
 - Зафиксировать performance smoke-tests для критичных query-path.
-- Сделать quality gates blocking в CI: `composer run lint`, `composer run analyse`, `php artisan test`, `npm run lint`, `npm run type-check`, `npm run test`, `npm run build`.
+- Сделать quality gates blocking в CI: `composer run lint`, `composer run analyse`, `php artisan test`, `npm run lint`, `npm run lint:ox`, `npm run format:ox:check`, `npm run type-check`, `npm run test`, `npm run build`.
 
 ### Exit Criteria
 
@@ -275,7 +275,7 @@
 
 - `2026-02-21`: `Phase 5` (batch 1, CI quality gates hardening) выполнен.
 - Усилен GitHub Actions workflow `.github/workflows/ci.yml`: workflow переименован в `Quality Gate`, добавлены `concurrency`, `permissions`, `timeout`, единый job `Full Quality Gate`.
-- В CI зафиксирован полный blocking pipeline (`composer run lint/analyse`, `php artisan test`, `npm run lint/type-check/test/build`) и production smoke-checks (`php artisan migrate --force`, `php artisan optimize:clear`, `php artisan route:list --path=api/v1/admin/promotions`, `php artisan app:healthcheck`).
+- В CI зафиксирован полный blocking pipeline (`composer run lint/analyse`, `php artisan test`, `npm run lint/lint:ox/format:ox:check/type-check/test/build`) и production smoke-checks (`php artisan migrate --force`, `php artisan optimize:clear`, `php artisan route:list --path=api/v1/admin/promotions`, `php artisan app:healthcheck`).
 - Обновлена документация по обязательному статус-чеку branch protection: `README.md`.
 
 - `2026-02-21`: `Phase 5` (batch 2, authorization unit safety net) выполнен.

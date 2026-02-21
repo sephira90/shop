@@ -23,6 +23,8 @@ Follow `AGENTS.md` as the primary project policy.
 - `composer run analyse`
 - `php artisan test`
 - `npm run lint`
+- `npm run lint:ox`
+- `npm run format:ox:check`
 - `npm run type-check`
 - `npm run test`
 - `npm run build`

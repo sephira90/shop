@@ -9,7 +9,11 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "lint": "eslint \"resources/js/**/*.{ts,vue}\"",
-        "format": "prettier --write \"resources/js/**/*.{ts,vue}\""
+        "lint:ox": "oxlint --vue-plugin --vitest-plugin resources/js",
+        "lint:ox:fix": "oxlint --vue-plugin --vitest-plugin --fix resources/js",
+        "format": "prettier --write \"resources/js/**/*.{ts,vue}\"",
+        "format:ox": "oxfmt --write resources/js",
+        "format:ox:check": "oxfmt --check resources/js"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -24,6 +28,8 @@
         "eslint-plugin-vue": "^10.8.0",
         "jsdom": "^28.1.0",
         "laravel-vite-plugin": "^2.0.0",
+        "oxfmt": "^0.34.0",
+        "oxlint": "^1.49.0",
         "prettier": "^3.8.1",
         "tailwindcss": "^4.0.0",
         "typescript": "^5.9.3",

@@ -38,6 +38,8 @@ php artisan test
 composer run lint
 composer run analyse
 npm run lint
+npm run lint:ox
+npm run format:ox:check
 npm run test
 npm run type-check
 npm run build
@@ -116,6 +118,8 @@ It runs a full blocking pipeline:
 - `composer run analyse`
 - `php artisan test`
 - `npm run lint`
+- `npm run lint:ox`
+- `npm run format:ox:check`
 - `npm run type-check`
 - `npm run test`
 - `npm run build`
