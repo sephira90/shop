@@ -188,6 +188,7 @@
   - `shipments(provider, tracking_number)` (`shipments_provider_tracking_unique`);
 - `ShippingService` обновлен на поиск shipment по `(provider, tracking_number)` для provider-safe webhook обработки;
 - добавлены feature-тесты ограничений идентичности (`tests/Feature/WebhookIdentityConstraintTest.php`).
+- `2026-02-21` — для webhook identity batch повторно прогнан полный production-readiness quality gate в green (все команды из секции `Quality Gates`).
 
 ## Следующий batch
 
