@@ -17,8 +17,8 @@ class AuthFlowTest extends TestCase
      */
     public function test_register_and_me_flow(): void
     {
-        $this->seed(RoleSeeder::class);
 
+        $this->seed(RoleSeeder::class);
         $register = $this->postJson('/api/v1/auth/register', [
             'first_name' => 'John',
             'last_name' => 'Doe',
