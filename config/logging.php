@@ -118,6 +118,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'observability' => [
+            'driver' => 'daily',
+            'path' => env('LOG_OBSERVABILITY_PATH', storage_path('logs/observability.log')),
+            'level' => env('LOG_OBSERVABILITY_LEVEL', 'info'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,

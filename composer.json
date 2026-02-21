@@ -77,6 +77,24 @@
         "analyse": [
             "./vendor/bin/phpstan analyse --memory-limit=1G"
         ],
+        "ops:clear": [
+            "@php artisan optimize:clear"
+        ],
+        "ops:routes-smoke": [
+            "@php artisan route:list --path=api/v1/admin/promotions"
+        ],
+        "ops:performance-smoke": [
+            "@php artisan app:performance-smoke"
+        ],
+        "ops:webhook-flow-smoke": [
+            "@php artisan app:webhook-flow-smoke"
+        ],
+        "ops:api-contract-smoke": [
+            "@php artisan app:api-contract-smoke"
+        ],
+        "ops:observability-report": [
+            "@php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples"
+        ],
         "quality": [
             "@lint",
             "@analyse",

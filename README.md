@@ -43,6 +43,10 @@ npm run type-check
 npm run build
 php artisan queue:work
 php artisan app:healthcheck
+php artisan app:performance-smoke
+php artisan app:webhook-flow-smoke
+php artisan app:api-contract-smoke
+php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples
 ```
 
 ## API scope
@@ -70,3 +74,59 @@ Use script:
 ```
 
 It executes install/build, safe migration sequence, cache warmup, queue restart and smoke checks.
+
+## Operational cache safety
+
+After route/controller changes, clear optimized caches before smoke checks:
+
+```bash
+php artisan optimize:clear
+php artisan route:list --path=api/v1/admin/promotions
+```
+
+## Observability baseline
+
+Structured telemetry is emitted into logs for:
+
+- API request latency (`observability.api_request`)
+- catalog cache hit/miss samples (`observability.catalog_cache`)
+- webhook processing and lag (`observability.webhook`)
+- rolling snapshot report (`php artisan app:observability-report --minutes=60`)
+- optional SLO checks with non-zero exit code for CI (`--max-api-slow-rate`, `--max-webhook-lag-warn-rate`)
+- required samples guards (`--require-api-samples`, `--require-webhook-samples`)
+
+Configuration:
+
+- `OBSERVABILITY_ENABLED`
+- `OBSERVABILITY_CHANNEL`
+- `OBSERVABILITY_API_SLOW_MS`
+- `OBSERVABILITY_CATALOG_SLOW_MS`
+- `OBSERVABILITY_WEBHOOK_SLOW_MS`
+- `OBSERVABILITY_WEBHOOK_LAG_WARN_MS`
+- `LOG_OBSERVABILITY_PATH`
+- `LOG_OBSERVABILITY_LEVEL`
+
+## CI quality gate
+
+Workflow: `.github/workflows/ci.yml` (`Quality Gate`).
+
+It runs a full blocking pipeline:
+
+- `composer run lint`
+- `composer run analyse`
+- `php artisan test`
+- `npm run lint`
+- `npm run type-check`
+- `npm run test`
+- `npm run build`
+- production smoke: `php artisan migrate --force`, `php artisan optimize:clear`, `php artisan route:list --path=api/v1/admin/promotions`, `php artisan app:healthcheck`, `php artisan app:performance-smoke`, `php artisan app:webhook-flow-smoke`, `php artisan app:api-contract-smoke`, `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+
+To enforce blocking merges, configure branch protection for `main` and require status check:
+
+- `Quality Gate / Full Quality Gate`
+
+## Engineering rules
+
+- Project contribution rules: `AGENTS.md`
+- Cursor/agent rules: `.cursorrules`
+- Architecture refactor roadmap: `docs/ARCHITECTURE_REFACTOR_PLAN.md`
