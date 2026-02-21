@@ -16,7 +16,7 @@ class QueueOrderSideEffects
     public function handle(OrderPlaced $event): void
     {
         if ($event->order->payment_status === PaymentStatus::CAPTURED) {
-            DispatchShipmentJob::dispatch($event->order->id);
+            DispatchShipmentJob::dispatch($event->order->id)->afterCommit();
         }
     }
 }

@@ -174,8 +174,8 @@ final readonly class PaymentService
                 ]);
 
                 if ($paymentStatus === PaymentStatus::CAPTURED && $previousPaymentStatus !== PaymentStatus::CAPTURED) {
-                    SendOrderConfirmationJob::dispatch($order->id);
-                    DispatchShipmentJob::dispatch($order->id);
+                    SendOrderConfirmationJob::dispatch($order->id)->afterCommit();
+                    DispatchShipmentJob::dispatch($order->id)->afterCommit();
                 }
 
                 $receipt->update(['processed_at' => now()]);

@@ -9,6 +9,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Enums\RoleName;
 use App\Enums\ShipmentStatus;
+use App\Jobs\DispatchShipmentJob;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\ProductVariant;
@@ -169,6 +170,17 @@ class AppWebhookFlowSmokeCommand extends Command
             ->where('order_id', $order->id)
             ->latest('id')
             ->first();
+
+        if (! $shipment instanceof Shipment) {
+            // Payment webhook side-effects are dispatched after commit. In production rollback
+            // mode this command keeps an outer transaction open, so run shipment sync fallback.
+            DispatchShipmentJob::dispatchSync($order->id);
+
+            $shipment = Shipment::query()
+                ->where('order_id', $order->id)
+                ->latest('id')
+                ->first();
+        }
 
         if (! $shipment instanceof Shipment) {
             throw new DomainException('Shipment was not created after captured payment.');
