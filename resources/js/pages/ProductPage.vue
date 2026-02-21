@@ -1,43 +1,45 @@
 <template>
-    <section v-if="product" class="card">
-        <h1 style="margin-top: 0">{{ product.name }}</h1>
-        <p>{{ product.description }}</p>
-        <div class="stack">
-            <select v-model.number="selectedVariantId">
-                <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
-                    {{ variant.name }} - {{ variant.price }} {{ variant.currency }}
-                </option>
-            </select>
-            <button class="btn btn-primary" type="button" @click="addToCart">Add to cart</button>
-        </div>
+    <section v-if="isLoading" class="card empty-state">
+        <p>Loading product...</p>
+    </section>
+
+    <section v-else-if="product" class="grid grid-2">
+        <article class="card">
+            <h1 class="section-title">{{ product.name }}</h1>
+            <p class="muted">{{ product.description }}</p>
+        </article>
+
+        <aside class="card">
+            <h2 class="section-title">Purchase</h2>
+            <p class="product-card__price">
+                {{ formatPrice(selectedVariant?.price) }} {{ selectedVariant?.currency ?? 'USD' }}
+            </p>
+            <div class="grid">
+                <select v-model.number="selectedVariantId">
+                    <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
+                        {{ variant.name }} - {{ formatPrice(variant.price) }} {{ variant.currency }}
+                    </option>
+                </select>
+                <button class="btn btn-primary" type="button" :disabled="!selectedVariantId" @click="addToCart">
+                    Add to cart
+                </button>
+            </div>
+        </aside>
+    </section>
+
+    <section v-else class="card empty-state">
+        <p>{{ loadError || 'Product is unavailable right now.' }}</p>
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-
-import { apiClient } from '@/api/client';
+import { useCatalogProduct } from '@/composables/useCatalogProduct';
 import { useCartStore } from '@/stores/cart';
-
-interface Product {
-    id: number;
-    name: string;
-    slug: string;
-    description: string;
-    variants: Array<{ id: number; name: string; price: number; currency: string }>;
-}
-
-const route = useRoute();
 const cartStore = useCartStore();
-const product = ref<Product | null>(null);
-const selectedVariantId = ref<number | null>(null);
+const { product, selectedVariantId, selectedVariant, isLoading, loadError } = useCatalogProduct();
 
-const loadProduct = async (): Promise<void> => {
-    const { data } = await apiClient.get(`/catalog/products/${route.params.slug as string}`);
-    const loadedProduct = data.data as Product;
-    product.value = loadedProduct;
-    selectedVariantId.value = loadedProduct.variants[0]?.id ?? null;
+const formatPrice = (price: number | undefined): string => {
+    return Number(price ?? 0).toFixed(2);
 };
 
 const addToCart = async (): Promise<void> => {
@@ -45,10 +47,6 @@ const addToCart = async (): Promise<void> => {
         return;
     }
 
-    await cartStore.upsertItem(selectedVariantId.value, 1);
+    await cartStore.addOneItem(selectedVariantId.value);
 };
-
-onMounted(async () => {
-    await loadProduct();
-});
 </script>

@@ -48,6 +48,16 @@ export const useCartStore = defineStore('cart', {
                 this.loading = false;
             }
         },
+        async addOneItem(productVariantId: number): Promise<void> {
+            if (!this.cart) {
+                await this.fetchCart();
+            }
+
+            const currentQuantity =
+                this.cart?.items.find((item) => item.product_variant_id === productVariantId)?.quantity ?? 0;
+
+            await this.upsertItem(productVariantId, currentQuantity + 1);
+        },
         async upsertItem(productVariantId: number, quantity: number): Promise<void> {
             const guestToken = localStorage.getItem('shop_guest_token');
             const { data } = await apiClient.post('/cart/items', {

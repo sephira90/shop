@@ -1,64 +1,78 @@
 <template>
-    <section class="grid" style="gap: 1rem">
-        <div class="card">
-            <h1 style="margin-top: 0">Admin promotions</h1>
-            <form class="stack" @submit.prevent="createPromotion">
-                <input v-model="form.name" placeholder="Name" required />
-                <input v-model="form.code" placeholder="Code" />
-                <select v-model="form.type">
-                    <option value="percent">Percent</option>
-                    <option value="fixed">Fixed</option>
-                </select>
-                <input v-model.number="form.value" type="number" min="0.01" step="0.01" required />
-                <button class="btn btn-primary" type="submit">Create</button>
-            </form>
-        </div>
+    <section class="grid">
+        <PromotionCampaignForm
+            v-model:promotion-form="promotionForm"
+            :editing-promotion-id="editingPromotionId"
+            :is-loading="isLoading"
+            :is-submitting-promotion="isSubmittingPromotion"
+            :notice-type="notice.type"
+            :notice-message="notice.message"
+            @refresh="loadPromotions(page)"
+            @reset="resetPromotionForm"
+            @submit="submitPromotion"
+        />
 
-        <div class="card">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Code</th>
-                    <th>Type</th>
-                    <th>Value</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr v-for="promotion in promotions" :key="promotion.id">
-                    <td>{{ promotion.name }}</td>
-                    <td>{{ promotion.code }}</td>
-                    <td>{{ promotion.type }}</td>
-                    <td>{{ promotion.value }}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+        <PromotionCampaignTable
+            v-model:search-query="searchQuery"
+            v-model:status-filter="statusFilter"
+            :promotions="filteredPromotions"
+            :selected-promotion-id="selectedPromotionId"
+            :is-loading="isLoading"
+            :page="page"
+            :meta="meta"
+            :is-deleting-promotion-id="isDeletingPromotionId"
+            @select="selectPromotion"
+            @edit="startEditPromotion"
+            @remove="removePromotion"
+            @load-prev="loadPromotions(page - 1)"
+            @load-next="loadPromotions(page + 1)"
+        />
+
+        <PromotionCouponsPanel
+            v-model:coupon-form="couponForm"
+            :selected-promotion="selectedPromotion"
+            :is-submitting-coupon="isSubmittingCoupon"
+            :updating-coupon-id="updatingCouponId"
+            @submit="createCoupon"
+            @toggle="toggleCoupon"
+        />
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted } from 'vue';
 
-import { apiClient } from '@/api/client';
+import PromotionCampaignForm from '@/components/admin/promotions/PromotionCampaignForm.vue';
+import PromotionCampaignTable from '@/components/admin/promotions/PromotionCampaignTable.vue';
+import PromotionCouponsPanel from '@/components/admin/promotions/PromotionCouponsPanel.vue';
+import { useAdminPromotions } from '@/composables/admin/useAdminPromotions';
 
-const promotions = ref<Array<{ id: number; name: string; code: string; type: string; value: number }>>([]);
-const form = reactive({
-    name: '',
-    code: '',
-    type: 'percent',
-    value: 10,
-});
-
-const loadPromotions = async (): Promise<void> => {
-    const { data } = await apiClient.get('/admin/promotions');
-    promotions.value = data.data.data;
-};
-
-const createPromotion = async (): Promise<void> => {
-    await apiClient.post('/admin/promotions', form);
-    await loadPromotions();
-};
+const {
+    page,
+    isLoading,
+    isSubmittingPromotion,
+    isSubmittingCoupon,
+    isDeletingPromotionId,
+    updatingCouponId,
+    editingPromotionId,
+    selectedPromotionId,
+    searchQuery,
+    statusFilter,
+    meta,
+    notice,
+    promotionForm,
+    couponForm,
+    filteredPromotions,
+    selectedPromotion,
+    loadPromotions,
+    selectPromotion,
+    resetPromotionForm,
+    startEditPromotion,
+    submitPromotion,
+    removePromotion,
+    createCoupon,
+    toggleCoupon,
+} = useAdminPromotions();
 
 onMounted(async () => {
     await loadPromotions();

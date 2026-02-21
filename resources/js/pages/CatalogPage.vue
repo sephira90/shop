@@ -1,25 +1,36 @@
 <template>
-    <section class="grid" style="gap: 1rem">
+    <section class="grid">
         <div class="card">
-            <div class="stack">
-                <input v-model="filters.q" placeholder="Search products" @keyup.enter="loadProducts" />
+            <h1 class="section-title">Catalog</h1>
+            <p class="muted">Search and sort products available in the storefront.</p>
+            <div class="actions actions--top">
+                <input v-model="filters.q" placeholder="Search products" :disabled="isLoading" @keyup.enter="applyFilters" />
                 <select v-model="filters.sort">
                     <option value="newest">Newest</option>
                     <option value="price_asc">Price ascending</option>
                     <option value="price_desc">Price descending</option>
                     <option value="name_asc">Name ascending</option>
                 </select>
-                <button class="btn btn-primary" type="button" @click="loadProducts">Apply</button>
+                <button class="btn btn-primary" type="button" :disabled="isLoading" @click="applyFilters">
+                    {{ isLoading ? 'Loading...' : 'Apply filters' }}
+                </button>
             </div>
+            <p v-if="loadError" class="notice notice--error actions--top">{{ loadError }}</p>
         </div>
 
-        <div class="grid grid-3">
-            <article v-for="product in products" :key="product.id" class="card">
-                <h3 style="margin-top: 0">{{ product.name }}</h3>
-                <p>{{ product.short_description }}</p>
-                <p style="font-weight: 600">From {{ product.variants?.[0]?.price ?? 0 }} {{ product.variants?.[0]?.currency ?? 'USD' }}</p>
-                <div class="stack">
-                    <RouterLink class="btn btn-muted" :to="`/product/${product.slug}`">Open</RouterLink>
+        <div v-if="isLoading && products.length === 0" class="card empty-state">
+            <p>Loading products...</p>
+        </div>
+
+        <div v-else-if="products.length" class="grid grid-3">
+            <article v-for="product in products" :key="product.id" class="card product-card">
+                <h3 class="product-card__title">{{ product.name }}</h3>
+                <p class="muted">{{ product.short_description }}</p>
+                <p class="product-card__price">
+                    From {{ formatPrice(product.variants?.[0]?.price) }} {{ product.variants?.[0]?.currency ?? 'USD' }}
+                </p>
+                <div class="product-card__actions">
+                    <RouterLink class="btn btn-muted" :to="`/product/${product.slug}`">Open product</RouterLink>
                     <button
                         v-if="product.variants?.[0]"
                         class="btn btn-primary"
@@ -31,47 +42,27 @@
                 </div>
             </article>
         </div>
+
+        <div v-else class="card empty-state">
+            <p>No products found for current filters.</p>
+        </div>
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 
-import { apiClient } from '@/api/client';
+import { useCatalogProducts } from '@/composables/useCatalogProducts';
 import { useCartStore } from '@/stores/cart';
 
-interface Product {
-    id: number;
-    name: string;
-    slug: string;
-    short_description: string;
-    variants: Array<{ id: number; price: number; currency: string }>;
-}
-
 const cartStore = useCartStore();
-const products = ref<Product[]>([]);
-const filters = reactive({
-    q: '',
-    sort: 'newest',
-});
+const { products, filters, isLoading, loadError, applyFilters } = useCatalogProducts();
 
-const loadProducts = async (): Promise<void> => {
-    const { data } = await apiClient.get('/catalog/products', {
-        params: {
-            q: filters.q,
-            sort: filters.sort,
-        },
-    });
-
-    products.value = data.data;
+const formatPrice = (price: number | undefined): string => {
+    return Number(price ?? 0).toFixed(2);
 };
 
 const addToCart = async (variantId: number): Promise<void> => {
-    await cartStore.upsertItem(variantId, 1);
+    await cartStore.addOneItem(variantId);
 };
-
-onMounted(async () => {
-    await loadProducts();
-});
 </script>
