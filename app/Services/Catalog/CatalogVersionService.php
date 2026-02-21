@@ -25,8 +25,15 @@ final class CatalogVersionService
      */
     public function bump(): int
     {
-        $nextVersion = $this->current() + 1;
-        Cache::forever(self::CACHE_KEY, $nextVersion);
+        // Ensure key exists and use atomic increment to avoid lost updates.
+        Cache::add(self::CACHE_KEY, self::DEFAULT_VERSION);
+
+        $nextVersion = Cache::increment(self::CACHE_KEY);
+
+        if (! is_int($nextVersion)) {
+            $nextVersion = $this->current() + 1;
+            Cache::forever(self::CACHE_KEY, $nextVersion);
+        }
 
         return $nextVersion;
     }
