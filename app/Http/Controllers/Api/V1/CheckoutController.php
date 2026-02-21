@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Account\AccountOrderIndexRequest;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
@@ -95,7 +96,7 @@ class CheckoutController extends Controller
     /**
      * Return current user orders.
      */
-    public function myOrders(Request $request): JsonResponse
+    public function myOrders(AccountOrderIndexRequest $request): JsonResponse
     {
         $currentUser = $this->resolveCurrentUser($request);
 
@@ -103,9 +104,23 @@ class CheckoutController extends Controller
             return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
-        $orders = $this->orderRepository->paginateForUser($currentUser, 20);
+        $orders = $this->orderRepository->paginateForUser($currentUser, $request->filter());
 
         return ApiResponse::paginated(OrderResource::collection($orders->items()), $orders);
+    }
+
+    /**
+     * Return account order summary metrics for current user.
+     */
+    public function myOrdersSummary(Request $request): JsonResponse
+    {
+        $currentUser = $this->resolveCurrentUser($request);
+
+        if (! $currentUser instanceof User) {
+            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
+        }
+
+        return ApiResponse::data($this->orderRepository->summaryForUser($currentUser));
     }
 
     /**

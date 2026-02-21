@@ -53,6 +53,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:sanctum'])->group(function (): void {
         Route::post('checkout/orders/{order}/pay', [CheckoutController::class, 'pay'])->middleware('throttle:checkout');
+        Route::get('orders/me/summary', [CheckoutController::class, 'myOrdersSummary']);
         Route::get('orders/me', [CheckoutController::class, 'myOrders']);
     });
 

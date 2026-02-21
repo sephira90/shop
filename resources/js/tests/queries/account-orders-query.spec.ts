@@ -50,9 +50,25 @@ describe('account orders query', () => {
         });
     });
 
-    it('builds list params from page', () => {
-        expect(buildAccountOrdersListParams(4)).toEqual({
+    it('builds list params from page and filters', () => {
+        expect(
+            buildAccountOrdersListParams(4, {
+                searchQuery: '  jane@example.com ',
+                statusFilter: 'paid',
+            }),
+        ).toEqual({
             page: 4,
+            q: 'jane@example.com',
+            status: 'paid',
+        });
+
+        expect(
+            buildAccountOrdersListParams(1, {
+                searchQuery: '   ',
+                statusFilter: 'all',
+            }),
+        ).toEqual({
+            page: 1,
         });
     });
 

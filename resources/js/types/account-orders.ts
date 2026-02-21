@@ -36,6 +36,16 @@ export type AccountOrderListResponse = ListResponse<AccountOrder>;
 
 export interface AccountOrderListParams {
     page?: number;
+    per_page?: number;
+    q?: string;
+    status?: Exclude<AccountOrderStatusFilter, 'all'>;
+}
+
+export interface AccountOrdersSummary {
+    total_orders: number;
+    paid_orders: number;
+    in_delivery_orders: number;
+    total_spent: number;
 }
 
 export type AccountOrderStatusFilter =

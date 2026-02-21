@@ -1,6 +1,6 @@
 import { computed, reactive, ref } from 'vue';
 
-import { listAccountOrders } from '@/api/account/orders';
+import { getAccountOrdersSummary } from '@/api/account/orders';
 import { useApiError } from '@/composables/useApiError';
 import { useAuthStore } from '@/stores/auth';
 
@@ -70,16 +70,12 @@ export const useAccountProfile = () => {
 
     const loadOrderMetrics = async (): Promise<void> => {
         try {
-            const response = await listAccountOrders({
-                page: 1,
-            });
+            const summary = await getAccountOrdersSummary();
 
-            metrics.totalOrders = response.meta.total;
-            metrics.paidOrders = response.data.filter(
-                (order) => order.status === 'paid' || order.payment_status === 'captured',
-            ).length;
-            metrics.inDelivery = response.data.filter((order) => ['packed', 'shipped'].includes(order.shipment_status)).length;
-            metrics.loadedTotalSpent = response.data.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+            metrics.totalOrders = summary.total_orders;
+            metrics.paidOrders = summary.paid_orders;
+            metrics.inDelivery = summary.in_delivery_orders;
+            metrics.loadedTotalSpent = summary.total_spent;
         } catch {
             metrics.totalOrders = 0;
             metrics.paidOrders = 0;

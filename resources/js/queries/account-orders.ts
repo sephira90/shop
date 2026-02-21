@@ -86,8 +86,22 @@ export const isSameAccountOrdersRouteQuery = (left: Record<string, unknown>, rig
     );
 };
 
-export const buildAccountOrdersListParams = (page: number): AccountOrderListParams => {
-    return {
+export const buildAccountOrdersListParams = (
+    page: number,
+    filters: Pick<AccountOrdersFilters, 'searchQuery' | 'statusFilter'>,
+): AccountOrderListParams => {
+    const params: AccountOrderListParams = {
         page,
     };
+
+    const query = filters.searchQuery.trim();
+    if (query !== '') {
+        params.q = query;
+    }
+
+    if (filters.statusFilter !== 'all') {
+        params.status = filters.statusFilter;
+    }
+
+    return params;
 };

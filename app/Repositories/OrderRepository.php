@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Filters\Account\AccountOrderListFilter;
 use App\Filters\Admin\AdminOrderListFilter;
 use App\Models\Order;
 use App\Models\User;
@@ -17,13 +18,58 @@ final class OrderRepository
      *
      * @return LengthAwarePaginator<int, Order>
      */
-    public function paginateForUser(User $user, int $perPage = 20): LengthAwarePaginator
+    public function paginateForUser(User $user, AccountOrderListFilter $filter): LengthAwarePaginator
     {
-        return Order::query()
+        $query = Order::query()
             ->with(['items'])
             ->where('user_id', $user->id)
-            ->latest('created_at')
-            ->paginate($perPage);
+            ->latest('created_at');
+
+        if ($filter->search !== null) {
+            $like = '%'.$filter->search.'%';
+
+            $query->where(static function (Builder $builder) use ($like): void {
+                $builder
+                    ->where('order_number', 'like', $like)
+                    ->orWhere('email', 'like', $like);
+            });
+        }
+
+        if ($filter->orderStatus !== null) {
+            $query->where('status', $filter->orderStatus->value);
+        }
+
+        return $query->paginate($filter->perPage, ['*'], 'page', $filter->page);
+    }
+
+    /**
+     * Build account-level order metrics for profile dashboard.
+     *
+     * @return array{total_orders:int,paid_orders:int,in_delivery_orders:int,total_spent:float}
+     */
+    public function summaryForUser(User $user): array
+    {
+        $base = Order::query()->where('user_id', $user->id);
+
+        $totalOrders = (clone $base)->count();
+        $paidOrders = (clone $base)
+            ->where(static function (Builder $builder): void {
+                $builder
+                    ->where('status', 'paid')
+                    ->orWhere('payment_status', 'captured');
+            })
+            ->count();
+        $inDeliveryOrders = (clone $base)
+            ->whereIn('shipment_status', ['packed', 'shipped'])
+            ->count();
+        $totalSpent = (float) (clone $base)->sum('total');
+
+        return [
+            'total_orders' => $totalOrders,
+            'paid_orders' => $paidOrders,
+            'in_delivery_orders' => $inDeliveryOrders,
+            'total_spent' => $totalSpent,
+        ];
     }
 
     /**

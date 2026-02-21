@@ -27,23 +27,7 @@ export const useAccountOrders = () => {
     const page = ref(initialFilters.page);
     let activeRequestId = 0;
 
-    const filteredOrders = computed<AccountOrder[]>(() => {
-        const query = searchQuery.value.trim().toLowerCase();
-
-        return orders.value.filter((order) => {
-            const statusMatches = statusFilter.value === 'all' || order.status === statusFilter.value;
-
-            if (!statusMatches) {
-                return false;
-            }
-
-            if (query === '') {
-                return true;
-            }
-
-            return order.order_number.toLowerCase().includes(query) || order.email.toLowerCase().includes(query);
-        });
-    });
+    const filteredOrders = computed<AccountOrder[]>(() => orders.value);
 
     const loadedTotal = computed<number>(() => orders.value.reduce((sum, order) => sum + Number(order.total ?? 0), 0));
     const paidCount = computed<number>(
@@ -59,7 +43,10 @@ export const useAccountOrders = () => {
         loadError.value = '';
 
         try {
-            const response = await listAccountOrders(buildAccountOrdersListParams(targetPage));
+            const response = await listAccountOrders(buildAccountOrdersListParams(targetPage, {
+                searchQuery: searchQuery.value,
+                statusFilter: statusFilter.value,
+            }));
 
             if (requestId !== activeRequestId) {
                 return;
