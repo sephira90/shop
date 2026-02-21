@@ -98,6 +98,7 @@ final readonly class ShippingService
                 $status = $this->gateway->resolveWebhookStatus($payload);
 
                 $shipment = Shipment::query()
+                    ->where('provider', $shippingDriver)
                     ->where('tracking_number', $trackingNumber)
                     ->lockForUpdate()
                     ->first();

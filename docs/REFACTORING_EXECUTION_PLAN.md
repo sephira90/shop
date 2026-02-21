@@ -182,8 +182,13 @@
 - в `PaymentService` и `ShippingService` удалены hardcoded provider/gateway значения, используется активный driver из конфига;
 - добавлены unit-тесты резолвинга драйверов (`tests/Unit/GatewayDriverBindingTest.php`).
 - `2026-02-21` — для provider strategy batch повторно прогнан полный production-readiness quality gate в green (все команды из секции `Quality Gates`).
+- `2026-02-21` — `Phase 1` webhook identity constraints batch выполнен:
+- добавлена additive миграция с уникальными ограничениями внешних идентификаторов:
+  - `payments(gateway, transaction_id)` (`payments_gateway_transaction_unique`);
+  - `shipments(provider, tracking_number)` (`shipments_provider_tracking_unique`);
+- `ShippingService` обновлен на поиск shipment по `(provider, tracking_number)` для provider-safe webhook обработки;
+- добавлены feature-тесты ограничений идентичности (`tests/Feature/WebhookIdentityConstraintTest.php`).
 
 ## Следующий batch
 
-1. Укрепить webhook identity constraints (уникальные ограничения и индексы).
-2. Подготовить batch для `Phase 2` contract & flow unification.
+1. Подготовить batch для `Phase 2` contract & flow unification.
