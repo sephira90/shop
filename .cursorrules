@@ -1,0 +1,31 @@
+# Cursor Rules
+
+Follow `AGENTS.md` as the primary project policy.
+
+## Required behavior
+
+- Keep solutions production-oriented and minimal in scope.
+- Respect existing architecture and naming conventions.
+- Do not weaken validation, authorization, idempotency, or webhook safety.
+- Prefer explicit, typed, and testable code paths.
+- Add or update tests for behavior changes.
+- Never commit secrets or real credentials.
+
+## Definition of done
+
+- Code is clear and maintainable.
+- No API contract regressions without explicit approval.
+- Relevant tests and static checks pass.
+- README/docs updated when workflow or behavior changes.
+- After any change, run production-readiness checks before completion:
+- `composer run lint`
+- `composer run analyse`
+- `php artisan test`
+- `npm run lint`
+- `npm run type-check`
+- `npm run test`
+- `npm run build`
+- If checks fail, fix and rerun; do not finish on code edits only.
+- If route/controller code changed, run:
+- `php artisan optimize:clear`
+- `php artisan route:list --path=api/v1/admin/promotions`
