@@ -17,6 +17,7 @@ Follow `AGENTS.md` as the primary project policy.
 - Code is clear and maintainable.
 - No API contract regressions without explicit approval.
 - Relevant tests and static checks pass.
+- After each completed logical block, update `docs/REFACTORING_EXECUTION_PLAN.md` with completed work and checks.
 - README/docs updated when workflow or behavior changes.
 - After any change, run production-readiness checks before completion:
 - `composer run lint`

@@ -144,9 +144,41 @@
 - `php artisan app:api-contract-smoke`
 - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
 
-## Стартовый batch (следующий шаг)
+## Выполненный batch #1 (P0/P1)
 
 1. Atomic cache version bump + tests.
 2. `afterCommit` dispatch для payment/checkout side-effects.
 3. Server-driven account orders filters + profile metrics endpoint.
-4. Final API envelope alignment для checkout + фронтенд адаптация.
+
+## Progress Log
+
+- `2026-02-21` — создан и принят execution-план рефакторинга (`97544ca`).
+- `2026-02-21` — закрыт Batch #1:
+- atomic `CatalogVersionService::bump()` + unit coverage (`148bdc5`);
+- critical side-effects переведены на `afterCommit` (`37f1087`);
+- account orders переведены на server-driven фильтрацию + summary endpoint (`b41ddce`).
+- `2026-02-21` — усилены инженерные правила:
+- зафиксировано требование коммитов по логическим блокам (`c64bfb7`);
+- добавлены `oxlint`/`oxfmt` и включены в обязательные quality gates в локальных правилах, документации и CI (`ae5e993`);
+- выполнено baseline-форматирование frontend-кода через `oxfmt` (`9056980`).
+- `2026-02-21` — полный production-readiness quality gate прогнан в green:
+- `composer run lint`
+- `composer run analyse`
+- `php artisan test`
+- `npm run lint`
+- `npm run lint:ox`
+- `npm run format:ox:check`
+- `npm run type-check`
+- `npm run test`
+- `npm run build`
+- `php artisan app:healthcheck`
+- `php artisan app:performance-smoke`
+- `php artisan app:webhook-flow-smoke`
+- `php artisan app:api-contract-smoke`
+- `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+
+## Следующий batch
+
+1. Завершить оставшиеся задачи `Phase 1` по provider strategy (`payment.driver` / `shipping.driver`).
+2. Укрепить webhook identity constraints (уникальные ограничения и индексы).
+3. Подготовить batch для `Phase 2` contract & flow unification.

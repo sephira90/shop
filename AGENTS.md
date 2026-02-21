@@ -111,6 +111,7 @@ After any code change, task is considered complete only when production-readines
 
 - Do not perform unrelated refactors in feature fixes.
 - Commit changes in logical blocks (one commit = one coherent concern).
+- After each completed logical block, update `docs/REFACTORING_EXECUTION_PLAN.md` with completed work and executed checks.
 - Keep commits focused and reversible.
 - Document non-obvious decisions in code comments or PR notes.
 - If requirements conflict with these rules, clarify first and then implement.
