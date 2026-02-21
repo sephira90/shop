@@ -6,10 +6,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\UpsertCartItemRequest;
+use App\Models\User;
 use App\Services\Cart\CartService;
+use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class CartController extends Controller
@@ -25,11 +28,10 @@ class CartController extends Controller
     public function show(Request $request): JsonResponse
     {
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
-        $cart = $this->cartService->resolve($request->user(), is_string($guestToken) ? $guestToken : null);
+        $currentUser = $this->resolveCurrentUser($request);
+        $cart = $this->cartService->resolve($currentUser, is_string($guestToken) ? $guestToken : null);
 
-        return response()->json([
-            'data' => $this->cartService->payload($cart),
-        ]);
+        return ApiResponse::data($this->cartService->payload($cart));
     }
 
     /**
@@ -38,7 +40,8 @@ class CartController extends Controller
     public function upsertItem(UpsertCartItemRequest $request): JsonResponse
     {
         $payload = $request->validated();
-        $cart = $this->cartService->resolve($request->user(), $payload['guest_token'] ?? null);
+        $currentUser = $this->resolveCurrentUser($request);
+        $cart = $this->cartService->resolve($currentUser, $payload['guest_token'] ?? null);
 
         try {
             $cart = $this->cartService->upsertItem(
@@ -47,16 +50,10 @@ class CartController extends Controller
                 (int) $payload['quantity'],
             );
         } catch (DomainException $exception) {
-            return response()->json([
-                'error' => [
-                    'message' => $exception->getMessage(),
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return response()->json([
-            'data' => $this->cartService->payload($cart),
-        ]);
+        return ApiResponse::data($this->cartService->payload($cart));
     }
 
     /**
@@ -65,11 +62,20 @@ class CartController extends Controller
     public function removeItem(Request $request, int $variantId): JsonResponse
     {
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
-        $cart = $this->cartService->resolve($request->user(), is_string($guestToken) ? $guestToken : null);
+        $currentUser = $this->resolveCurrentUser($request);
+        $cart = $this->cartService->resolve($currentUser, is_string($guestToken) ? $guestToken : null);
         $cart = $this->cartService->removeItem($cart, $variantId);
 
-        return response()->json([
-            'data' => $this->cartService->payload($cart),
-        ]);
+        return ApiResponse::data($this->cartService->payload($cart));
+    }
+
+    /**
+     * Resolve currently authenticated user if it is app User model.
+     */
+    private function resolveCurrentUser(Request $request): ?User
+    {
+        $authenticated = $request->user() ?? Auth::guard('sanctum')->user();
+
+        return $authenticated instanceof User ? $authenticated : null;
     }
 }

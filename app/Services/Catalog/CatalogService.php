@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Catalog;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
+use App\Support\Observability\ObservabilityService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
 final readonly class CatalogService
@@ -14,7 +17,11 @@ final readonly class CatalogService
     /**
      * Create service instance.
      */
-    public function __construct(private ProductRepository $productRepository) {}
+    public function __construct(
+        private ProductRepository $productRepository,
+        private CatalogVersionService $catalogVersionService,
+        private ObservabilityService $observabilityService,
+    ) {}
 
     /**
      * Return paginated catalog response with caching.
@@ -25,15 +32,23 @@ final readonly class CatalogService
     {
         $cacheKey = sprintf(
             'catalog:v%d:list:%s',
-            $this->catalogVersion(),
+            $this->catalogVersionService->current(),
             sha1(json_encode([$filters, $perPage], JSON_THROW_ON_ERROR)),
         );
 
-        return Cache::remember(
+        $cacheHit = Cache::has($cacheKey);
+        $startedAt = hrtime(true);
+
+        $paginator = Cache::remember(
             $cacheKey,
             now()->addMinutes(5),
             fn (): LengthAwarePaginator => $this->productRepository->paginateCatalog($filters, $perPage),
         );
+
+        $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+        $this->observabilityService->catalogCache('products_list', $cacheHit, $durationMs, count($paginator->items()));
+
+        return $paginator;
     }
 
     /**
@@ -41,18 +56,46 @@ final readonly class CatalogService
      */
     public function productBySlug(string $slug): ?Product
     {
-        return Cache::remember(
-            sprintf('catalog:v%d:product:%s', $this->catalogVersion(), $slug),
+        $cacheKey = sprintf('catalog:v%d:product:%s', $this->catalogVersionService->current(), $slug);
+        $cacheHit = Cache::has($cacheKey);
+        $startedAt = hrtime(true);
+
+        $product = Cache::remember(
+            $cacheKey,
             now()->addMinutes(10),
             fn (): ?Product => $this->productRepository->findActiveBySlug($slug),
         );
+
+        $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+        $this->observabilityService->catalogCache('product_by_slug', $cacheHit, $durationMs, $product !== null ? 1 : 0);
+
+        return $product;
     }
 
     /**
-     * Resolve catalog cache version.
+     * Return active categories list with cache.
+     *
+     * @return Collection<int, Category>
      */
-    private function catalogVersion(): int
+    public function categories(): Collection
     {
-        return (int) Cache::get('catalog:version', 1);
+        $cacheKey = sprintf('catalog:v%d:categories', $this->catalogVersionService->current());
+        $cacheHit = Cache::has($cacheKey);
+        $startedAt = hrtime(true);
+
+        $categories = Cache::remember(
+            $cacheKey,
+            now()->addMinutes(10),
+            static fn (): Collection => Category::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'parent_id', 'name', 'slug', 'meta_title', 'meta_description']),
+        );
+
+        $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+        $this->observabilityService->catalogCache('categories', $cacheHit, $durationMs, $categories->count());
+
+        return $categories;
     }
 }

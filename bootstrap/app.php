@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ApiRequestTelemetryMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureRoleMiddleware;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(CorrelationIdMiddleware::class);
+        $middleware->append(ApiRequestTelemetryMiddleware::class);
 
         $middleware->alias([
             'role' => EnsureRoleMiddleware::class,
@@ -34,6 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $status = match (true) {
                 $exception instanceof ValidationException => 422,
+                $exception instanceof AuthenticationException => 401,
+                $exception instanceof AuthorizationException => 403,
                 $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
                 default => 500,
             };
@@ -42,6 +48,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => $status >= 500 ? 'Internal server error.' : $exception->getMessage(),
                 'type' => class_basename($exception),
             ];
+
+            $correlationId = $request->headers->get('X-Correlation-Id');
+            if (is_string($correlationId) && $correlationId !== '') {
+                $error['request_id'] = $correlationId;
+            }
 
             if ($exception instanceof ValidationException) {
                 $error['validation'] = $exception->errors();

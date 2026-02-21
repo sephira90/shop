@@ -8,10 +8,16 @@ use App\Contracts\PaymentGatewayInterface;
 use App\Contracts\ShippingGatewayInterface;
 use App\Infrastructure\Payments\FakePaymentGateway;
 use App\Infrastructure\Shipping\FakeShippingGateway;
+use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Promotion;
+use App\Policies\CategoryPolicy;
+use App\Policies\CouponPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
+use App\Policies\PromotionPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -34,7 +40,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Category::class, CategoryPolicy::class);
+        Gate::policy(Coupon::class, CouponPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Promotion::class, PromotionPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
 
         RateLimiter::for('checkout', static fn (Request $request): Limit => Limit::perMinute(6)

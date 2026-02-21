@@ -15,7 +15,7 @@ class OrderPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->hasRole(RoleName::ADMIN) || $user->hasRole(RoleName::MANAGER);
     }
 
     /**

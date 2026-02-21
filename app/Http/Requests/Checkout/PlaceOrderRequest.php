@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Checkout;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class PlaceOrderRequest extends FormRequest
 {
@@ -23,7 +24,8 @@ class PlaceOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        $guestTokenRules = $this->user() === null
+        $currentUser = $this->user() ?? Auth::guard('sanctum')->user();
+        $guestTokenRules = $currentUser === null
             ? ['required', 'string', 'max:80']
             : ['nullable', 'string', 'max:80'];
 

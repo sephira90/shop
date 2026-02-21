@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Webhook;
 use App\Contracts\PaymentGatewayInterface;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessPaymentWebhookJob;
+use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,52 +28,28 @@ class PaymentWebhookController extends Controller
         $signature = (string) $request->header('X-Signature', '');
 
         if ($signature === '') {
-            return response()->json([
-                'error' => [
-                    'message' => 'Missing X-Signature header.',
-                ],
-            ], Response::HTTP_BAD_REQUEST);
+            return ApiResponse::error('Missing X-Signature header.', Response::HTTP_BAD_REQUEST);
         }
 
         $payload = $request->all();
         if (! $this->paymentGateway->verifyWebhookSignature($payload, $signature)) {
-            return response()->json([
-                'error' => [
-                    'message' => 'Invalid webhook signature.',
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error('Invalid webhook signature.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if ($this->paymentGateway->extractEventId($payload) === '') {
-            return response()->json([
-                'error' => [
-                    'message' => 'Webhook event id is required.',
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error('Webhook event id is required.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if ($this->paymentGateway->extractTransactionId($payload) === '') {
-            return response()->json([
-                'error' => [
-                    'message' => 'Payment transaction id is required.',
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error('Payment transaction id is required.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
-            ProcessPaymentWebhookJob::dispatch($payload, $signature);
+            ProcessPaymentWebhookJob::dispatch($payload, $signature, now()->toIso8601String());
         } catch (DomainException $exception) {
-            return response()->json([
-                'error' => [
-                    'message' => $exception->getMessage(),
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return response()->json([
-            'data' => [
-                'queued' => true,
-            ],
-        ], Response::HTTP_ACCEPTED);
+        return ApiResponse::data(['queued' => true], Response::HTTP_ACCEPTED);
     }
 }

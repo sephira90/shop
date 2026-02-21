@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Promotion;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -14,7 +15,7 @@ class PromotionStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Promotion::class) ?? false;
     }
 
     /**
@@ -26,7 +27,7 @@ class PromotionStoreRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:140'],
-            'code' => ['nullable', 'string', 'max:40', 'unique:promotions,code'],
+            'code' => ['nullable', 'string', 'max:40', 'unique:promotions,code', 'unique:coupons,code'],
             'type' => ['required', 'in:percent,fixed'],
             'value' => [
                 'required',
@@ -42,6 +43,11 @@ class PromotionStoreRequest extends FormRequest
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
+            'coupon' => ['nullable', 'array'],
+            'coupon.code' => ['nullable', 'string', 'max:40', 'unique:coupons,code', 'unique:promotions,code'],
+            'coupon.is_active' => ['nullable', 'boolean'],
+            'coupon.max_redemptions' => ['nullable', 'integer', 'min:1'],
+            'coupon.expires_at' => ['nullable', 'date'],
         ];
     }
 }

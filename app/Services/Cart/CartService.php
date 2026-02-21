@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Cart;
 
 use App\Enums\CartStatus;
+use App\Enums\ProductStatus;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\ProductVariant;
@@ -119,7 +120,21 @@ final class CartService
      */
     public function upsertItem(Cart $cart, int $variantId, int $quantity): Cart
     {
-        $variant = ProductVariant::query()->with('inventory')->findOrFail($variantId);
+        $variant = ProductVariant::query()
+            ->with(['inventory', 'product'])
+            ->whereKey($variantId)
+            ->where('is_active', true)
+            ->whereHas('product', static function ($productQuery): void {
+                $productQuery
+                    ->where('status', ProductStatus::ACTIVE->value)
+                    ->whereNotNull('published_at');
+            })
+            ->first();
+
+        if (! $variant instanceof ProductVariant) {
+            throw new DomainException('Selected variant is not available.');
+        }
+
         $inventory = $variant->inventory;
 
         if ($inventory === null || $inventory->availableQuantity() < $quantity) {
@@ -164,27 +179,44 @@ final class CartService
      */
     public function mergeGuestCart(User $user, string $guestToken): Cart
     {
-        $guestCart = Cart::query()
-            ->where('guest_token', $guestToken)
-            ->where('status', CartStatus::ACTIVE->value)
-            ->with('items.variant.inventory')
-            ->first();
+        return DB::transaction(function () use ($user, $guestToken): Cart {
+            $guestCart = Cart::query()
+                ->where('guest_token', $guestToken)
+                ->where('status', CartStatus::ACTIVE->value)
+                ->with('items.variant.inventory')
+                ->lockForUpdate()
+                ->first();
 
-        $userCart = $this->resolve($user, null);
+            $userCart = Cart::query()
+                ->where('user_id', $user->id)
+                ->where('status', CartStatus::ACTIVE->value)
+                ->with('items.variant.inventory')
+                ->lockForUpdate()
+                ->latest('created_at')
+                ->first();
 
-        if ($guestCart === null || $guestCart->id === $userCart->id) {
-            return $userCart;
-        }
+            if (! $userCart instanceof Cart) {
+                $userCart = Cart::query()->create([
+                    'user_id' => $user->id,
+                    'currency' => 'USD',
+                    'status' => CartStatus::ACTIVE->value,
+                ])->load('items.variant.inventory');
+            }
 
-        foreach ($guestCart->items as $item) {
-            $existing = $userCart->items->firstWhere('product_variant_id', $item->product_variant_id);
-            $quantity = $existing === null ? $item->quantity : $existing->quantity + $item->quantity;
-            $this->upsertItem($userCart, $item->product_variant_id, $quantity);
-        }
+            if ($guestCart === null || $guestCart->id === $userCart->id) {
+                return $userCart;
+            }
 
-        $guestCart->update(['status' => CartStatus::ABANDONED->value]);
+            foreach ($guestCart->items as $item) {
+                $existing = $userCart->items->firstWhere('product_variant_id', $item->product_variant_id);
+                $quantity = $existing === null ? $item->quantity : $existing->quantity + $item->quantity;
+                $userCart = $this->upsertItem($userCart, $item->product_variant_id, $quantity);
+            }
 
-        return $userCart->fresh(['items.variant.inventory']);
+            $guestCart->update(['status' => CartStatus::ABANDONED->value]);
+
+            return $userCart->fresh(['items.variant.inventory']);
+        });
     }
 
     /**

@@ -10,6 +10,8 @@ use App\Enums\ShipmentStatus;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Models\WebhookReceipt;
+use App\Support\Observability\ObservabilityService;
+use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +20,10 @@ final readonly class ShippingService
     /**
      * Create shipping service.
      */
-    public function __construct(private ShippingGatewayInterface $gateway) {}
+    public function __construct(
+        private ShippingGatewayInterface $gateway,
+        private ObservabilityService $observabilityService,
+    ) {}
 
     /**
      * Create shipment for order.
@@ -42,89 +47,119 @@ final readonly class ShippingService
      *
      * @param  array<string, mixed>  $payload
      */
-    public function processWebhook(array $payload, string $signature): void
+    public function processWebhook(array $payload, string $signature, ?string $receivedAtIso8601 = null): void
     {
-        if (! $this->gateway->verifyWebhookSignature($payload, $signature)) {
-            throw new DomainException('Invalid shipping webhook signature.');
-        }
+        $startedAt = hrtime(true);
+        $eventId = 'unknown';
+        $outcome = 'rejected';
 
-        $eventId = $this->gateway->extractEventId($payload);
-        if ($eventId === '') {
-            throw new DomainException('Webhook event id is required.');
-        }
-
-        $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
-
-        DB::transaction(function () use ($payload, $eventId, $payloadHash): void {
-            $receipt = WebhookReceipt::query()->firstOrCreate(
-                ['provider' => 'fake-shipping', 'event_id' => $eventId],
-                [
-                    'payload_hash' => $payloadHash,
-                    'processed_at' => null,
-                ],
-            );
-
-            $receipt = WebhookReceipt::query()
-                ->whereKey($receipt->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($receipt->payload_hash !== $payloadHash) {
-                throw new DomainException('Webhook payload hash mismatch.');
+        try {
+            if (! $this->gateway->verifyWebhookSignature($payload, $signature)) {
+                throw new DomainException('Invalid shipping webhook signature.');
             }
 
-            if ($receipt->processed_at !== null) {
-                return;
+            $eventId = $this->gateway->extractEventId($payload);
+            if ($eventId === '') {
+                throw new DomainException('Webhook event id is required.');
             }
 
-            $trackingNumber = $this->gateway->extractTrackingNumber($payload);
-            if ($trackingNumber === '') {
-                throw new DomainException('Tracking number is required.');
-            }
-            $status = $this->gateway->resolveWebhookStatus($payload);
+            $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-            $shipment = Shipment::query()
-                ->where('tracking_number', $trackingNumber)
-                ->lockForUpdate()
-                ->first();
+            DB::transaction(function () use ($payload, $eventId, $payloadHash, &$outcome): void {
+                $receipt = WebhookReceipt::query()->firstOrCreate(
+                    ['provider' => 'fake-shipping', 'event_id' => $eventId],
+                    [
+                        'payload_hash' => $payloadHash,
+                        'processed_at' => null,
+                    ],
+                );
 
-            if (! $shipment instanceof Shipment) {
-                throw new DomainException('Shipment not found for tracking number.');
-            }
+                $receipt = WebhookReceipt::query()
+                    ->whereKey($receipt->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $currentStatus = ShipmentStatus::from((string) $shipment->getRawOriginal('status'));
-            if (! $this->shouldApplyShipmentStatusTransition($currentStatus, $status)) {
-                $receipt->update(['processed_at' => now()]);
-
-                return;
-            }
-
-            $shipment->update([
-                'status' => $status->value,
-                'payload' => array_merge($shipment->payload ?? [], ['webhook' => $payload]),
-                'shipped_at' => in_array($status, [ShipmentStatus::SHIPPED, ShipmentStatus::DELIVERED, ShipmentStatus::RETURNED], true)
-                    ? ($shipment->shipped_at ?? now())
-                    : $shipment->shipped_at,
-                'delivered_at' => $status === ShipmentStatus::DELIVERED ? now() : $shipment->delivered_at,
-            ]);
-
-            $order = $shipment->order;
-            if ($order instanceof Order) {
-                $currentOrderStatus = OrderStatus::from((string) $order->getRawOriginal('status'));
-
-                $newStatus = $currentOrderStatus;
-                if ($status === ShipmentStatus::DELIVERED && $currentOrderStatus !== OrderStatus::CANCELLED) {
-                    $newStatus = OrderStatus::COMPLETED;
+                if ($receipt->payload_hash !== $payloadHash) {
+                    throw new DomainException('Webhook payload hash mismatch.');
                 }
 
-                $order->update([
-                    'shipment_status' => $status->value,
-                    'status' => $newStatus->value,
+                if ($receipt->processed_at !== null) {
+                    $outcome = 'duplicate';
+
+                    return;
+                }
+
+                $trackingNumber = $this->gateway->extractTrackingNumber($payload);
+                if ($trackingNumber === '') {
+                    throw new DomainException('Tracking number is required.');
+                }
+                $status = $this->gateway->resolveWebhookStatus($payload);
+
+                $shipment = Shipment::query()
+                    ->where('tracking_number', $trackingNumber)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $shipment instanceof Shipment) {
+                    throw new DomainException('Shipment not found for tracking number.');
+                }
+
+                $currentStatus = ShipmentStatus::from((string) $shipment->getRawOriginal('status'));
+                if (! $this->shouldApplyShipmentStatusTransition($currentStatus, $status)) {
+                    $receipt->update(['processed_at' => now()]);
+                    $outcome = 'duplicate';
+
+                    return;
+                }
+
+                $shipment->update([
+                    'status' => $status->value,
+                    'payload' => array_merge($shipment->payload ?? [], ['webhook' => $payload]),
+                    'shipped_at' => in_array($status, [ShipmentStatus::SHIPPED, ShipmentStatus::DELIVERED, ShipmentStatus::RETURNED], true)
+                        ? ($shipment->shipped_at ?? now())
+                        : $shipment->shipped_at,
+                    'delivered_at' => $status === ShipmentStatus::DELIVERED ? now() : $shipment->delivered_at,
                 ]);
+
+                $order = $shipment->order;
+                if ($order instanceof Order) {
+                    $currentOrderStatus = OrderStatus::from((string) $order->getRawOriginal('status'));
+
+                    $newStatus = $currentOrderStatus;
+                    if ($status === ShipmentStatus::DELIVERED && $currentOrderStatus !== OrderStatus::CANCELLED) {
+                        $newStatus = OrderStatus::COMPLETED;
+                    }
+
+                    $order->update([
+                        'shipment_status' => $status->value,
+                        'status' => $newStatus->value,
+                    ]);
+                }
+
+                $receipt->update(['processed_at' => now()]);
+                $outcome = 'processed';
+            });
+        } finally {
+            $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+
+            $lagMs = null;
+            if ($receivedAtIso8601 !== null && $receivedAtIso8601 !== '') {
+                try {
+                    $receivedAt = CarbonImmutable::parse($receivedAtIso8601);
+                    $lagMs = (float) $receivedAt->diffInMilliseconds(now(), false);
+                } catch (\Throwable) {
+                    $lagMs = null;
+                }
             }
 
-            $receipt->update(['processed_at' => now()]);
-        });
+            $this->observabilityService->webhook(
+                provider: 'shipping',
+                eventId: $eventId,
+                outcome: $outcome,
+                durationMs: $durationMs,
+                lagMs: $lagMs,
+            );
+        }
     }
 
     /**

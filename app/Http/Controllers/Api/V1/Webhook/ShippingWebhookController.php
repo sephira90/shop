@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Webhook;
 
 use App\Http\Controllers\Controller;
 use App\Services\Shipping\ShippingService;
+use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,27 +27,15 @@ class ShippingWebhookController extends Controller
         $signature = (string) $request->header('X-Signature', '');
 
         if ($signature === '') {
-            return response()->json([
-                'error' => [
-                    'message' => 'Missing X-Signature header.',
-                ],
-            ], Response::HTTP_BAD_REQUEST);
+            return ApiResponse::error('Missing X-Signature header.', Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $this->shippingService->processWebhook($request->all(), $signature);
+            $this->shippingService->processWebhook($request->all(), $signature, now()->toIso8601String());
         } catch (DomainException $exception) {
-            return response()->json([
-                'error' => [
-                    'message' => $exception->getMessage(),
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return response()->json([
-            'data' => [
-                'processed' => true,
-            ],
-        ]);
+        return ApiResponse::data(['processed' => true]);
     }
 }

@@ -8,13 +8,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
+use App\Models\User;
 use App\Repositories\OrderRepository;
 use App\Services\Cart\CartService;
 use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
+use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckoutController extends Controller
@@ -37,29 +40,30 @@ class CheckoutController extends Controller
         $idempotencyKey = (string) $request->header('Idempotency-Key', '');
 
         if ($idempotencyKey === '') {
-            return response()->json([
-                'error' => [
-                    'message' => 'Idempotency-Key header is required.',
-                ],
-            ], Response::HTTP_BAD_REQUEST);
+            return ApiResponse::error('Idempotency-Key header is required.', Response::HTTP_BAD_REQUEST);
         }
 
         $payload = $request->validated();
-        $cart = $this->cartService->resolveForCheckout($request->user(), $payload['guest_token'] ?? null);
+        $currentUser = $this->resolveCurrentUser($request);
+        $guestToken = trim((string) ($payload['guest_token'] ?? ''));
 
         try {
-            $order = $this->checkoutService->placeOrder($cart, $payload, $idempotencyKey, $request->user());
+            if ($currentUser !== null && $guestToken !== '') {
+                $this->cartService->mergeGuestCart($currentUser, $guestToken);
+            }
+
+            $cart = $this->cartService->resolveForCheckout(
+                $currentUser,
+                $guestToken === '' ? null : $guestToken
+            );
+            $order = $this->checkoutService->placeOrder($cart, $payload, $idempotencyKey, $currentUser);
         } catch (DomainException $exception) {
-            return response()->json([
-                'error' => [
-                    'message' => $exception->getMessage(),
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $payment = $this->paymentService->initiate($order, 'checkout-'.$idempotencyKey);
 
-        return response()->json([
+        return ApiResponse::payload([
             'data' => OrderResource::make($order),
             'payment' => [
                 'payment_id' => $payment->id,
@@ -80,13 +84,11 @@ class CheckoutController extends Controller
         $idempotencyKey = (string) $request->header('Idempotency-Key', 'pay-'.$order->id);
         $payment = $this->paymentService->initiate($order, $idempotencyKey);
 
-        return response()->json([
-            'data' => [
-                'payment_id' => $payment->id,
-                'transaction_id' => $payment->transaction_id,
-                'status' => $payment->status?->value,
-                'payload' => $payment->payload,
-            ],
+        return ApiResponse::data([
+            'payment_id' => $payment->id,
+            'transaction_id' => $payment->transaction_id,
+            'status' => $payment->status?->value,
+            'payload' => $payment->payload,
         ]);
     }
 
@@ -95,15 +97,24 @@ class CheckoutController extends Controller
      */
     public function myOrders(Request $request): JsonResponse
     {
-        $orders = $this->orderRepository->paginateForUser($request->user(), 20);
+        $currentUser = $this->resolveCurrentUser($request);
 
-        return response()->json([
-            'data' => OrderResource::collection($orders->items()),
-            'meta' => [
-                'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'total' => $orders->total(),
-            ],
-        ]);
+        if (! $currentUser instanceof User) {
+            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
+        }
+
+        $orders = $this->orderRepository->paginateForUser($currentUser, 20);
+
+        return ApiResponse::paginated(OrderResource::collection($orders->items()), $orders);
+    }
+
+    /**
+     * Resolve currently authenticated user if it is app User model.
+     */
+    private function resolveCurrentUser(Request $request): ?User
+    {
+        $authenticated = $request->user() ?? Auth::guard('sanctum')->user();
+
+        return $authenticated instanceof User ? $authenticated : null;
     }
 }

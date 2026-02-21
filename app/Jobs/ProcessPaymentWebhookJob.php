@@ -20,6 +20,7 @@ class ProcessPaymentWebhookJob implements ShouldQueue
     public function __construct(
         public readonly array $payload,
         public readonly string $signature,
+        public readonly string $receivedAtIso8601,
     ) {}
 
     /**
@@ -27,6 +28,6 @@ class ProcessPaymentWebhookJob implements ShouldQueue
      */
     public function handle(PaymentService $paymentService): void
     {
-        $paymentService->processWebhook($this->payload, $this->signature);
+        $paymentService->processWebhook($this->payload, $this->signature, $this->receivedAtIso8601);
     }
 }

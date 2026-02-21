@@ -6,8 +6,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
-use App\Models\Category;
 use App\Services\Catalog\CatalogService;
+use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,15 +36,7 @@ class CatalogController extends Controller
         $perPage = (int) ($validated['per_page'] ?? 12);
         $paginator = $this->catalogService->list($validated, $perPage);
 
-        return response()->json([
-            'data' => ProductResource::collection($paginator->items()),
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-            ],
-        ]);
+        return ApiResponse::paginated(ProductResource::collection($paginator->items()), $paginator);
     }
 
     /**
@@ -55,16 +47,10 @@ class CatalogController extends Controller
         $product = $this->catalogService->productBySlug($slug);
 
         if ($product === null) {
-            return response()->json([
-                'error' => [
-                    'message' => 'Product not found.',
-                ],
-            ], Response::HTTP_NOT_FOUND);
+            return ApiResponse::error('Product not found.', Response::HTTP_NOT_FOUND);
         }
 
-        return response()->json([
-            'data' => ProductResource::make($product),
-        ]);
+        return ApiResponse::data(ProductResource::make($product));
     }
 
     /**
@@ -72,14 +58,8 @@ class CatalogController extends Controller
      */
     public function categories(): JsonResponse
     {
-        $categories = Category::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'parent_id', 'name', 'slug', 'meta_title', 'meta_description']);
+        $categories = $this->catalogService->categories();
 
-        return response()->json([
-            'data' => $categories,
-        ]);
+        return ApiResponse::data($categories);
     }
 }

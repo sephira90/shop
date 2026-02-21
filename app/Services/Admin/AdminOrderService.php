@@ -15,11 +15,18 @@ final class AdminOrderService
      */
     public function updateStatus(Order $order, array $payload): Order
     {
+        $nextStatus = $payload['status'] ?? $order->status;
+        $cancelledAt = $order->cancelled_at;
+
+        if ($nextStatus === 'cancelled' && $cancelledAt === null) {
+            $cancelledAt = now();
+        }
+
         $order->update([
-            'status' => $payload['status'] ?? $order->status,
+            'status' => $nextStatus,
             'payment_status' => $payload['payment_status'] ?? $order->payment_status,
             'shipment_status' => $payload['shipment_status'] ?? $order->shipment_status,
-            'cancelled_at' => ($payload['status'] ?? null) === 'cancelled' ? now() : null,
+            'cancelled_at' => $cancelledAt,
         ]);
 
         return $order->fresh(['items', 'payments', 'shipments', 'user']);

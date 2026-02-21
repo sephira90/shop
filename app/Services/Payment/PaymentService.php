@@ -12,6 +12,8 @@ use App\Jobs\SendOrderConfirmationJob;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\WebhookReceipt;
+use App\Support\Observability\ObservabilityService;
+use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +22,10 @@ final readonly class PaymentService
     /**
      * Create payment service.
      */
-    public function __construct(private PaymentGatewayInterface $gateway) {}
+    public function __construct(
+        private PaymentGatewayInterface $gateway,
+        private ObservabilityService $observabilityService,
+    ) {}
 
     /**
      * Initiate payment for order.
@@ -82,91 +87,121 @@ final readonly class PaymentService
      *
      * @param  array<string, mixed>  $payload
      */
-    public function processWebhook(array $payload, string $signature): void
+    public function processWebhook(array $payload, string $signature, ?string $receivedAtIso8601 = null): void
     {
-        if (! $this->gateway->verifyWebhookSignature($payload, $signature)) {
-            throw new DomainException('Invalid webhook signature.');
-        }
+        $startedAt = hrtime(true);
+        $eventId = 'unknown';
+        $outcome = 'rejected';
 
-        $eventId = $this->gateway->extractEventId($payload);
-
-        if ($eventId === '') {
-            throw new DomainException('Webhook event id is required.');
-        }
-
-        $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
-
-        DB::transaction(function () use ($payload, $eventId, $payloadHash): void {
-            $receipt = WebhookReceipt::query()->firstOrCreate(
-                ['provider' => 'fake-payment', 'event_id' => $eventId],
-                [
-                    'payload_hash' => $payloadHash,
-                    'processed_at' => null,
-                ],
-            );
-
-            $receipt = WebhookReceipt::query()
-                ->whereKey($receipt->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($receipt->payload_hash !== $payloadHash) {
-                throw new DomainException('Webhook payload hash mismatch.');
+        try {
+            if (! $this->gateway->verifyWebhookSignature($payload, $signature)) {
+                throw new DomainException('Invalid webhook signature.');
             }
 
-            if ($receipt->processed_at !== null) {
-                return;
+            $eventId = $this->gateway->extractEventId($payload);
+
+            if ($eventId === '') {
+                throw new DomainException('Webhook event id is required.');
             }
 
-            $transactionId = $this->gateway->extractTransactionId($payload);
-            if ($transactionId === '') {
-                throw new DomainException('Payment transaction id is required.');
-            }
-            $paymentStatus = $this->gateway->resolveWebhookStatus($payload);
+            $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-            $payment = Payment::query()
-                ->where('gateway', 'fake-payment')
-                ->where('transaction_id', $transactionId)
-                ->lockForUpdate()
-                ->first();
+            DB::transaction(function () use ($payload, $eventId, $payloadHash, &$outcome): void {
+                $receipt = WebhookReceipt::query()->firstOrCreate(
+                    ['provider' => 'fake-payment', 'event_id' => $eventId],
+                    [
+                        'payload_hash' => $payloadHash,
+                        'processed_at' => null,
+                    ],
+                );
 
-            if (! $payment instanceof Payment) {
-                throw new DomainException('Payment transaction not found.');
-            }
+                $receipt = WebhookReceipt::query()
+                    ->whereKey($receipt->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $previousPaymentStatus = PaymentStatus::from((string) $payment->getRawOriginal('status'));
+                if ($receipt->payload_hash !== $payloadHash) {
+                    throw new DomainException('Webhook payload hash mismatch.');
+                }
 
-            if (! $this->shouldApplyPaymentStatusTransition($previousPaymentStatus, $paymentStatus)) {
+                if ($receipt->processed_at !== null) {
+                    $outcome = 'duplicate';
+
+                    return;
+                }
+
+                $transactionId = $this->gateway->extractTransactionId($payload);
+                if ($transactionId === '') {
+                    throw new DomainException('Payment transaction id is required.');
+                }
+                $paymentStatus = $this->gateway->resolveWebhookStatus($payload);
+
+                $payment = Payment::query()
+                    ->where('gateway', 'fake-payment')
+                    ->where('transaction_id', $transactionId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $payment instanceof Payment) {
+                    throw new DomainException('Payment transaction not found.');
+                }
+
+                $previousPaymentStatus = PaymentStatus::from((string) $payment->getRawOriginal('status'));
+
+                if (! $this->shouldApplyPaymentStatusTransition($previousPaymentStatus, $paymentStatus)) {
+                    $receipt->update(['processed_at' => now()]);
+                    $outcome = 'duplicate';
+
+                    return;
+                }
+
+                $payment->update([
+                    'status' => $paymentStatus->value,
+                    'payload' => array_merge($payment->payload ?? [], ['webhook' => $payload]),
+                    'processed_at' => now(),
+                ]);
+
+                $order = $payment->order;
+                if ($order === null) {
+                    throw new DomainException('Payment order not found.');
+                }
+
+                $orderStatus = $this->resolveOrderStatus($order->status, $paymentStatus);
+
+                $order->update([
+                    'payment_status' => $paymentStatus->value,
+                    'status' => $orderStatus->value,
+                ]);
+
+                if ($paymentStatus === PaymentStatus::CAPTURED && $previousPaymentStatus !== PaymentStatus::CAPTURED) {
+                    SendOrderConfirmationJob::dispatch($order->id);
+                    DispatchShipmentJob::dispatch($order->id);
+                }
+
                 $receipt->update(['processed_at' => now()]);
+                $outcome = 'processed';
+            });
+        } finally {
+            $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
 
-                return;
+            $lagMs = null;
+            if ($receivedAtIso8601 !== null && $receivedAtIso8601 !== '') {
+                try {
+                    $receivedAt = CarbonImmutable::parse($receivedAtIso8601);
+                    $lagMs = (float) $receivedAt->diffInMilliseconds(now(), false);
+                } catch (\Throwable) {
+                    $lagMs = null;
+                }
             }
 
-            $payment->update([
-                'status' => $paymentStatus->value,
-                'payload' => array_merge($payment->payload ?? [], ['webhook' => $payload]),
-                'processed_at' => now(),
-            ]);
-
-            $order = $payment->order;
-            if ($order === null) {
-                throw new DomainException('Payment order not found.');
-            }
-
-            $orderStatus = $this->resolveOrderStatus($order->status, $paymentStatus);
-
-            $order->update([
-                'payment_status' => $paymentStatus->value,
-                'status' => $orderStatus->value,
-            ]);
-
-            if ($paymentStatus === PaymentStatus::CAPTURED && $previousPaymentStatus !== PaymentStatus::CAPTURED) {
-                SendOrderConfirmationJob::dispatch($order->id);
-                DispatchShipmentJob::dispatch($order->id);
-            }
-
-            $receipt->update(['processed_at' => now()]);
-        });
+            $this->observabilityService->webhook(
+                provider: 'payment',
+                eventId: $eventId,
+                outcome: $outcome,
+                durationMs: $durationMs,
+                lagMs: $lagMs,
+            );
+        }
     }
 
     /**

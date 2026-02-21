@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
+use App\Support\Api\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -25,17 +26,11 @@ class PasswordController extends Controller
         $status = Password::sendResetLink($request->validated());
 
         if ($status !== Password::RESET_LINK_SENT) {
-            return response()->json([
-                'error' => [
-                    'message' => __($status),
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error(__($status), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return response()->json([
-            'data' => [
-                'message' => __($status),
-            ],
+        return ApiResponse::data([
+            'message' => __($status),
         ]);
     }
 
@@ -57,17 +52,11 @@ class PasswordController extends Controller
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            return response()->json([
-                'error' => [
-                    'message' => __($status),
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error(__($status), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return response()->json([
-            'data' => [
-                'message' => __($status),
-            ],
+        return ApiResponse::data([
+            'message' => __($status),
         ]);
     }
 }

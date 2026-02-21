@@ -7,15 +7,19 @@ namespace App\Services\Checkout;
 use App\Enums\CartStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\ProductStatus;
 use App\Enums\PromotionType;
 use App\Enums\ShipmentStatus;
 use App\Events\OrderPlaced;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\CheckoutIdempotency;
 use App\Models\Coupon;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Promotion;
 use App\Models\User;
 use DomainException;
@@ -41,7 +45,7 @@ final class CheckoutService
         return DB::transaction(function () use ($cart, $checkoutPayload, $idempotencyKey, $hash, $scopeKey, $user): Order {
             $lockedCart = Cart::query()
                 ->whereKey($cart->id)
-                ->with('items.variant.inventory')
+                ->with(['items.variant.inventory'])
                 ->lockForUpdate()
                 ->first();
 
@@ -56,7 +60,9 @@ final class CheckoutService
                 ->first();
 
             if ($idempotency instanceof CheckoutIdempotency) {
-                if ($idempotency->expires_at !== null && $idempotency->expires_at->isPast()) {
+                $idempotencyExpiresAt = $idempotency->getRawOriginal('expires_at');
+
+                if ($idempotencyExpiresAt !== null && now()->isAfter((string) $idempotencyExpiresAt)) {
                     $idempotency->update([
                         'cart_id' => $cart->id,
                         'order_id' => null,
@@ -98,8 +104,30 @@ final class CheckoutService
             }
 
             $subtotal = 0.0;
+            $lineItems = [];
 
             foreach ($lockedCart->items as $item) {
+                if (! $item instanceof CartItem) {
+                    throw new DomainException('Cart item payload is invalid.');
+                }
+
+                $variant = $item->variant;
+
+                if (! $variant instanceof ProductVariant) {
+                    throw new DomainException('Cart contains unavailable items.');
+                }
+
+                $product = Product::query()
+                    ->select(['id', 'status', 'published_at'])
+                    ->whereKey($variant->product_id)
+                    ->first();
+
+                if (! $product instanceof Product || ! $variant->is_active
+                    || (string) $product->getRawOriginal('status') !== ProductStatus::ACTIVE->value
+                    || $product->published_at === null) {
+                    throw new DomainException('Cart contains unavailable items.');
+                }
+
                 $inventory = Inventory::query()
                     ->where('product_variant_id', $item->product_variant_id)
                     ->lockForUpdate()
@@ -111,6 +139,15 @@ final class CheckoutService
 
                 $inventory->decrement('quantity', $item->quantity);
                 $subtotal += (float) $item->line_total;
+
+                $lineItems[] = [
+                    'product_variant_id' => $item->product_variant_id,
+                    'sku' => $variant->sku,
+                    'name' => $variant->name,
+                    'quantity' => $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'line_total' => (float) $item->line_total,
+                ];
             }
 
             $discountContext = $this->resolveDiscountContext($checkoutPayload, $subtotal);
@@ -121,7 +158,7 @@ final class CheckoutService
             $order = Order::query()->create([
                 'order_number' => 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
                 'user_id' => $user?->id,
-                'email' => (string) ($checkoutPayload['email'] ?? $user?->email ?? ''),
+                'email' => (string) $checkoutPayload['email'],
                 'status' => OrderStatus::PENDING->value,
                 'payment_status' => PaymentStatus::PENDING->value,
                 'shipment_status' => ShipmentStatus::PENDING->value,
@@ -132,26 +169,19 @@ final class CheckoutService
                 'total' => $total,
                 'billing_address' => (array) ($checkoutPayload['billing_address'] ?? []),
                 'shipping_address' => (array) ($checkoutPayload['shipping_address'] ?? []),
-                'cart_snapshot' => $lockedCart->items->map(static fn ($item): array => [
-                    'product_variant_id' => $item->product_variant_id,
-                    'sku' => (string) ($item->variant?->sku ?? ''),
-                    'name' => (string) ($item->variant?->name ?? ''),
-                    'quantity' => $item->quantity,
-                    'unit_price' => (float) $item->unit_price,
-                    'line_total' => (float) $item->line_total,
-                ])->values()->all(),
+                'cart_snapshot' => $lineItems,
                 'placed_at' => now(),
             ]);
 
-            foreach ($lockedCart->items as $item) {
+            foreach ($lineItems as $lineItem) {
                 OrderItem::query()->create([
                     'order_id' => $order->id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'sku' => (string) ($item->variant?->sku ?? ''),
-                    'name' => (string) ($item->variant?->name ?? ''),
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'total_price' => $item->line_total,
+                    'product_variant_id' => $lineItem['product_variant_id'],
+                    'sku' => $lineItem['sku'],
+                    'name' => $lineItem['name'],
+                    'quantity' => $lineItem['quantity'],
+                    'unit_price' => $lineItem['unit_price'],
+                    'total_price' => $lineItem['line_total'],
                     'meta' => ['source_cart' => $lockedCart->id],
                 ]);
             }
@@ -222,7 +252,9 @@ final class CheckoutService
             throw new DomainException('Coupon code is invalid.');
         }
 
-        if ($coupon->expires_at !== null && $coupon->expires_at->isPast()) {
+        $couponExpiresAt = $coupon->getRawOriginal('expires_at');
+
+        if ($couponExpiresAt !== null && now()->isAfter((string) $couponExpiresAt)) {
             throw new DomainException('Coupon has expired.');
         }
 
@@ -239,11 +271,13 @@ final class CheckoutService
             throw new DomainException('Promotion is not available.');
         }
 
-        if ($promotion->starts_at !== null && $promotion->starts_at->isFuture()) {
+        $promotionStartsAt = $promotion->getRawOriginal('starts_at');
+        if ($promotionStartsAt !== null && now()->isBefore((string) $promotionStartsAt)) {
             throw new DomainException('Promotion has not started yet.');
         }
 
-        if ($promotion->ends_at !== null && $promotion->ends_at->isPast()) {
+        $promotionEndsAt = $promotion->getRawOriginal('ends_at');
+        if ($promotionEndsAt !== null && now()->isAfter((string) $promotionEndsAt)) {
             throw new DomainException('Promotion has ended.');
         }
 

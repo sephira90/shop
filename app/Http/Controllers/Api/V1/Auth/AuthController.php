@@ -8,8 +8,10 @@ use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\User;
 use App\Services\Cart\CartService;
+use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -43,16 +45,9 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-register')->plainTextToken;
 
-        return response()->json([
-            'data' => [
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'roles' => $user->roles()->pluck('name')->all(),
-                ],
-            ],
+        return ApiResponse::data([
+            'token' => $token,
+            'user' => $this->userPayload($user),
         ], Response::HTTP_CREATED);
     }
 
@@ -66,19 +61,11 @@ class AuthController extends Controller
         $user = User::query()->where('email', $payload['email'])->first();
 
         if (! $user instanceof User || ! Hash::check($payload['password'], $user->password)) {
-            return response()->json([
-                'error' => [
-                    'message' => 'Invalid credentials.',
-                ],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return ApiResponse::error('Invalid credentials.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if (! $user->is_active) {
-            return response()->json([
-                'error' => [
-                    'message' => 'User account is disabled.',
-                ],
-            ], Response::HTTP_FORBIDDEN);
+            return ApiResponse::error('User account is disabled.', Response::HTTP_FORBIDDEN);
         }
 
         if (! empty($payload['guest_token'])) {
@@ -87,17 +74,9 @@ class AuthController extends Controller
 
         $token = $user->createToken((string) ($payload['device_name'] ?? 'api-device'))->plainTextToken;
 
-        return response()->json([
-            'data' => [
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'is_email_verified' => $user->hasVerifiedEmail(),
-                    'roles' => $user->roles()->pluck('name')->all(),
-                ],
-            ],
+        return ApiResponse::data([
+            'token' => $token,
+            'user' => $this->userPayload($user),
         ]);
     }
 
@@ -108,10 +87,8 @@ class AuthController extends Controller
     {
         $request->user()?->currentAccessToken()?->delete();
 
-        return response()->json([
-            'data' => [
-                'message' => 'Logged out successfully.',
-            ],
+        return ApiResponse::data([
+            'message' => 'Logged out successfully.',
         ]);
     }
 
@@ -120,18 +97,57 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $authenticated = $request->user();
 
-        return response()->json([
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'is_email_verified' => $user->hasVerifiedEmail(),
-                'roles' => $user->roles()->pluck('name')->all(),
-            ],
+        if (! $authenticated instanceof User) {
+            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
+        }
+
+        return ApiResponse::data($this->userPayload($authenticated));
+    }
+
+    /**
+     * Update current user profile fields.
+     */
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $authenticated = $request->user();
+
+        if (! $authenticated instanceof User) {
+            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
+        }
+
+        $payload = $request->validated();
+        $firstName = trim((string) $payload['first_name']);
+        $lastName = trim((string) $payload['last_name']);
+        $phone = isset($payload['phone']) ? trim((string) $payload['phone']) : '';
+
+        $authenticated->update([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'name' => trim($firstName.' '.$lastName),
+            'phone' => $phone !== '' ? $phone : null,
         ]);
+
+        return ApiResponse::data($this->userPayload($authenticated->fresh()));
+    }
+
+    /**
+     * Build user payload for API responses.
+     *
+     * @return array<string, mixed>
+     */
+    private function userPayload(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'is_email_verified' => $user->hasVerifiedEmail(),
+            'roles' => $user->roles()->pluck('name')->all(),
+        ];
     }
 }

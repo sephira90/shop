@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ProductIndexRequest;
 use App\Http\Requests\Admin\ProductStoreRequest;
 use App\Http\Requests\Admin\ProductUpdateRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Repositories\ProductRepository;
 use App\Services\Admin\AdminCatalogService;
+use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
@@ -17,23 +20,21 @@ class ProductController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly AdminCatalogService $adminCatalogService) {}
+    public function __construct(
+        private readonly ProductRepository $productRepository,
+        private readonly AdminCatalogService $adminCatalogService,
+    ) {}
 
     /**
      * List products for admin panel.
      */
-    public function index(): JsonResponse
+    public function index(ProductIndexRequest $request): JsonResponse
     {
-        $products = Product::query()->with(['category', 'variants.inventory'])->latest('id')->paginate(30);
+        $this->authorize('viewAny', Product::class);
 
-        return response()->json([
-            'data' => ProductResource::collection($products->items()),
-            'meta' => [
-                'current_page' => $products->currentPage(),
-                'last_page' => $products->lastPage(),
-                'total' => $products->total(),
-            ],
-        ]);
+        $products = $this->productRepository->paginateForAdmin($request->filter());
+
+        return ApiResponse::paginated(ProductResource::collection($products->items()), $products);
     }
 
     /**
@@ -45,9 +46,7 @@ class ProductController extends Controller
 
         $product = $this->adminCatalogService->createProduct($request->validated());
 
-        return response()->json([
-            'data' => ProductResource::make($product),
-        ], 201);
+        return ApiResponse::data(ProductResource::make($product), 201);
     }
 
     /**
@@ -57,9 +56,7 @@ class ProductController extends Controller
     {
         $this->authorize('view', $product);
 
-        return response()->json([
-            'data' => ProductResource::make($product->load(['category', 'variants.inventory'])),
-        ]);
+        return ApiResponse::data(ProductResource::make($product->load(['category', 'variants.inventory'])));
     }
 
     /**
@@ -71,9 +68,7 @@ class ProductController extends Controller
 
         $product = $this->adminCatalogService->updateProduct($product, $request->validated());
 
-        return response()->json([
-            'data' => ProductResource::make($product),
-        ]);
+        return ApiResponse::data(ProductResource::make($product));
     }
 
     /**
@@ -85,10 +80,6 @@ class ProductController extends Controller
 
         $this->adminCatalogService->deleteProduct($product);
 
-        return response()->json([
-            'data' => [
-                'deleted' => true,
-            ],
-        ]);
+        return ApiResponse::deleted();
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProductStoreRequest extends FormRequest
@@ -13,7 +14,7 @@ class ProductStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Product::class) ?? false;
     }
 
     /**
@@ -37,6 +38,19 @@ class ProductStoreRequest extends FormRequest
             'meta_title' => ['nullable', 'string', 'max:180'],
             'meta_description' => ['nullable', 'string', 'max:255'],
             'published_at' => ['nullable', 'date'],
+            'variants' => ['nullable', 'array', 'min:1'],
+            'variants.*.id' => ['nullable', 'integer', 'exists:product_variants,id'],
+            'variants.*.sku' => ['required_with:variants', 'string', 'max:64', 'distinct'],
+            'variants.*.name' => ['required_with:variants', 'string', 'max:180'],
+            'variants.*.attributes' => ['nullable', 'array'],
+            'variants.*.price' => ['required_with:variants', 'numeric', 'min:0.01', 'max:9999999999.99'],
+            'variants.*.compare_at_price' => ['nullable', 'numeric', 'min:0.01', 'max:9999999999.99'],
+            'variants.*.currency' => ['required_with:variants', 'string', 'size:3'],
+            'variants.*.is_active' => ['nullable', 'boolean'],
+            'variants.*.inventory' => ['nullable', 'array'],
+            'variants.*.inventory.quantity' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
+            'variants.*.inventory.reserved_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
+            'variants.*.inventory.low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
         ];
     }
 }

@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\OrderIndexRequest;
 use App\Http\Requests\Admin\OrderStatusUpdateRequest;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\OrderSummaryResource;
 use App\Models\Order;
 use App\Repositories\OrderRepository;
 use App\Services\Admin\AdminOrderService;
+use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
 class OrderController extends Controller
@@ -25,18 +28,13 @@ class OrderController extends Controller
     /**
      * List orders for admin panel.
      */
-    public function index(): JsonResponse
+    public function index(OrderIndexRequest $request): JsonResponse
     {
-        $orders = $this->orderRepository->paginateForAdmin(30);
+        $this->authorize('viewAny', Order::class);
 
-        return response()->json([
-            'data' => OrderResource::collection($orders->items()),
-            'meta' => [
-                'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'total' => $orders->total(),
-            ],
-        ]);
+        $orders = $this->orderRepository->paginateSummaryForAdmin($request->filter());
+
+        return ApiResponse::paginated(OrderSummaryResource::collection($orders->items()), $orders);
     }
 
     /**
@@ -44,9 +42,9 @@ class OrderController extends Controller
      */
     public function show(Order $order): JsonResponse
     {
-        return response()->json([
-            'data' => OrderResource::make($order->load(['items', 'payments', 'shipments', 'user'])),
-        ]);
+        $this->authorize('view', $order);
+
+        return ApiResponse::data(OrderResource::make($order->load(['items', 'payments', 'shipments', 'user'])));
     }
 
     /**
@@ -54,10 +52,10 @@ class OrderController extends Controller
      */
     public function updateStatus(OrderStatusUpdateRequest $request, Order $order): JsonResponse
     {
+        $this->authorize('update', $order);
+
         $updated = $this->adminOrderService->updateStatus($order, $request->validated());
 
-        return response()->json([
-            'data' => OrderResource::make($updated),
-        ]);
+        return ApiResponse::data(OrderResource::make($updated));
     }
 }
