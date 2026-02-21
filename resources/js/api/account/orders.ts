@@ -1,11 +1,17 @@
-import { extractData, normalizeListResponse } from '@/api/response';
-import { apiClient } from '@/api/client';
-import { asRecord, toInteger, toNumber } from '@/mappers/common';
-import { mapAccountOrderListFromApi } from '@/mappers/account/orders';
-import type { AccountOrderListParams, AccountOrderListResponse, AccountOrdersSummary } from '@/types/account-orders';
+import { extractData, normalizeListResponse } from "@/api/response";
+import { apiClient } from "@/api/client";
+import { asRecord, toInteger, toNumber } from "@/mappers/common";
+import { mapAccountOrderListFromApi } from "@/mappers/account/orders";
+import type {
+    AccountOrderListParams,
+    AccountOrderListResponse,
+    AccountOrdersSummary,
+} from "@/types/account-orders";
 
-export const listAccountOrders = async (params: AccountOrderListParams): Promise<AccountOrderListResponse> => {
-    const { data } = await apiClient.get('/orders/me', {
+export const listAccountOrders = async (
+    params: AccountOrderListParams,
+): Promise<AccountOrderListResponse> => {
+    const { data } = await apiClient.get("/orders/me", {
         params,
     });
     const response = normalizeListResponse<unknown>(data);
@@ -17,7 +23,7 @@ export const listAccountOrders = async (params: AccountOrderListParams): Promise
 };
 
 export const getAccountOrdersSummary = async (): Promise<AccountOrdersSummary> => {
-    const { data } = await apiClient.get('/orders/me/summary');
+    const { data } = await apiClient.get("/orders/me/summary");
     const payload = asRecord(extractData<unknown>(data));
 
     return {

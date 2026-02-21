@@ -40,12 +40,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted } from "vue";
 
-import PromotionCampaignForm from '@/components/admin/promotions/PromotionCampaignForm.vue';
-import PromotionCampaignTable from '@/components/admin/promotions/PromotionCampaignTable.vue';
-import PromotionCouponsPanel from '@/components/admin/promotions/PromotionCouponsPanel.vue';
-import { useAdminPromotions } from '@/composables/admin/useAdminPromotions';
+import PromotionCampaignForm from "@/components/admin/promotions/PromotionCampaignForm.vue";
+import PromotionCampaignTable from "@/components/admin/promotions/PromotionCampaignTable.vue";
+import PromotionCouponsPanel from "@/components/admin/promotions/PromotionCouponsPanel.vue";
+import { useAdminPromotions } from "@/composables/admin/useAdminPromotions";
 
 const {
     page,

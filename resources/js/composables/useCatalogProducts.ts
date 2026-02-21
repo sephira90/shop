@@ -1,16 +1,16 @@
-import { reactive, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { reactive, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-import { listCatalogProducts } from '@/api/catalog';
-import { useApiError } from '@/composables/useApiError';
+import { listCatalogProducts } from "@/api/catalog";
+import { useApiError } from "@/composables/useApiError";
 import {
     buildCatalogListParams,
     buildCatalogRouteQuery,
     isSameCatalogRouteQuery,
     parseCatalogFiltersFromRouteQuery,
     type CatalogFilters,
-} from '@/queries/catalog';
-import type { CatalogProduct } from '@/types/catalog';
+} from "@/queries/catalog";
+import type { CatalogProduct } from "@/types/catalog";
 
 export const useCatalogProducts = () => {
     const route = useRoute();
@@ -18,14 +18,14 @@ export const useCatalogProducts = () => {
     const { parseApiError } = useApiError();
     const products = ref<CatalogProduct[]>([]);
     const isLoading = ref(false);
-    const loadError = ref('');
+    const loadError = ref("");
     const filters = reactive<CatalogFilters>(parseCatalogFiltersFromRouteQuery(route.query));
     let activeRequestId = 0;
 
     const loadProducts = async (): Promise<void> => {
         const requestId = ++activeRequestId;
         isLoading.value = true;
-        loadError.value = '';
+        loadError.value = "";
 
         try {
             const response = await listCatalogProducts(buildCatalogListParams(filters));
@@ -41,7 +41,7 @@ export const useCatalogProducts = () => {
             }
 
             products.value = [];
-            loadError.value = parseApiError(error, 'Unable to load catalog products.');
+            loadError.value = parseApiError(error, "Unable to load catalog products.");
         } finally {
             if (requestId === activeRequestId) {
                 isLoading.value = false;

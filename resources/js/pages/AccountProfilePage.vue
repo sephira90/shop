@@ -4,7 +4,10 @@
             <div class="account-hero__main">
                 <span class="pill">Account center</span>
                 <h1>{{ profileName }}</h1>
-                <p>Manage profile details, monitor order activity and quickly access account actions.</p>
+                <p>
+                    Manage profile details, monitor order activity and quickly access account
+                    actions.
+                </p>
             </div>
 
             <div class="account-hero__user">
@@ -12,8 +15,15 @@
                 <div class="account-hero__meta">
                     <p class="account-hero__email">{{ profileEmail }}</p>
                     <div class="actions">
-                        <span class="status-chip" :class="verificationClass">{{ verificationLabel }}</span>
-                        <span v-for="role in roleLabels" :key="role" class="status-chip status-chip--role">{{ role }}</span>
+                        <span class="status-chip" :class="verificationClass">{{
+                            verificationLabel
+                        }}</span>
+                        <span
+                            v-for="role in roleLabels"
+                            :key="role"
+                            class="status-chip status-chip--role"
+                            >{{ role }}</span
+                        >
                     </div>
                 </div>
             </div>
@@ -39,14 +49,18 @@
             </article>
             <article class="card metric-card">
                 <span class="metric-card__label">Spent (loaded)</span>
-                <strong class="metric-card__value">{{ formatPrice(metrics.loadedTotalSpent) }}</strong>
+                <strong class="metric-card__value">{{
+                    formatPrice(metrics.loadedTotalSpent)
+                }}</strong>
             </article>
         </div>
 
         <div class="grid grid-2">
             <article class="card">
                 <h2 class="section-title">Edit profile</h2>
-                <p class="muted">Update your personal details used for orders and account communication.</p>
+                <p class="muted">
+                    Update your personal details used for orders and account communication.
+                </p>
                 <form class="form-grid actions--top" @submit.prevent="submitProfileUpdate">
                     <div class="grid grid-2">
                         <label class="field">
@@ -68,16 +82,24 @@
                     </label>
                     <div class="actions">
                         <button class="btn btn-primary" type="submit" :disabled="isSavingProfile">
-                            {{ isSavingProfile ? 'Saving...' : 'Save profile' }}
+                            {{ isSavingProfile ? "Saving..." : "Save profile" }}
                         </button>
-                        <button class="btn btn-muted" type="button" :disabled="isSavingProfile" @click="resetProfileForm">
+                        <button
+                            class="btn btn-muted"
+                            type="button"
+                            :disabled="isSavingProfile"
+                            @click="resetProfileForm"
+                        >
                             Reset
                         </button>
                     </div>
                 </form>
                 <p
                     v-if="profileNotice.message"
-                    :class="['notice', profileNotice.type === 'success' ? 'notice--success' : 'notice--error']"
+                    :class="[
+                        'notice',
+                        profileNotice.type === 'success' ? 'notice--success' : 'notice--error',
+                    ]"
                 >
                     {{ profileNotice.message }}
                 </p>
@@ -100,13 +122,15 @@
                     </div>
                     <div class="profile-list__row">
                         <dt>Roles</dt>
-                        <dd>{{ roleLabels.join(', ') }}</dd>
+                        <dd>{{ roleLabels.join(", ") }}</dd>
                     </div>
                 </dl>
 
                 <h2 class="section-title">Quick actions</h2>
                 <div class="actions actions--top">
-                    <RouterLink class="btn btn-primary" to="/account/orders">Open orders</RouterLink>
+                    <RouterLink class="btn btn-primary" to="/account/orders"
+                        >Open orders</RouterLink
+                    >
                     <RouterLink class="btn btn-muted" to="/catalog">Go to catalog</RouterLink>
                     <RouterLink v-if="authStore.canAccessAdmin" class="btn btn-muted" to="/admin">
                         Open admin
@@ -121,10 +145,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
+import { onMounted } from "vue";
+import { RouterLink } from "vue-router";
 
-import { useAccountProfile } from '@/composables/useAccountProfile';
+import { useAccountProfile } from "@/composables/useAccountProfile";
 
 const {
     authStore,

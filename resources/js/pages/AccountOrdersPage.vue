@@ -9,10 +9,17 @@
             <div class="stack stack--between">
                 <div>
                     <h1 class="section-title">My orders</h1>
-                    <p class="muted">Track statuses, payment and shipment updates for your purchases.</p>
+                    <p class="muted">
+                        Track statuses, payment and shipment updates for your purchases.
+                    </p>
                 </div>
-                <button class="btn btn-muted" type="button" :disabled="isLoading" @click="loadOrders(page)">
-                    {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+                <button
+                    class="btn btn-muted"
+                    type="button"
+                    :disabled="isLoading"
+                    @click="loadOrders(page)"
+                >
+                    {{ isLoading ? "Refreshing..." : "Refresh" }}
                 </button>
             </div>
 
@@ -69,11 +76,16 @@
                         <p class="muted">{{ formatDate(order.placed_at ?? order.created_at) }}</p>
                     </div>
                     <div class="actions">
-                        <span class="status-chip" :class="orderStatusClass(order.status)">Order: {{ order.status }}</span>
+                        <span class="status-chip" :class="orderStatusClass(order.status)"
+                            >Order: {{ order.status }}</span
+                        >
                         <span class="status-chip" :class="paymentStatusClass(order.payment_status)">
                             Payment: {{ order.payment_status }}
                         </span>
-                        <span class="status-chip" :class="shipmentStatusClass(order.shipment_status)">
+                        <span
+                            class="status-chip"
+                            :class="shipmentStatusClass(order.shipment_status)"
+                        >
                             Shipment: {{ order.shipment_status }}
                         </span>
                     </div>
@@ -96,7 +108,7 @@
 
                 <div class="actions">
                     <button class="btn btn-muted" type="button" @click="toggleDetails(order.id)">
-                        {{ isExpanded(order.id) ? 'Hide details' : 'Show details' }}
+                        {{ isExpanded(order.id) ? "Hide details" : "Show details" }}
                     </button>
                 </div>
 
@@ -115,23 +127,23 @@
                     <div class="table-wrap">
                         <table class="table">
                             <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Qty</th>
-                                <th>Unit</th>
-                                <th>Total</th>
-                            </tr>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Qty</th>
+                                    <th>Unit</th>
+                                    <th>Total</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            <tr v-for="item in order.items" :key="`${order.id}-${item.sku}`">
-                                <td>
-                                    <strong>{{ item.name }}</strong>
-                                    <p class="muted">{{ item.sku }}</p>
-                                </td>
-                                <td>{{ item.quantity }}</td>
-                                <td>{{ formatPrice(item.unit_price, order.currency) }}</td>
-                                <td>{{ formatPrice(item.total_price, order.currency) }}</td>
-                            </tr>
+                                <tr v-for="item in order.items" :key="`${order.id}-${item.sku}`">
+                                    <td>
+                                        <strong>{{ item.name }}</strong>
+                                        <p class="muted">{{ item.sku }}</p>
+                                    </td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ formatPrice(item.unit_price, order.currency) }}</td>
+                                    <td>{{ formatPrice(item.total_price, order.currency) }}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -146,10 +158,16 @@
         <div class="card">
             <div class="stack stack--between">
                 <p class="muted">
-                    Page {{ meta.current_page }} of {{ meta.last_page }}. Total orders: {{ meta.total }}.
+                    Page {{ meta.current_page }} of {{ meta.last_page }}. Total orders:
+                    {{ meta.total }}.
                 </p>
                 <div class="actions">
-                    <button class="btn btn-muted" type="button" :disabled="page <= 1 || isLoading" @click="loadOrders(page - 1)">
+                    <button
+                        class="btn btn-muted"
+                        type="button"
+                        :disabled="page <= 1 || isLoading"
+                        @click="loadOrders(page - 1)"
+                    >
                         Previous
                     </button>
                     <button
@@ -167,9 +185,9 @@
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
+import { RouterLink } from "vue-router";
 
-import { useAccountOrders } from '@/composables/useAccountOrders';
+import { useAccountOrders } from "@/composables/useAccountOrders";
 
 const {
     orders,

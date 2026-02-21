@@ -4,9 +4,9 @@ import type {
     AdminOrderSummary,
     OrderItem,
     OrderStatusUpdatePayload,
-} from '@/types/admin-orders';
+} from "@/types/admin-orders";
 
-import { asArray, asRecord, toNumber, toNullableString, toString } from '@/mappers/common';
+import { asArray, asRecord, toNumber, toNullableString, toString } from "@/mappers/common";
 
 const mapAddress = (value: unknown): AddressPayload | null => {
     const record = asRecord(value);
@@ -15,22 +15,22 @@ const mapAddress = (value: unknown): AddressPayload | null => {
     const country = toString(record.country).trim();
     const postcode = toString(record.postcode).trim();
 
-    if (line1 === '' && city === '' && country === '' && postcode === '') {
+    if (line1 === "" && city === "" && country === "" && postcode === "") {
         return null;
     }
 
     const address: AddressPayload = {};
 
-    if (line1 !== '') {
+    if (line1 !== "") {
         address.line1 = line1;
     }
-    if (city !== '') {
+    if (city !== "") {
         address.city = city;
     }
-    if (country !== '') {
+    if (country !== "") {
         address.country = country;
     }
-    if (postcode !== '') {
+    if (postcode !== "") {
         address.postcode = postcode;
     }
 
@@ -59,7 +59,7 @@ export const mapAdminOrderSummaryFromApi = (value: unknown): AdminOrderSummary =
         status: toString(record.status),
         payment_status: toString(record.payment_status),
         shipment_status: toString(record.shipment_status),
-        currency: toString(record.currency, 'USD'),
+        currency: toString(record.currency, "USD"),
         total: toNumber(record.total),
         placed_at: toNullableString(record.placed_at),
         created_at: toNullableString(record.created_at),
@@ -83,7 +83,9 @@ export const mapAdminOrderListFromApi = (value: unknown): AdminOrderSummary[] =>
     return asArray(value).map((item) => mapAdminOrderSummaryFromApi(item));
 };
 
-export const toOrderStatusUpdateDto = (payload: OrderStatusUpdatePayload): OrderStatusUpdatePayload => {
+export const toOrderStatusUpdateDto = (
+    payload: OrderStatusUpdatePayload,
+): OrderStatusUpdatePayload => {
     return {
         status: payload.status.trim(),
         payment_status: payload.payment_status.trim(),

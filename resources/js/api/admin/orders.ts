@@ -1,19 +1,19 @@
-import { apiClient } from '@/api/client';
-import { extractData, normalizeListResponse } from '@/api/response';
+import { apiClient } from "@/api/client";
+import { extractData, normalizeListResponse } from "@/api/response";
 import {
     mapAdminOrderDetailFromApi,
     mapAdminOrderListFromApi,
     toOrderStatusUpdateDto,
-} from '@/mappers/admin/orders';
+} from "@/mappers/admin/orders";
 import type {
     AdminOrderDetail,
     AdminOrderListParams,
     OrderListResponse,
     OrderStatusUpdatePayload,
-} from '@/types/admin-orders';
+} from "@/types/admin-orders";
 
 export const listAdminOrders = async (params: AdminOrderListParams): Promise<OrderListResponse> => {
-    const { data } = await apiClient.get('/admin/orders', {
+    const { data } = await apiClient.get("/admin/orders", {
         params,
     });
 
@@ -29,7 +29,10 @@ export const updateAdminOrderStatus = async (
     orderId: string,
     payload: OrderStatusUpdatePayload,
 ): Promise<AdminOrderDetail | null> => {
-    const { data } = await apiClient.patch(`/admin/orders/${orderId}/status`, toOrderStatusUpdateDto(payload));
+    const { data } = await apiClient.patch(
+        `/admin/orders/${orderId}/status`,
+        toOrderStatusUpdateDto(payload),
+    );
     const response = extractData<unknown>(data);
 
     return response ? mapAdminOrderDetailFromApi(response) : null;

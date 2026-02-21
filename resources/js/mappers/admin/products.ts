@@ -5,7 +5,7 @@ import type {
     ProductStatus,
     ProductVariant,
     ProductVariantInventory,
-} from '@/types/admin-products';
+} from "@/types/admin-products";
 
 import {
     asArray,
@@ -16,16 +16,16 @@ import {
     toNullableString,
     toNumber,
     toString,
-} from '@/mappers/common';
+} from "@/mappers/common";
 
 const mapProductStatus = (value: unknown): ProductStatus => {
     const normalized = toString(value).toLowerCase();
 
-    if (normalized === 'active' || normalized === 'archived') {
+    if (normalized === "active" || normalized === "archived") {
         return normalized;
     }
 
-    return 'draft';
+    return "draft";
 };
 
 const mapProductCategory = (value: unknown): AdminProductCategory | null => {
@@ -76,10 +76,11 @@ const mapProductVariant = (value: unknown): ProductVariant => {
         name: toString(record.name),
         attributes: mapVariantAttributes(record.attributes),
         price: toNumber(record.price),
-        compare_at_price: record.compare_at_price === null || record.compare_at_price === undefined
-            ? null
-            : toNumber(record.compare_at_price),
-        currency: toString(record.currency, 'USD'),
+        compare_at_price:
+            record.compare_at_price === null || record.compare_at_price === undefined
+                ? null
+                : toNumber(record.compare_at_price),
+        currency: toString(record.currency, "USD"),
         is_active: toBoolean(record.is_active, true),
         inventory: mapVariantInventory(record.inventory),
     };

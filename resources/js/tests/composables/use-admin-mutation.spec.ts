@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from "vitest";
 
-import { useAdminMutation } from '@/composables/useAdminMutation';
+import { useAdminMutation } from "@/composables/useAdminMutation";
 
-describe('useAdminMutation', () => {
-    it('runs successful mutation with pending state and success hook', async () => {
+describe("useAdminMutation", () => {
+    it("runs successful mutation with pending state and success hook", async () => {
         const clearNotice = vi.fn();
         const showApiError = vi.fn();
         const onSuccess = vi.fn();
@@ -17,7 +17,7 @@ describe('useAdminMutation', () => {
             setPending: (pending) => {
                 pendingStates.push(pending);
             },
-            errorMessage: 'Failed mutation',
+            errorMessage: "Failed mutation",
             run: async () => 7,
             onSuccess,
         });
@@ -29,7 +29,7 @@ describe('useAdminMutation', () => {
         expect(pendingStates).toEqual([true, false]);
     });
 
-    it('routes errors to notice adapter by default', async () => {
+    it("routes errors to notice adapter by default", async () => {
         const clearNotice = vi.fn();
         const showApiError = vi.fn();
         const pendingStates: boolean[] = [];
@@ -38,12 +38,12 @@ describe('useAdminMutation', () => {
             showApiError,
         });
 
-        const error = new Error('Boom');
+        const error = new Error("Boom");
         const result = await executeMutation<number>({
             setPending: (pending) => {
                 pendingStates.push(pending);
             },
-            errorMessage: 'Fallback message',
+            errorMessage: "Fallback message",
             run: async () => {
                 throw error;
             },
@@ -51,11 +51,11 @@ describe('useAdminMutation', () => {
 
         expect(result).toBeNull();
         expect(clearNotice).toHaveBeenCalledTimes(1);
-        expect(showApiError).toHaveBeenCalledWith(error, 'Fallback message');
+        expect(showApiError).toHaveBeenCalledWith(error, "Fallback message");
         expect(pendingStates).toEqual([true, false]);
     });
 
-    it('supports custom error handler and optional notice clearing', async () => {
+    it("supports custom error handler and optional notice clearing", async () => {
         const clearNotice = vi.fn();
         const showApiError = vi.fn();
         const onError = vi.fn();
@@ -65,13 +65,13 @@ describe('useAdminMutation', () => {
             showApiError,
         });
 
-        const error = new Error('Custom');
+        const error = new Error("Custom");
         const result = await executeMutation<number>({
             clearNotice: false,
             setPending: (pending) => {
                 pendingStates.push(pending);
             },
-            errorMessage: 'Fallback message',
+            errorMessage: "Fallback message",
             run: async () => {
                 throw error;
             },

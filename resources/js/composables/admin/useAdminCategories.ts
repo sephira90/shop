@@ -1,31 +1,35 @@
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref } from "vue";
 
 import {
     createAdminCategory,
     deleteAdminCategory,
     listAdminCategories,
     updateAdminCategory,
-} from '@/api/admin/categories';
-import { useAdminMutation } from '@/composables/useAdminMutation';
-import { useAdminNotice } from '@/composables/useAdminNotice';
-import { useServerPaginatedList } from '@/composables/useServerPaginatedList';
-import { buildAdminCategoryListParams } from '@/queries/admin/categories';
-import { useAuthStore } from '@/stores/auth';
-import type { AdminCategory, AdminCategoryListParams, CategoryStatusFilter } from '@/types/admin-categories';
+} from "@/api/admin/categories";
+import { useAdminMutation } from "@/composables/useAdminMutation";
+import { useAdminNotice } from "@/composables/useAdminNotice";
+import { useServerPaginatedList } from "@/composables/useServerPaginatedList";
+import { buildAdminCategoryListParams } from "@/queries/admin/categories";
+import { useAuthStore } from "@/stores/auth";
+import type {
+    AdminCategory,
+    AdminCategoryListParams,
+    CategoryStatusFilter,
+} from "@/types/admin-categories";
 import {
     buildCategoryMutationPayload,
     createCategoryFormState,
     type CategoryFormState,
-} from '@/validators/admin/categories';
+} from "@/validators/admin/categories";
 
 export const useAdminCategories = () => {
     const authStore = useAuthStore();
-    const searchQuery = ref('');
-    const statusFilter = ref<CategoryStatusFilter>('all');
+    const searchQuery = ref("");
+    const statusFilter = ref<CategoryStatusFilter>("all");
     const isSubmitting = ref(false);
     const isDeletingId = ref<number | null>(null);
     const editingId = ref<number | null>(null);
-    const canDeleteCategories = computed<boolean>(() => authStore.hasRole('admin'));
+    const canDeleteCategories = computed<boolean>(() => authStore.hasRole("admin"));
     const { notice, clearNotice, showSuccess, showError, showApiError } = useAdminNotice();
     const { executeMutation } = useAdminMutation({
         clearNotice,
@@ -53,7 +57,7 @@ export const useAdminCategories = () => {
             clearNotice();
         },
         onError: (error: unknown) => {
-            showApiError(error, 'Unable to load categories.');
+            showApiError(error, "Unable to load categories.");
         },
     });
 
@@ -82,16 +86,16 @@ export const useAdminCategories = () => {
             setPending: (pending) => {
                 isSubmitting.value = pending;
             },
-            errorMessage: 'Unable to save category.',
+            errorMessage: "Unable to save category.",
             run: async () => {
                 const payload = buildCategoryMutationPayload(form);
 
                 if (editingId.value) {
                     await updateAdminCategory(editingId.value, payload);
-                    showSuccess('Category updated successfully.');
+                    showSuccess("Category updated successfully.");
                 } else {
                     await createAdminCategory(payload);
-                    showSuccess('Category created successfully.');
+                    showSuccess("Category created successfully.");
                     page.value = 1;
                 }
 
@@ -103,21 +107,21 @@ export const useAdminCategories = () => {
 
     const startEdit = (category: AdminCategory): void => {
         editingId.value = category.id;
-        form.parent_id = category.parent_id !== null ? String(category.parent_id) : '';
+        form.parent_id = category.parent_id !== null ? String(category.parent_id) : "";
         form.name = category.name;
         form.slug = category.slug;
-        form.description = category.description ?? '';
-        form.meta_title = category.meta_title ?? '';
-        form.meta_description = category.meta_description ?? '';
+        form.description = category.description ?? "";
+        form.meta_title = category.meta_title ?? "";
+        form.meta_description = category.meta_description ?? "";
         form.is_active = category.is_active;
         form.sort_order = String(category.sort_order);
         clearNotice();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const removeCategory = async (category: AdminCategory): Promise<void> => {
         if (!canDeleteCategories.value) {
-            showError('Only admin can delete categories.');
+            showError("Only admin can delete categories.");
             return;
         }
 
@@ -129,11 +133,12 @@ export const useAdminCategories = () => {
             setPending: (pending) => {
                 isDeletingId.value = pending ? category.id : null;
             },
-            errorMessage: 'Unable to delete category.',
+            errorMessage: "Unable to delete category.",
             run: async () => {
                 await deleteAdminCategory(category.id);
-                showSuccess('Category deleted.');
-                const nextPage = categories.value.length === 1 && page.value > 1 ? page.value - 1 : page.value;
+                showSuccess("Category deleted.");
+                const nextPage =
+                    categories.value.length === 1 && page.value > 1 ? page.value - 1 : page.value;
                 await loadCategories(nextPage);
                 if (editingId.value === category.id) {
                     resetFormKeepNotice();

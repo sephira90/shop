@@ -1,10 +1,16 @@
-import { apiClient } from '@/api/client';
-import { extractData, normalizeListResponse } from '@/api/response';
-import { mapCatalogProductFromApi, mapCatalogProductListFromApi } from '@/mappers/catalog';
-import type { CatalogProduct, CatalogProductListParams, CatalogProductListResponse } from '@/types/catalog';
+import { apiClient } from "@/api/client";
+import { extractData, normalizeListResponse } from "@/api/response";
+import { mapCatalogProductFromApi, mapCatalogProductListFromApi } from "@/mappers/catalog";
+import type {
+    CatalogProduct,
+    CatalogProductListParams,
+    CatalogProductListResponse,
+} from "@/types/catalog";
 
-export const listCatalogProducts = async (params: CatalogProductListParams): Promise<CatalogProductListResponse> => {
-    const { data } = await apiClient.get('/catalog/products', {
+export const listCatalogProducts = async (
+    params: CatalogProductListParams,
+): Promise<CatalogProductListResponse> => {
+    const { data } = await apiClient.get("/catalog/products", {
         params,
     });
     const response = normalizeListResponse<unknown>(data);

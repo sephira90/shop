@@ -4,10 +4,21 @@
             <div class="stack stack--between">
                 <h1 class="section-title">Admin products</h1>
                 <div class="actions">
-                    <button class="btn btn-muted" type="button" :disabled="isRefreshingCatalogCache" @click="refreshCatalogCache">
-                        {{ isRefreshingCatalogCache ? 'Refreshing cache...' : 'Refresh catalog cache' }}
+                    <button
+                        class="btn btn-muted"
+                        type="button"
+                        :disabled="isRefreshingCatalogCache"
+                        @click="refreshCatalogCache"
+                    >
+                        {{
+                            isRefreshingCatalogCache
+                                ? "Refreshing cache..."
+                                : "Refresh catalog cache"
+                        }}
                     </button>
-                    <button class="btn btn-muted" type="button" @click="resetForm">New product</button>
+                    <button class="btn btn-muted" type="button" @click="resetForm">
+                        New product
+                    </button>
                 </div>
             </div>
 
@@ -38,7 +49,11 @@
                         <span class="field__label">Category</span>
                         <select v-model="form.category_id">
                             <option value="">No category</option>
-                            <option v-for="category in categories" :key="category.id" :value="String(category.id)">
+                            <option
+                                v-for="category in categories"
+                                :key="category.id"
+                                :value="String(category.id)"
+                            >
                                 {{ category.name }}
                             </option>
                         </select>
@@ -48,7 +63,7 @@
                             :disabled="isLoadingCategories"
                             @click="loadCategories"
                         >
-                            {{ isLoadingCategories ? 'Refreshing...' : 'Refresh categories' }}
+                            {{ isLoadingCategories ? "Refreshing..." : "Refresh categories" }}
                         </button>
                     </label>
 
@@ -75,23 +90,39 @@
 
                 <label class="field">
                     <span class="field__label">Short description</span>
-                    <textarea v-model="form.short_description" rows="3" placeholder="Brief product description" />
+                    <textarea
+                        v-model="form.short_description"
+                        rows="3"
+                        placeholder="Brief product description"
+                    />
                 </label>
 
                 <label class="field">
                     <span class="field__label">Description</span>
-                    <textarea v-model="form.description" rows="5" placeholder="Detailed product description" />
+                    <textarea
+                        v-model="form.description"
+                        rows="5"
+                        placeholder="Detailed product description"
+                    />
                 </label>
 
                 <div class="variant-section actions--top">
                     <div class="variant-section__header">
                         <h2 class="variant-section__title">Variants and pricing</h2>
-                        <button class="btn btn-muted" type="button" @click="addVariant">Add variant</button>
+                        <button class="btn btn-muted" type="button" @click="addVariant">
+                            Add variant
+                        </button>
                     </div>
-                    <p class="muted variant-section__hint">Each variant controls its own price and inventory values.</p>
+                    <p class="muted variant-section__hint">
+                        Each variant controls its own price and inventory values.
+                    </p>
 
                     <div class="variant-list">
-                        <div v-for="(variant, index) in form.variants" :key="variant.local_id" class="variant-card">
+                        <div
+                            v-for="(variant, index) in form.variants"
+                            :key="variant.local_id"
+                            class="variant-card"
+                        >
                             <div class="variant-card__header">
                                 <strong>Variant #{{ index + 1 }}</strong>
                                 <button
@@ -107,27 +138,51 @@
                             <div class="grid grid-2">
                                 <label class="field">
                                     <span class="field__label">Variant SKU</span>
-                                    <input v-model="variant.sku" placeholder="SKU-0001-BLACK-M" required />
+                                    <input
+                                        v-model="variant.sku"
+                                        placeholder="SKU-0001-BLACK-M"
+                                        required
+                                    />
                                 </label>
 
                                 <label class="field">
                                     <span class="field__label">Variant name</span>
-                                    <input v-model="variant.name" placeholder="Black / M" required />
+                                    <input
+                                        v-model="variant.name"
+                                        placeholder="Black / M"
+                                        required
+                                    />
                                 </label>
 
                                 <label class="field">
                                     <span class="field__label">Price</span>
-                                    <input v-model="variant.price" type="number" min="0.01" step="0.01" required />
+                                    <input
+                                        v-model="variant.price"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        required
+                                    />
                                 </label>
 
                                 <label class="field">
                                     <span class="field__label">Compare at price</span>
-                                    <input v-model="variant.compare_at_price" type="number" min="0.01" step="0.01" />
+                                    <input
+                                        v-model="variant.compare_at_price"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                    />
                                 </label>
 
                                 <label class="field">
                                     <span class="field__label">Currency</span>
-                                    <input v-model="variant.currency" maxlength="3" placeholder="USD" required />
+                                    <input
+                                        v-model="variant.currency"
+                                        maxlength="3"
+                                        placeholder="USD"
+                                        required
+                                    />
                                 </label>
                             </div>
 
@@ -149,7 +204,13 @@
                             <div class="grid grid-3">
                                 <label class="field">
                                     <span class="field__label">Inventory quantity</span>
-                                    <input v-model="variant.inventory_quantity" type="number" min="0" step="1" required />
+                                    <input
+                                        v-model="variant.inventory_quantity"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        required
+                                    />
                                 </label>
 
                                 <label class="field">
@@ -196,7 +257,13 @@
 
                 <div class="actions">
                     <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-                        {{ isSubmitting ? 'Saving...' : editingId ? 'Update product' : 'Create product' }}
+                        {{
+                            isSubmitting
+                                ? "Saving..."
+                                : editingId
+                                  ? "Update product"
+                                  : "Create product"
+                        }}
                     </button>
                     <button v-if="editingId" class="btn btn-muted" type="button" @click="resetForm">
                         Cancel editing
@@ -204,7 +271,10 @@
                 </div>
             </form>
 
-            <p v-if="notice.message" :class="['notice', notice.type === 'success' ? 'notice--success' : 'notice--error']">
+            <p
+                v-if="notice.message"
+                :class="['notice', notice.type === 'success' ? 'notice--success' : 'notice--error']"
+            >
                 {{ notice.message }}
             </p>
         </div>
@@ -212,7 +282,12 @@
         <div class="card">
             <div class="stack stack--between">
                 <h2>Products list</h2>
-                <button class="btn btn-muted" type="button" :disabled="isLoading" @click="loadProducts(page)">
+                <button
+                    class="btn btn-muted"
+                    type="button"
+                    :disabled="isLoading"
+                    @click="loadProducts(page)"
+                >
                     Refresh
                 </button>
             </div>
@@ -228,80 +303,98 @@
             <div class="table-wrap actions--top">
                 <table class="table">
                     <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>SKU</th>
-                        <th>Status</th>
-                        <th>Category</th>
-                        <th>Published</th>
-                        <th>Actions</th>
-                    </tr>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>SKU</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Published</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody v-if="filteredProducts.length">
-                    <tr v-for="product in filteredProducts" :key="product.id">
-                        <td>{{ product.id }}</td>
-                        <td>
-                            <strong>{{ product.name }}</strong>
-                            <p class="muted">/{{ product.slug }}</p>
-                        </td>
-                        <td>{{ product.sku }}</td>
-                        <td>
-                            <span :class="['badge', statusBadgeClass(product.status)]">
-                                {{ product.status }}
-                            </span>
-                        </td>
-                        <td>{{ product.category?.name ?? '-' }}</td>
-                        <td>{{ formatDateTime(product.published_at) }}</td>
-                        <td>
-                            <div class="actions">
-                                <button class="btn btn-muted" type="button" @click="startEdit(product)">
-                                    Edit
-                                </button>
-                                <button
-                                    class="btn btn-muted"
-                                    type="button"
-                                    :disabled="isVisibilityUpdatingId === product.id"
-                                    @click="toggleCatalogVisibility(product)"
-                                >
-                                    {{
-                                        isVisibilityUpdatingId === product.id
-                                            ? 'Applying...'
-                                            : isVisibleInCatalog(product)
-                                              ? 'Hide from catalog'
-                                              : 'Show in catalog'
-                                    }}
-                                </button>
-                                <button
-                                    class="btn btn-muted"
-                                    type="button"
-                                    :disabled="isDeletingId === product.id || !canDeleteProducts"
-                                    @click="removeProduct(product)"
-                                >
-                                    {{ isDeletingId === product.id ? 'Deleting...' : 'Delete' }}
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr v-for="product in filteredProducts" :key="product.id">
+                            <td>{{ product.id }}</td>
+                            <td>
+                                <strong>{{ product.name }}</strong>
+                                <p class="muted">/{{ product.slug }}</p>
+                            </td>
+                            <td>{{ product.sku }}</td>
+                            <td>
+                                <span :class="['badge', statusBadgeClass(product.status)]">
+                                    {{ product.status }}
+                                </span>
+                            </td>
+                            <td>{{ product.category?.name ?? "-" }}</td>
+                            <td>{{ formatDateTime(product.published_at) }}</td>
+                            <td>
+                                <div class="actions">
+                                    <button
+                                        class="btn btn-muted"
+                                        type="button"
+                                        @click="startEdit(product)"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        class="btn btn-muted"
+                                        type="button"
+                                        :disabled="isVisibilityUpdatingId === product.id"
+                                        @click="toggleCatalogVisibility(product)"
+                                    >
+                                        {{
+                                            isVisibilityUpdatingId === product.id
+                                                ? "Applying..."
+                                                : isVisibleInCatalog(product)
+                                                  ? "Hide from catalog"
+                                                  : "Show in catalog"
+                                        }}
+                                    </button>
+                                    <button
+                                        class="btn btn-muted"
+                                        type="button"
+                                        :disabled="
+                                            isDeletingId === product.id || !canDeleteProducts
+                                        "
+                                        @click="removeProduct(product)"
+                                    >
+                                        {{ isDeletingId === product.id ? "Deleting..." : "Delete" }}
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                     <tbody v-else>
-                    <tr>
-                        <td colspan="7">
-                            <div class="empty-state">
-                                <p>{{ isLoading ? 'Loading products...' : 'No products on this page.' }}</p>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <p>
+                                        {{
+                                            isLoading
+                                                ? "Loading products..."
+                                                : "No products on this page."
+                                        }}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="stack stack--between actions--top">
                 <p class="muted">
-                    Page {{ meta.current_page }} of {{ meta.last_page }}. Total products: {{ meta.total }}.
+                    Page {{ meta.current_page }} of {{ meta.last_page }}. Total products:
+                    {{ meta.total }}.
                 </p>
                 <div class="actions">
-                    <button class="btn btn-muted" type="button" :disabled="page <= 1 || isLoading" @click="loadProducts(page - 1)">
+                    <button
+                        class="btn btn-muted"
+                        type="button"
+                        :disabled="page <= 1 || isLoading"
+                        @click="loadProducts(page - 1)"
+                    >
                         Previous
                     </button>
                     <button
@@ -319,10 +412,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted } from "vue";
 
-import { useAdminProducts } from '@/composables/admin/useAdminProducts';
-import { formatDateTime } from '@/utils/datetime';
+import { useAdminProducts } from "@/composables/admin/useAdminProducts";
+import { formatDateTime } from "@/utils/datetime";
 
 const {
     categories,

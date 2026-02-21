@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { effectScope, nextTick, reactive } from 'vue';
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { effectScope, nextTick, reactive } from "vue";
 
-import type { ListResponse } from '@/api/response';
-import { useServerPaginatedList } from '@/composables/useServerPaginatedList';
+import type { ListResponse } from "@/api/response";
+import { useServerPaginatedList } from "@/composables/useServerPaginatedList";
 
 const buildResponse = <TItem>(items: TItem[], page: number): ListResponse<TItem> => ({
     data: items,
@@ -18,9 +18,11 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-describe('useServerPaginatedList', () => {
-    it('loads page payload and updates pagination state', async () => {
-        const fetchPage = vi.fn(async (params: { page: number }) => buildResponse([params.page], params.page));
+describe("useServerPaginatedList", () => {
+    it("loads page payload and updates pagination state", async () => {
+        const fetchPage = vi.fn(async (params: { page: number }) =>
+            buildResponse([params.page], params.page),
+        );
 
         const scope = effectScope();
         const list = scope.run(() =>
@@ -47,11 +49,13 @@ describe('useServerPaginatedList', () => {
         scope.stop();
     });
 
-    it('debounces filter reload and requests first page with latest filter value', async () => {
+    it("debounces filter reload and requests first page with latest filter value", async () => {
         vi.useFakeTimers();
 
-        const filters = reactive({ q: '' });
-        const fetchPage = vi.fn(async (params: { page: number; q: string }) => buildResponse([params.q], params.page));
+        const filters = reactive({ q: "" });
+        const fetchPage = vi.fn(async (params: { page: number; q: string }) =>
+            buildResponse([params.q], params.page),
+        );
 
         const scope = effectScope();
         const list = scope.run(() =>
@@ -69,9 +73,9 @@ describe('useServerPaginatedList', () => {
             return;
         }
 
-        filters.q = 'a';
+        filters.q = "a";
         await nextTick();
-        filters.q = 'ab';
+        filters.q = "ab";
         await nextTick();
 
         expect(fetchPage).not.toHaveBeenCalled();
@@ -79,16 +83,16 @@ describe('useServerPaginatedList', () => {
         await vi.advanceTimersByTimeAsync(120);
 
         expect(fetchPage).toHaveBeenCalledTimes(1);
-        expect(fetchPage).toHaveBeenCalledWith({ page: 1, q: 'ab' });
-        expect(list.items.value).toEqual(['ab']);
+        expect(fetchPage).toHaveBeenCalledWith({ page: 1, q: "ab" });
+        expect(list.items.value).toEqual(["ab"]);
 
         scope.stop();
     });
 
-    it('resets list state on error when resetOnError is enabled', async () => {
+    it("resets list state on error when resetOnError is enabled", async () => {
         const onError = vi.fn();
         const fetchPage = vi.fn(async () => {
-            throw new Error('Failed');
+            throw new Error("Failed");
         });
 
         const scope = effectScope();

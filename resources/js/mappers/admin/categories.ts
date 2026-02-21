@@ -1,8 +1,16 @@
-import type { CategoryMutationPayload, AdminCategory } from '@/types/admin-categories';
+import type { CategoryMutationPayload, AdminCategory } from "@/types/admin-categories";
 
-import { asArray, asRecord, toBoolean, toInteger, toNullableInteger, toNullableString, toString } from '@/mappers/common';
+import {
+    asArray,
+    asRecord,
+    toBoolean,
+    toInteger,
+    toNullableInteger,
+    toNullableString,
+    toString,
+} from "@/mappers/common";
 
-const mapCategoryParent = (value: unknown): AdminCategory['parent'] => {
+const mapCategoryParent = (value: unknown): AdminCategory["parent"] => {
     const record = asRecord(value);
     const id = toInteger(record.id);
 
@@ -40,7 +48,9 @@ export const mapAdminCategoryListFromApi = (value: unknown): AdminCategory[] => 
     return asArray(value).map((item) => mapAdminCategoryFromApi(item));
 };
 
-export const toCategoryMutationDto = (payload: CategoryMutationPayload): CategoryMutationPayload => {
+export const toCategoryMutationDto = (
+    payload: CategoryMutationPayload,
+): CategoryMutationPayload => {
     return {
         parent_id: payload.parent_id,
         name: payload.name.trim(),

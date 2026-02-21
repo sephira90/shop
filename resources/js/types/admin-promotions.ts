@@ -1,7 +1,7 @@
-import type { ListResponse } from '@/api/response';
+import type { ListResponse } from "@/api/response";
 
-export type PromotionType = 'percent' | 'fixed';
-export type PromotionStatusFilter = 'all' | 'active' | 'inactive';
+export type PromotionType = "percent" | "fixed";
+export type PromotionStatusFilter = "all" | "active" | "inactive";
 
 export interface Coupon {
     id: number;
@@ -86,6 +86,6 @@ export interface CouponFormState {
 }
 
 export interface PromotionNotice {
-    type: 'success' | 'error';
+    type: "success" | "error";
     message: string;
 }

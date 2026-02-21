@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref } from "vue";
 
 import {
     createPromotion as createPromotionRequest,
@@ -7,12 +7,12 @@ import {
     listPromotions,
     updateCoupon as updateCouponRequest,
     updatePromotion as updatePromotionRequest,
-} from '@/api/admin/promotions';
-import type { ListResponse } from '@/api/response';
-import { useAdminMutation } from '@/composables/useAdminMutation';
-import { useAdminNotice } from '@/composables/useAdminNotice';
-import { useServerPaginatedList } from '@/composables/useServerPaginatedList';
-import { buildAdminPromotionListParams } from '@/queries/admin/promotions';
+} from "@/api/admin/promotions";
+import type { ListResponse } from "@/api/response";
+import { useAdminMutation } from "@/composables/useAdminMutation";
+import { useAdminNotice } from "@/composables/useAdminNotice";
+import { useServerPaginatedList } from "@/composables/useServerPaginatedList";
+import { buildAdminPromotionListParams } from "@/queries/admin/promotions";
 import type {
     Coupon,
     CouponFormState,
@@ -20,18 +20,18 @@ import type {
     PromotionFormState,
     PromotionListParams,
     PromotionStatusFilter,
-} from '@/types/admin-promotions';
-import { normalizeDatetimeForInput } from '@/utils/datetime';
+} from "@/types/admin-promotions";
+import { normalizeDatetimeForInput } from "@/utils/datetime";
 import {
     buildCouponCreatePayload,
     buildPromotionMutationPayload,
     createCouponFormState,
     createPromotionFormState,
-} from '@/validators/admin/promotions';
+} from "@/validators/admin/promotions";
 
 export const useAdminPromotions = () => {
-    const searchQuery = ref('');
-    const statusFilter = ref<PromotionStatusFilter>('all');
+    const searchQuery = ref("");
+    const statusFilter = ref<PromotionStatusFilter>("all");
     const { notice, clearNotice, showSuccess, showError, showApiError } = useAdminNotice();
     const { executeMutation } = useAdminMutation({
         clearNotice,
@@ -66,13 +66,16 @@ export const useAdminPromotions = () => {
             clearNotice();
         },
         onLoaded: (response: ListResponse<Promotion>) => {
-            if (!selectedPromotionId.value || !response.data.some((promotion) => promotion.id === selectedPromotionId.value)) {
+            if (
+                !selectedPromotionId.value ||
+                !response.data.some((promotion) => promotion.id === selectedPromotionId.value)
+            ) {
                 selectedPromotionId.value = response.data[0]?.id ?? null;
             }
         },
         onError: (error: unknown) => {
             selectedPromotionId.value = null;
-            showApiError(error, 'Unable to load promotions.');
+            showApiError(error, "Unable to load promotions.");
         },
     });
 
@@ -83,7 +86,9 @@ export const useAdminPromotions = () => {
             return null;
         }
 
-        return promotions.value.find((promotion) => promotion.id === selectedPromotionId.value) ?? null;
+        return (
+            promotions.value.find((promotion) => promotion.id === selectedPromotionId.value) ?? null
+        );
     });
 
     const selectPromotion = (promotionId: number): void => {
@@ -109,19 +114,19 @@ export const useAdminPromotions = () => {
         selectedPromotionId.value = promotion.id;
         promotionForm.value = {
             name: promotion.name,
-            code: promotion.code ?? '',
+            code: promotion.code ?? "",
             type: promotion.type,
             value: Number(promotion.value),
             is_active: promotion.is_active,
             starts_at: normalizeDatetimeForInput(promotion.starts_at),
             ends_at: normalizeDatetimeForInput(promotion.ends_at),
-            usage_limit: promotion.usage_limit !== null ? String(promotion.usage_limit) : '',
+            usage_limit: promotion.usage_limit !== null ? String(promotion.usage_limit) : "",
             coupon_is_active: true,
-            coupon_max_redemptions: '',
-            coupon_expires_at: '',
+            coupon_max_redemptions: "",
+            coupon_expires_at: "",
         };
         clearNotice();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const submitPromotion = async (): Promise<void> => {
@@ -129,20 +134,23 @@ export const useAdminPromotions = () => {
             setPending: (pending) => {
                 isSubmittingPromotion.value = pending;
             },
-            errorMessage: 'Unable to save promotion.',
+            errorMessage: "Unable to save promotion.",
             run: async () => {
-                const payload = buildPromotionMutationPayload(promotionForm.value, editingPromotionId.value !== null);
+                const payload = buildPromotionMutationPayload(
+                    promotionForm.value,
+                    editingPromotionId.value !== null,
+                );
 
                 if (editingPromotionId.value !== null) {
                     const promotionId = editingPromotionId.value;
                     await updatePromotionRequest(promotionId, payload);
-                    showSuccess('Campaign updated.');
+                    showSuccess("Campaign updated.");
                     await loadPromotions(page.value);
                     resetPromotionFormKeepNotice();
                     selectedPromotionId.value = promotionId;
                 } else {
                     await createPromotionRequest(payload);
-                    showSuccess('Campaign created.');
+                    showSuccess("Campaign created.");
                     await loadPromotions(1);
                     resetPromotionFormKeepNotice();
                 }
@@ -159,11 +167,12 @@ export const useAdminPromotions = () => {
             setPending: (pending) => {
                 isDeletingPromotionId.value = pending ? promotion.id : null;
             },
-            errorMessage: 'Unable to delete campaign.',
+            errorMessage: "Unable to delete campaign.",
             run: async () => {
                 await deletePromotionRequest(promotion.id);
-                showSuccess('Campaign deleted.');
-                const nextPage = promotions.value.length === 1 && page.value > 1 ? page.value - 1 : page.value;
+                showSuccess("Campaign deleted.");
+                const nextPage =
+                    promotions.value.length === 1 && page.value > 1 ? page.value - 1 : page.value;
                 await loadPromotions(nextPage);
                 if (editingPromotionId.value === promotion.id) {
                     resetPromotionFormKeepNotice();
@@ -176,7 +185,7 @@ export const useAdminPromotions = () => {
         const promotion = selectedPromotion.value;
 
         if (!promotion) {
-            showError('Select promotion first.');
+            showError("Select promotion first.");
             return;
         }
 
@@ -184,10 +193,13 @@ export const useAdminPromotions = () => {
             setPending: (pending) => {
                 isSubmittingCoupon.value = pending;
             },
-            errorMessage: 'Unable to create coupon.',
+            errorMessage: "Unable to create coupon.",
             run: async () => {
-                await createPromotionCoupon(promotion.id, buildCouponCreatePayload(couponForm.value));
-                showSuccess('Coupon created.');
+                await createPromotionCoupon(
+                    promotion.id,
+                    buildCouponCreatePayload(couponForm.value),
+                );
+                showSuccess("Coupon created.");
                 couponForm.value = createCouponFormState();
                 await loadPromotions(page.value);
             },
@@ -199,12 +211,12 @@ export const useAdminPromotions = () => {
             setPending: (pending) => {
                 updatingCouponId.value = pending ? coupon.id : null;
             },
-            errorMessage: 'Unable to update coupon.',
+            errorMessage: "Unable to update coupon.",
             run: async () => {
                 await updateCouponRequest(coupon.id, {
                     is_active: !coupon.is_active,
                 });
-                showSuccess('Coupon status updated.');
+                showSuccess("Coupon status updated.");
                 await loadPromotions(page.value);
             },
         });

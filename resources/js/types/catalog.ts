@@ -1,6 +1,6 @@
-import type { ListResponse } from '@/api/response';
+import type { ListResponse } from "@/api/response";
 
-export type CatalogSort = 'newest' | 'price_asc' | 'price_desc' | 'name_asc';
+export type CatalogSort = "newest" | "price_asc" | "price_desc" | "name_asc";
 
 export interface CatalogProductVariant {
     id: number;

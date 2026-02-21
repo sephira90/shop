@@ -1,6 +1,13 @@
-import type { AccountOrder, AccountOrderAddress, AccountOrderItem } from '@/types/account-orders';
+import type { AccountOrder, AccountOrderAddress, AccountOrderItem } from "@/types/account-orders";
 
-import { asArray, asRecord, toInteger, toNullableString, toNumber, toString } from '@/mappers/common';
+import {
+    asArray,
+    asRecord,
+    toInteger,
+    toNullableString,
+    toNumber,
+    toString,
+} from "@/mappers/common";
 
 const mapAccountOrderItemFromApi = (value: unknown): AccountOrderItem => {
     const record = asRecord(value);
@@ -40,7 +47,7 @@ export const mapAccountOrderFromApi = (value: unknown): AccountOrder => {
         status: toString(record.status),
         payment_status: toString(record.payment_status),
         shipment_status: toString(record.shipment_status),
-        currency: toString(record.currency, 'USD'),
+        currency: toString(record.currency, "USD"),
         total: toNumber(record.total),
         items: asArray(record.items).map((item) => mapAccountOrderItemFromApi(item)),
         billing_address: mapAccountOrderAddressFromApi(record.billing_address),

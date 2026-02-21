@@ -1,6 +1,6 @@
-import { reactive } from 'vue';
+import { reactive } from "vue";
 
-import type { PaginationMeta } from '@/types/pagination';
+import type { PaginationMeta } from "@/types/pagination";
 
 const createDefaultMeta = (): PaginationMeta => ({
     current_page: 1,

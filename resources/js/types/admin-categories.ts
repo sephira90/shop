@@ -1,4 +1,4 @@
-import type { ListResponse } from '@/api/response';
+import type { ListResponse } from "@/api/response";
 
 export interface AdminCategory {
     id: number;
@@ -20,7 +20,7 @@ export interface AdminCategory {
 }
 
 export type CategoryListResponse = ListResponse<AdminCategory>;
-export type CategoryStatusFilter = 'all' | 'active' | 'inactive';
+export type CategoryStatusFilter = "all" | "active" | "inactive";
 
 export interface AdminCategoryListParams {
     page?: number;

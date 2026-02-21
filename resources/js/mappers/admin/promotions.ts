@@ -5,12 +5,21 @@ import type {
     Promotion,
     PromotionMutationPayload,
     PromotionType,
-} from '@/types/admin-promotions';
+} from "@/types/admin-promotions";
 
-import { asArray, asRecord, toBoolean, toInteger, toNullableInteger, toNullableString, toNumber, toString } from '@/mappers/common';
+import {
+    asArray,
+    asRecord,
+    toBoolean,
+    toInteger,
+    toNullableInteger,
+    toNullableString,
+    toNumber,
+    toString,
+} from "@/mappers/common";
 
 const mapPromotionType = (value: unknown): PromotionType => {
-    return toString(value).toLowerCase() === 'fixed' ? 'fixed' : 'percent';
+    return toString(value).toLowerCase() === "fixed" ? "fixed" : "percent";
 };
 
 export const mapCouponFromApi = (value: unknown): Coupon => {
@@ -48,7 +57,9 @@ export const mapPromotionListFromApi = (value: unknown): Promotion[] => {
     return asArray(value).map((item) => mapPromotionFromApi(item));
 };
 
-export const toPromotionMutationDto = (payload: PromotionMutationPayload): PromotionMutationPayload => {
+export const toPromotionMutationDto = (
+    payload: PromotionMutationPayload,
+): PromotionMutationPayload => {
     return {
         name: payload.name.trim(),
         code: payload.code,
@@ -60,10 +71,10 @@ export const toPromotionMutationDto = (payload: PromotionMutationPayload): Promo
         usage_limit: payload.usage_limit,
         coupon: payload.coupon
             ? {
-                is_active: payload.coupon.is_active,
-                max_redemptions: payload.coupon.max_redemptions,
-                expires_at: payload.coupon.expires_at,
-            }
+                  is_active: payload.coupon.is_active,
+                  max_redemptions: payload.coupon.max_redemptions,
+                  expires_at: payload.coupon.expires_at,
+              }
             : undefined,
     };
 };
@@ -80,13 +91,13 @@ export const toCouponCreateDto = (payload: CouponCreatePayload): CouponCreatePay
 export const toCouponUpdateDto = (payload: CouponUpdatePayload): CouponUpdatePayload => {
     const dto: CouponUpdatePayload = {};
 
-    if (Object.hasOwn(payload, 'is_active')) {
+    if (Object.hasOwn(payload, "is_active")) {
         dto.is_active = payload.is_active;
     }
-    if (Object.hasOwn(payload, 'max_redemptions')) {
+    if (Object.hasOwn(payload, "max_redemptions")) {
         dto.max_redemptions = payload.max_redemptions;
     }
-    if (Object.hasOwn(payload, 'expires_at')) {
+    if (Object.hasOwn(payload, "expires_at")) {
         dto.expires_at = payload.expires_at;
     }
 

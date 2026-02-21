@@ -1,4 +1,4 @@
-import type { PaginationMeta } from '@/types/pagination';
+import type { PaginationMeta } from "@/types/pagination";
 
 export interface ApiErrorPayload {
     message?: string;
@@ -25,7 +25,7 @@ const DEFAULT_META: PaginationMeta = {
 };
 
 export const normalizeMeta = (value: unknown): PaginationMeta => {
-    if (!value || typeof value !== 'object') {
+    if (!value || typeof value !== "object") {
         return DEFAULT_META;
     }
 
@@ -49,7 +49,7 @@ export const normalizeListResponse = <TItem>(payload: unknown): ListResponse<TIt
         meta: DEFAULT_META,
     };
 
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== "object") {
         return fallback;
     }
 
@@ -63,7 +63,7 @@ export const normalizeListResponse = <TItem>(payload: unknown): ListResponse<TIt
         };
     }
 
-    if (rootData && typeof rootData === 'object') {
+    if (rootData && typeof rootData === "object") {
         const nested = rootData as Record<string, unknown>;
 
         return {
@@ -76,13 +76,13 @@ export const normalizeListResponse = <TItem>(payload: unknown): ListResponse<TIt
 };
 
 export const extractData = <TData>(payload: unknown): TData | null => {
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== "object") {
         return null;
     }
 
     const root = payload as Record<string, unknown>;
 
-    if (!Object.hasOwn(root, 'data')) {
+    if (!Object.hasOwn(root, "data")) {
         return null;
     }
 
@@ -92,20 +92,28 @@ export const extractData = <TData>(payload: unknown): TData | null => {
 const extractFirstValidationError = (payload: ApiErrorEnvelope): string | null => {
     const rootValidation = payload.errors;
 
-    if (rootValidation && typeof rootValidation === 'object') {
+    if (rootValidation && typeof rootValidation === "object") {
         const firstErrors = Object.values(rootValidation)[0];
 
-        if (Array.isArray(firstErrors) && firstErrors.length > 0 && typeof firstErrors[0] === 'string') {
+        if (
+            Array.isArray(firstErrors) &&
+            firstErrors.length > 0 &&
+            typeof firstErrors[0] === "string"
+        ) {
             return firstErrors[0];
         }
     }
 
     const nestedValidation = payload.error?.validation;
 
-    if (nestedValidation && typeof nestedValidation === 'object') {
+    if (nestedValidation && typeof nestedValidation === "object") {
         const firstErrors = Object.values(nestedValidation)[0];
 
-        if (Array.isArray(firstErrors) && firstErrors.length > 0 && typeof firstErrors[0] === 'string') {
+        if (
+            Array.isArray(firstErrors) &&
+            firstErrors.length > 0 &&
+            typeof firstErrors[0] === "string"
+        ) {
             return firstErrors[0];
         }
     }
@@ -114,7 +122,7 @@ const extractFirstValidationError = (payload: ApiErrorEnvelope): string | null =
 };
 
 export const parseApiErrorMessage = (payload: unknown, fallback: string): string => {
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== "object") {
         return fallback;
     }
 
@@ -128,13 +136,13 @@ export const parseApiErrorMessage = (payload: unknown, fallback: string): string
 
     const message = envelope.error?.message ?? envelope.message;
 
-    if (!message || message.trim() === '') {
+    if (!message || message.trim() === "") {
         return fallback;
     }
 
     const requestId = envelope.error?.request_id;
 
-    if (requestId && requestId.trim() !== '') {
+    if (requestId && requestId.trim() !== "") {
         return `${message} (request: ${requestId})`;
     }
 

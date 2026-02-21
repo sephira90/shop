@@ -1,14 +1,17 @@
-import type { AdminProductListParams } from '@/types/admin-products';
+import type { AdminProductListParams } from "@/types/admin-products";
 
 export interface AdminProductFilters {
     searchQuery: string;
 }
 
-export const buildAdminProductListParams = (page: number, filters: AdminProductFilters): AdminProductListParams => {
+export const buildAdminProductListParams = (
+    page: number,
+    filters: AdminProductFilters,
+): AdminProductListParams => {
     const params: AdminProductListParams = { page };
     const query = filters.searchQuery.trim();
 
-    if (query !== '') {
+    if (query !== "") {
         params.q = query;
     }
 

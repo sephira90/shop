@@ -1,4 +1,4 @@
-import { onScopeDispose, watch, type WatchSource } from 'vue';
+import { onScopeDispose, watch, type WatchSource } from "vue";
 
 interface UseServerListFiltersOptions {
     debounceMs?: number;

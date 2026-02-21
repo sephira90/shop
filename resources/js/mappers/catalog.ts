@@ -1,6 +1,14 @@
-import type { CatalogProduct, CatalogProductVariant } from '@/types/catalog';
+import type { CatalogProduct, CatalogProductVariant } from "@/types/catalog";
 
-import { asArray, asRecord, toBoolean, toInteger, toNullableString, toNumber, toString } from '@/mappers/common';
+import {
+    asArray,
+    asRecord,
+    toBoolean,
+    toInteger,
+    toNullableString,
+    toNumber,
+    toString,
+} from "@/mappers/common";
 
 const mapCatalogVariantFromApi = (value: unknown): CatalogProductVariant => {
     const record = asRecord(value);
@@ -10,7 +18,7 @@ const mapCatalogVariantFromApi = (value: unknown): CatalogProductVariant => {
         sku: toString(record.sku),
         name: toString(record.name),
         price: toNumber(record.price),
-        currency: toString(record.currency, 'USD'),
+        currency: toString(record.currency, "USD"),
         is_active: toBoolean(record.is_active, true),
     };
 };

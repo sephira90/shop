@@ -1,4 +1,4 @@
-import type { ListResponse } from '@/api/response';
+import type { ListResponse } from "@/api/response";
 
 export interface OrderItem {
     sku: string;

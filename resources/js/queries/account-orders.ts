@@ -1,16 +1,16 @@
-import type { LocationQueryRaw } from 'vue-router';
+import type { LocationQueryRaw } from "vue-router";
 
-import type { AccountOrderListParams, AccountOrderStatusFilter } from '@/types/account-orders';
+import type { AccountOrderListParams, AccountOrderStatusFilter } from "@/types/account-orders";
 
 const ALLOWED_STATUS_FILTERS: AccountOrderStatusFilter[] = [
-    'all',
-    'pending',
-    'paid',
-    'processing',
-    'shipped',
-    'completed',
-    'cancelled',
-    'refunded',
+    "all",
+    "pending",
+    "paid",
+    "processing",
+    "shipped",
+    "completed",
+    "cancelled",
+    "refunded",
 ];
 
 export interface AccountOrdersFilters {
@@ -21,12 +21,12 @@ export interface AccountOrdersFilters {
 
 const toSingleQueryValue = (value: unknown): string => {
     if (Array.isArray(value)) {
-        const first = value.find((item) => typeof item === 'string');
+        const first = value.find((item) => typeof item === "string");
 
-        return typeof first === 'string' ? first : '';
+        return typeof first === "string" ? first : "";
     }
 
-    return typeof value === 'string' ? value : '';
+    return typeof value === "string" ? value : "";
 };
 
 const normalizeStatusFilter = (value: unknown): AccountOrderStatusFilter => {
@@ -34,7 +34,7 @@ const normalizeStatusFilter = (value: unknown): AccountOrderStatusFilter => {
 
     return ALLOWED_STATUS_FILTERS.includes(normalized as AccountOrderStatusFilter)
         ? (normalized as AccountOrderStatusFilter)
-        : 'all';
+        : "all";
 };
 
 const normalizePage = (value: unknown): number => {
@@ -48,7 +48,9 @@ const normalizePage = (value: unknown): number => {
     return parsed;
 };
 
-export const parseAccountOrdersFiltersFromRouteQuery = (query: Record<string, unknown>): AccountOrdersFilters => {
+export const parseAccountOrdersFiltersFromRouteQuery = (
+    query: Record<string, unknown>,
+): AccountOrdersFilters => {
     return {
         searchQuery: toSingleQueryValue(query.q).trim(),
         statusFilter: normalizeStatusFilter(query.status),
@@ -60,11 +62,11 @@ export const buildAccountOrdersRouteQuery = (filters: AccountOrdersFilters): Loc
     const query = filters.searchQuery.trim();
     const routeQuery: LocationQueryRaw = {};
 
-    if (query !== '') {
+    if (query !== "") {
         routeQuery.q = query;
     }
 
-    if (filters.statusFilter !== 'all') {
+    if (filters.statusFilter !== "all") {
         routeQuery.status = filters.statusFilter;
     }
 
@@ -75,31 +77,34 @@ export const buildAccountOrdersRouteQuery = (filters: AccountOrdersFilters): Loc
     return routeQuery;
 };
 
-export const isSameAccountOrdersRouteQuery = (left: Record<string, unknown>, right: Record<string, unknown>): boolean => {
+export const isSameAccountOrdersRouteQuery = (
+    left: Record<string, unknown>,
+    right: Record<string, unknown>,
+): boolean => {
     const parsedLeft = parseAccountOrdersFiltersFromRouteQuery(left);
     const parsedRight = parseAccountOrdersFiltersFromRouteQuery(right);
 
     return (
-        parsedLeft.searchQuery === parsedRight.searchQuery
-        && parsedLeft.statusFilter === parsedRight.statusFilter
-        && parsedLeft.page === parsedRight.page
+        parsedLeft.searchQuery === parsedRight.searchQuery &&
+        parsedLeft.statusFilter === parsedRight.statusFilter &&
+        parsedLeft.page === parsedRight.page
     );
 };
 
 export const buildAccountOrdersListParams = (
     page: number,
-    filters: Pick<AccountOrdersFilters, 'searchQuery' | 'statusFilter'>,
+    filters: Pick<AccountOrdersFilters, "searchQuery" | "statusFilter">,
 ): AccountOrderListParams => {
     const params: AccountOrderListParams = {
         page,
     };
 
     const query = filters.searchQuery.trim();
-    if (query !== '') {
+    if (query !== "") {
         params.q = query;
     }
 
-    if (filters.statusFilter !== 'all') {
+    if (filters.statusFilter !== "all") {
         params.status = filters.statusFilter;
     }
 

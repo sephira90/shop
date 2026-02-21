@@ -3,7 +3,7 @@ import type {
     ProductMutationPayload,
     ProductStatus,
     ProductVariantForm,
-} from '@/types/admin-products';
+} from "@/types/admin-products";
 
 export interface ProductFormState {
     sku: string;
@@ -23,13 +23,13 @@ export interface ProductFormState {
 }
 
 const parseVariantAttributes = (value: unknown, index: number): Record<string, unknown> => {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
         return value as Record<string, unknown>;
     }
 
-    const trimmed = String(value ?? '').trim();
+    const trimmed = String(value ?? "").trim();
 
-    if (trimmed === '') {
+    if (trimmed === "") {
         return {};
     }
 
@@ -41,7 +41,7 @@ const parseVariantAttributes = (value: unknown, index: number): Record<string, u
         throw new Error(`Variant #${index + 1}: attributes must be valid JSON.`);
     }
 
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         throw new Error(`Variant #${index + 1}: attributes must be a JSON object.`);
     }
 
@@ -49,9 +49,9 @@ const parseVariantAttributes = (value: unknown, index: number): Record<string, u
 };
 
 const parseInventoryNumber = (value: unknown, fallback: number): number => {
-    const trimmed = String(value ?? '').trim();
+    const trimmed = String(value ?? "").trim();
 
-    if (trimmed === '') {
+    if (trimmed === "") {
         return fallback;
     }
 
@@ -62,23 +62,25 @@ const parseInventoryNumber = (value: unknown, fallback: number): number => {
 
 const buildVariantsPayload = (variants: ProductVariantForm[]): Array<Record<string, unknown>> => {
     if (variants.length === 0) {
-        throw new Error('At least one variant is required.');
+        throw new Error("At least one variant is required.");
     }
 
     const seenSkus = new Set<string>();
 
     return variants.map((variant, index) => {
-        const sku = String(variant.sku ?? '').trim();
-        const name = String(variant.name ?? '').trim();
-        const currency = String(variant.currency ?? '').trim().toUpperCase();
-        const price = Number(variant.price ?? '');
-        const compareAtPriceRaw = String(variant.compare_at_price ?? '').trim();
-        const compareAtPrice = compareAtPriceRaw === '' ? null : Number(compareAtPriceRaw);
+        const sku = String(variant.sku ?? "").trim();
+        const name = String(variant.name ?? "").trim();
+        const currency = String(variant.currency ?? "")
+            .trim()
+            .toUpperCase();
+        const price = Number(variant.price ?? "");
+        const compareAtPriceRaw = String(variant.compare_at_price ?? "").trim();
+        const compareAtPrice = compareAtPriceRaw === "" ? null : Number(compareAtPriceRaw);
         const quantity = parseInventoryNumber(variant.inventory_quantity, 0);
         const reservedQuantity = parseInventoryNumber(variant.inventory_reserved_quantity, 0);
         const lowStockThreshold = parseInventoryNumber(variant.inventory_low_stock_threshold, 3);
 
-        if (sku === '') {
+        if (sku === "") {
             throw new Error(`Variant #${index + 1}: SKU is required.`);
         }
 
@@ -88,7 +90,7 @@ const buildVariantsPayload = (variants: ProductVariantForm[]): Array<Record<stri
 
         seenSkus.add(sku.toLowerCase());
 
-        if (name === '') {
+        if (name === "") {
             throw new Error(`Variant #${index + 1}: name is required.`);
         }
 
@@ -105,15 +107,21 @@ const buildVariantsPayload = (variants: ProductVariantForm[]): Array<Record<stri
         }
 
         if (!Number.isInteger(quantity) || quantity < 0) {
-            throw new Error(`Variant #${index + 1}: inventory quantity must be a non-negative integer.`);
+            throw new Error(
+                `Variant #${index + 1}: inventory quantity must be a non-negative integer.`,
+            );
         }
 
         if (!Number.isInteger(reservedQuantity) || reservedQuantity < 0) {
-            throw new Error(`Variant #${index + 1}: reserved quantity must be a non-negative integer.`);
+            throw new Error(
+                `Variant #${index + 1}: reserved quantity must be a non-negative integer.`,
+            );
         }
 
         if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
-            throw new Error(`Variant #${index + 1}: low stock threshold must be a non-negative integer.`);
+            throw new Error(
+                `Variant #${index + 1}: low stock threshold must be a non-negative integer.`,
+            );
         }
 
         const safeReservedQuantity = Math.min(reservedQuantity, quantity);
@@ -140,20 +148,22 @@ const buildVariantsPayload = (variants: ProductVariantForm[]): Array<Record<stri
     });
 };
 
-export const createProductFormState = (initialVariants: ProductVariantForm[]): ProductFormState => ({
-    sku: '',
-    name: '',
-    slug: '',
-    short_description: '',
-    description: '',
-    status: 'draft',
+export const createProductFormState = (
+    initialVariants: ProductVariantForm[],
+): ProductFormState => ({
+    sku: "",
+    name: "",
+    slug: "",
+    short_description: "",
+    description: "",
+    status: "draft",
     is_featured: false,
-    category_id: '',
-    brand: '',
-    weight_grams: '',
-    meta_title: '',
-    meta_description: '',
-    published_at: '',
+    category_id: "",
+    brand: "",
+    weight_grams: "",
+    meta_title: "",
+    meta_description: "",
+    published_at: "",
     variants: initialVariants,
 });
 
@@ -166,17 +176,19 @@ export const buildProductMutationPayload = (form: ProductFormState): ProductMuta
         description: form.description.trim() || null,
         status: form.status,
         is_featured: form.is_featured,
-        category_id: form.category_id !== '' ? Number(form.category_id) : null,
+        category_id: form.category_id !== "" ? Number(form.category_id) : null,
         brand: form.brand.trim() || null,
-        weight_grams: form.weight_grams !== '' ? Number(form.weight_grams) : null,
+        weight_grams: form.weight_grams !== "" ? Number(form.weight_grams) : null,
         meta_title: form.meta_title.trim() || null,
         meta_description: form.meta_description.trim() || null,
-        published_at: form.published_at !== '' ? new Date(form.published_at).toISOString() : null,
+        published_at: form.published_at !== "" ? new Date(form.published_at).toISOString() : null,
         variants: buildVariantsPayload(form.variants),
     };
 };
 
-export const buildProductMutationPayloadFromProduct = (product: AdminProduct): ProductMutationPayload => {
+export const buildProductMutationPayloadFromProduct = (
+    product: AdminProduct,
+): ProductMutationPayload => {
     return {
         sku: product.sku,
         name: product.name,

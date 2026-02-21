@@ -1,5 +1,5 @@
 export const asRecord = (value: unknown): Record<string, unknown> => {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
         return {};
     }
 
@@ -10,12 +10,12 @@ export const asArray = (value: unknown): unknown[] => {
     return Array.isArray(value) ? value : [];
 };
 
-export const toString = (value: unknown, fallback = ''): string => {
-    if (typeof value === 'string') {
+export const toString = (value: unknown, fallback = ""): string => {
+    if (typeof value === "string") {
         return value;
     }
 
-    if (typeof value === 'number' || typeof value === 'boolean') {
+    if (typeof value === "number" || typeof value === "boolean") {
         return String(value);
     }
 
@@ -25,26 +25,26 @@ export const toString = (value: unknown, fallback = ''): string => {
 export const toNullableString = (value: unknown): string | null => {
     const normalized = toString(value).trim();
 
-    return normalized === '' ? null : normalized;
+    return normalized === "" ? null : normalized;
 };
 
 export const toBoolean = (value: unknown, fallback = false): boolean => {
-    if (typeof value === 'boolean') {
+    if (typeof value === "boolean") {
         return value;
     }
 
-    if (typeof value === 'number') {
+    if (typeof value === "number") {
         return value !== 0;
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
         const normalized = value.trim().toLowerCase();
 
-        if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+        if (normalized === "true" || normalized === "1" || normalized === "yes") {
             return true;
         }
 
-        if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+        if (normalized === "false" || normalized === "0" || normalized === "no") {
             return false;
         }
     }
@@ -65,7 +65,7 @@ export const toInteger = (value: unknown, fallback = 0): number => {
 };
 
 export const toNullableInteger = (value: unknown): number | null => {
-    if (value === null || value === undefined || value === '') {
+    if (value === null || value === undefined || value === "") {
         return null;
     }
 

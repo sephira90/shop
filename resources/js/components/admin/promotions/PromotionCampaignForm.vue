@@ -6,11 +6,21 @@
                 <p class="muted">Create campaigns and manage coupon codes used in checkout.</p>
             </div>
             <div class="actions">
-                <button class="btn btn-muted" type="button" :disabled="isLoading" @click="$emit('refresh')">
-                    {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+                <button
+                    class="btn btn-muted"
+                    type="button"
+                    :disabled="isLoading"
+                    @click="$emit('refresh')"
+                >
+                    {{ isLoading ? "Refreshing..." : "Refresh" }}
                 </button>
-                <button class="btn btn-muted" type="button" :disabled="isSubmittingPromotion" @click="$emit('reset')">
-                    {{ editingPromotionId ? 'Cancel editing' : 'New campaign' }}
+                <button
+                    class="btn btn-muted"
+                    type="button"
+                    :disabled="isSubmittingPromotion"
+                    @click="$emit('reset')"
+                >
+                    {{ editingPromotionId ? "Cancel editing" : "New campaign" }}
                 </button>
             </div>
         </div>
@@ -30,10 +40,18 @@
                 </label>
                 <label class="field">
                     <span class="field__label">Discount value</span>
-                    <input v-model.number="promotionForm.value" type="number" min="0.01" step="0.01" required />
+                    <input
+                        v-model.number="promotionForm.value"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                    />
                 </label>
                 <label class="field">
-                    <span class="field__label">{{ editingPromotionId ? 'Campaign code (optional)' : 'Primary coupon code' }}</span>
+                    <span class="field__label">{{
+                        editingPromotionId ? "Campaign code (optional)" : "Primary coupon code"
+                    }}</span>
                     <input v-model="promotionForm.code" maxlength="40" placeholder="TEST1" />
                 </label>
                 <label class="field">
@@ -74,41 +92,49 @@
                     {{
                         isSubmittingPromotion
                             ? editingPromotionId
-                              ? 'Updating...'
-                              : 'Creating...'
+                                ? "Updating..."
+                                : "Creating..."
                             : editingPromotionId
-                              ? 'Update campaign'
-                              : 'Create campaign'
+                              ? "Update campaign"
+                              : "Create campaign"
                     }}
                 </button>
-                <button class="btn btn-muted" type="button" :disabled="isSubmittingPromotion" @click="$emit('reset')">
+                <button
+                    class="btn btn-muted"
+                    type="button"
+                    :disabled="isSubmittingPromotion"
+                    @click="$emit('reset')"
+                >
                     Reset fields
                 </button>
             </div>
         </form>
 
-        <p v-if="noticeMessage" :class="['notice', noticeType === 'success' ? 'notice--success' : 'notice--error']">
+        <p
+            v-if="noticeMessage"
+            :class="['notice', noticeType === 'success' ? 'notice--success' : 'notice--error']"
+        >
             {{ noticeMessage }}
         </p>
     </div>
 </template>
 
 <script setup lang="ts">
-import type { PromotionFormState, PromotionNotice } from '@/types/admin-promotions';
+import type { PromotionFormState, PromotionNotice } from "@/types/admin-promotions";
 
 defineProps<{
     editingPromotionId: number | null;
     isLoading: boolean;
     isSubmittingPromotion: boolean;
-    noticeType: PromotionNotice['type'];
+    noticeType: PromotionNotice["type"];
     noticeMessage: string;
 }>();
 
 defineEmits<{
-    (event: 'refresh'): void;
-    (event: 'reset'): void;
-    (event: 'submit'): void;
+    (event: "refresh"): void;
+    (event: "reset"): void;
+    (event: "submit"): void;
 }>();
 
-const promotionForm = defineModel<PromotionFormState>('promotionForm', { required: true });
+const promotionForm = defineModel<PromotionFormState>("promotionForm", { required: true });
 </script>

@@ -9,8 +9,12 @@
             </p>
             <div class="hero__actions">
                 <RouterLink class="btn btn-primary" to="/catalog">Browse catalog</RouterLink>
-                <RouterLink v-if="canAccessAdmin" class="btn btn-muted" to="/admin">Open admin area</RouterLink>
-                <RouterLink v-else-if="canAccessAccount" class="btn btn-muted" to="/account/profile">Open account</RouterLink>
+                <RouterLink v-if="canAccessAdmin" class="btn btn-muted" to="/admin"
+                    >Open admin area</RouterLink
+                >
+                <RouterLink v-else-if="canAccessAccount" class="btn btn-muted" to="/account/profile"
+                    >Open account</RouterLink
+                >
                 <RouterLink v-else class="btn btn-muted" to="/auth">Sign in</RouterLink>
             </div>
         </div>
@@ -33,9 +37,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { RouterLink } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { computed } from "vue";
+import { RouterLink } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
 const canAccessAdmin = computed<boolean>(() => authStore.canAccessAdmin);

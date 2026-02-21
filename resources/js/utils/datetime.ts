@@ -1,17 +1,17 @@
 interface DateTimeFormatConfig {
     locale?: string;
     fallback?: string;
-    dateStyle?: Intl.DateTimeFormatOptions['dateStyle'];
-    timeStyle?: Intl.DateTimeFormatOptions['timeStyle'];
+    dateStyle?: Intl.DateTimeFormatOptions["dateStyle"];
+    timeStyle?: Intl.DateTimeFormatOptions["timeStyle"];
 }
 
 export const formatDateTime = (
     value: string | null,
     {
-        locale = 'en-US',
-        fallback = '-',
-        dateStyle = 'medium',
-        timeStyle = 'short',
+        locale = "en-US",
+        fallback = "-",
+        dateStyle = "medium",
+        timeStyle = "short",
     }: DateTimeFormatConfig = {},
 ): string => {
     if (!value) {
@@ -32,13 +32,13 @@ export const formatDateTime = (
 
 export const normalizeDatetimeForInput = (value: string | null): string => {
     if (!value) {
-        return '';
+        return "";
     }
 
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-        return '';
+        return "";
     }
 
     const timezoneOffset = date.getTimezoneOffset() * 60000;

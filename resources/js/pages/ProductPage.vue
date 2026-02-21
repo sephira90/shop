@@ -12,15 +12,24 @@
         <aside class="card">
             <h2 class="section-title">Purchase</h2>
             <p class="product-card__price">
-                {{ formatPrice(selectedVariant?.price) }} {{ selectedVariant?.currency ?? 'USD' }}
+                {{ formatPrice(selectedVariant?.price) }} {{ selectedVariant?.currency ?? "USD" }}
             </p>
             <div class="grid">
                 <select v-model.number="selectedVariantId">
-                    <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
+                    <option
+                        v-for="variant in product.variants"
+                        :key="variant.id"
+                        :value="variant.id"
+                    >
                         {{ variant.name }} - {{ formatPrice(variant.price) }} {{ variant.currency }}
                     </option>
                 </select>
-                <button class="btn btn-primary" type="button" :disabled="!selectedVariantId" @click="addToCart">
+                <button
+                    class="btn btn-primary"
+                    type="button"
+                    :disabled="!selectedVariantId"
+                    @click="addToCart"
+                >
                     Add to cart
                 </button>
             </div>
@@ -28,13 +37,13 @@
     </section>
 
     <section v-else class="card empty-state">
-        <p>{{ loadError || 'Product is unavailable right now.' }}</p>
+        <p>{{ loadError || "Product is unavailable right now." }}</p>
     </section>
 </template>
 
 <script setup lang="ts">
-import { useCatalogProduct } from '@/composables/useCatalogProduct';
-import { useCartStore } from '@/stores/cart';
+import { useCatalogProduct } from "@/composables/useCatalogProduct";
+import { useCartStore } from "@/stores/cart";
 const cartStore = useCartStore();
 const { product, selectedVariantId, selectedVariant, isLoading, loadError } = useCatalogProduct();
 

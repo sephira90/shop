@@ -1,12 +1,16 @@
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref } from "vue";
 
-import { getAdminOrderDetail, listAdminOrders, updateAdminOrderStatus } from '@/api/admin/orders';
-import type { ListResponse } from '@/api/response';
-import { useAdminMutation } from '@/composables/useAdminMutation';
-import { useAdminNotice } from '@/composables/useAdminNotice';
-import { useServerPaginatedList } from '@/composables/useServerPaginatedList';
-import { buildAdminOrderListParams, type AdminOrderFilters } from '@/queries/admin/orders';
-import type { AdminOrderDetail, AdminOrderListParams, AdminOrderSummary } from '@/types/admin-orders';
+import { getAdminOrderDetail, listAdminOrders, updateAdminOrderStatus } from "@/api/admin/orders";
+import type { ListResponse } from "@/api/response";
+import { useAdminMutation } from "@/composables/useAdminMutation";
+import { useAdminNotice } from "@/composables/useAdminNotice";
+import { useServerPaginatedList } from "@/composables/useServerPaginatedList";
+import { buildAdminOrderListParams, type AdminOrderFilters } from "@/queries/admin/orders";
+import type {
+    AdminOrderDetail,
+    AdminOrderListParams,
+    AdminOrderSummary,
+} from "@/types/admin-orders";
 
 interface StatusDraft {
     status: string;
@@ -17,10 +21,10 @@ interface StatusDraft {
 
 export const useAdminOrders = () => {
     const filters = reactive<AdminOrderFilters>({
-        search: '',
-        orderStatus: 'all',
-        paymentStatus: 'all',
-        shipmentStatus: 'all',
+        search: "",
+        orderStatus: "all",
+        paymentStatus: "all",
+        shipmentStatus: "all",
     });
     const { notice, clearNotice, showSuccess, showApiError } = useAdminNotice();
     const { executeMutation } = useAdminMutation({
@@ -59,9 +63,9 @@ export const useAdminOrders = () => {
     const currentDraft = computed<StatusDraft>(() => {
         if (!selectedOrderDetail.value) {
             return {
-                status: 'pending',
-                payment_status: 'pending',
-                shipment_status: 'pending',
+                status: "pending",
+                payment_status: "pending",
+                shipment_status: "pending",
                 saving: false,
             };
         }
@@ -70,10 +74,17 @@ export const useAdminOrders = () => {
     });
 
     const paidCount = computed<number>(
-        () => orders.value.filter((order) => order.status === 'paid' || order.payment_status === 'captured').length,
+        () =>
+            orders.value.filter(
+                (order) => order.status === "paid" || order.payment_status === "captured",
+            ).length,
     );
-    const completedCount = computed<number>(() => orders.value.filter((order) => order.status === 'completed').length);
-    const pendingPaymentCount = computed<number>(() => orders.value.filter((order) => order.payment_status === 'pending').length);
+    const completedCount = computed<number>(
+        () => orders.value.filter((order) => order.status === "completed").length,
+    );
+    const pendingPaymentCount = computed<number>(
+        () => orders.value.filter((order) => order.payment_status === "pending").length,
+    );
 
     const syncDraftWithOrder = (order: AdminOrderSummary | AdminOrderDetail): void => {
         statusDrafts[order.id] = {
@@ -94,7 +105,7 @@ export const useAdminOrders = () => {
             setPending: (pending) => {
                 isDetailLoading.value = pending;
             },
-            errorMessage: 'Unable to load order details.',
+            errorMessage: "Unable to load order details.",
             clearNotice: false,
             run: async () => getAdminOrderDetail(orderId),
             onSuccess: (detail) => {
@@ -109,7 +120,7 @@ export const useAdminOrders = () => {
             },
             onError: (error: unknown) => {
                 selectedOrderDetail.value = null;
-                showApiError(error, 'Unable to load order details.');
+                showApiError(error, "Unable to load order details.");
             },
         });
     };
@@ -123,7 +134,12 @@ export const useAdminOrders = () => {
     } = useServerPaginatedList<AdminOrderSummary, AdminOrderListParams>({
         buildParams: (targetPage) => buildAdminOrderListParams(targetPage, filters),
         fetchPage: listAdminOrders,
-        filterSource: () => [filters.search, filters.orderStatus, filters.paymentStatus, filters.shipmentStatus],
+        filterSource: () => [
+            filters.search,
+            filters.orderStatus,
+            filters.paymentStatus,
+            filters.shipmentStatus,
+        ],
         debounceMs: 300,
         resetOnError: true,
         onLoading: () => {
@@ -134,7 +150,10 @@ export const useAdminOrders = () => {
                 syncDraftWithOrder(order);
             });
 
-            if (!selectedOrderId.value || !response.data.some((order) => order.id === selectedOrderId.value)) {
+            if (
+                !selectedOrderId.value ||
+                !response.data.some((order) => order.id === selectedOrderId.value)
+            ) {
                 selectedOrderId.value = response.data[0]?.id ?? null;
             }
 
@@ -148,7 +167,7 @@ export const useAdminOrders = () => {
             orders.value = [];
             selectedOrderId.value = null;
             selectedOrderDetail.value = null;
-            showApiError(error, 'Unable to load orders.');
+            showApiError(error, "Unable to load orders.");
         },
     });
 
@@ -169,7 +188,7 @@ export const useAdminOrders = () => {
             setPending: (pending) => {
                 draft.saving = pending;
             },
-            errorMessage: 'Unable to update order statuses.',
+            errorMessage: "Unable to update order statuses.",
             run: async () =>
                 updateAdminOrderStatus(order.id, {
                     status: draft.status,
@@ -194,58 +213,68 @@ export const useAdminOrders = () => {
                     );
                 }
 
-                showSuccess('Order statuses updated.');
+                showSuccess("Order statuses updated.");
             },
         });
     };
 
-    const formatPrice = (value: number, currency = 'USD'): string => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
+    const formatPrice = (value: number, currency = "USD"): string => {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
             currency,
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(Number(value ?? 0));
     };
 
-    const formatAddress = (address: AdminOrderDetail['billing_address']): string => {
+    const formatAddress = (address: AdminOrderDetail["billing_address"]): string => {
         if (!address) {
-            return 'Not provided';
+            return "Not provided";
         }
 
-        return [address.line1, address.city, address.country, address.postcode].filter(Boolean).join(', ') || 'Not provided';
+        return (
+            [address.line1, address.city, address.country, address.postcode]
+                .filter(Boolean)
+                .join(", ") || "Not provided"
+        );
     };
 
     const orderStatusClass = (status: string): string => {
-        return {
-            pending: 'status-chip--warn',
-            paid: 'status-chip--good',
-            processing: 'status-chip--info',
-            shipped: 'status-chip--info',
-            completed: 'status-chip--good',
-            cancelled: 'status-chip--bad',
-            refunded: 'status-chip--neutral',
-        }[status] ?? 'status-chip--neutral';
+        return (
+            {
+                pending: "status-chip--warn",
+                paid: "status-chip--good",
+                processing: "status-chip--info",
+                shipped: "status-chip--info",
+                completed: "status-chip--good",
+                cancelled: "status-chip--bad",
+                refunded: "status-chip--neutral",
+            }[status] ?? "status-chip--neutral"
+        );
     };
 
     const paymentStatusClass = (status: string): string => {
-        return {
-            pending: 'status-chip--warn',
-            authorized: 'status-chip--info',
-            captured: 'status-chip--good',
-            failed: 'status-chip--bad',
-            refunded: 'status-chip--neutral',
-        }[status] ?? 'status-chip--neutral';
+        return (
+            {
+                pending: "status-chip--warn",
+                authorized: "status-chip--info",
+                captured: "status-chip--good",
+                failed: "status-chip--bad",
+                refunded: "status-chip--neutral",
+            }[status] ?? "status-chip--neutral"
+        );
     };
 
     const shipmentStatusClass = (status: string): string => {
-        return {
-            pending: 'status-chip--warn',
-            packed: 'status-chip--info',
-            shipped: 'status-chip--info',
-            delivered: 'status-chip--good',
-            returned: 'status-chip--bad',
-        }[status] ?? 'status-chip--neutral';
+        return (
+            {
+                pending: "status-chip--warn",
+                packed: "status-chip--info",
+                shipped: "status-chip--info",
+                delivered: "status-chip--good",
+                returned: "status-chip--bad",
+            }[status] ?? "status-chip--neutral"
+        );
     };
 
     return {

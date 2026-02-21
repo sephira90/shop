@@ -1,5 +1,5 @@
-import { apiClient } from '@/api/client';
-import { extractData, normalizeListResponse } from '@/api/response';
+import { apiClient } from "@/api/client";
+import { extractData, normalizeListResponse } from "@/api/response";
 import {
     mapCouponFromApi,
     mapPromotionFromApi,
@@ -7,7 +7,7 @@ import {
     toCouponCreateDto,
     toCouponUpdateDto,
     toPromotionMutationDto,
-} from '@/mappers/admin/promotions';
+} from "@/mappers/admin/promotions";
 import type {
     Coupon,
     CouponCreatePayload,
@@ -16,10 +16,12 @@ import type {
     PromotionListParams,
     PromotionListResponse,
     PromotionMutationPayload,
-} from '@/types/admin-promotions';
+} from "@/types/admin-promotions";
 
-export const listPromotions = async (params: PromotionListParams): Promise<PromotionListResponse> => {
-    const { data } = await apiClient.get('/admin/promotions', {
+export const listPromotions = async (
+    params: PromotionListParams,
+): Promise<PromotionListResponse> => {
+    const { data } = await apiClient.get("/admin/promotions", {
         params,
     });
 
@@ -31,15 +33,23 @@ export const listPromotions = async (params: PromotionListParams): Promise<Promo
     };
 };
 
-export const createPromotion = async (payload: PromotionMutationPayload): Promise<Promotion | null> => {
-    const { data } = await apiClient.post('/admin/promotions', toPromotionMutationDto(payload));
+export const createPromotion = async (
+    payload: PromotionMutationPayload,
+): Promise<Promotion | null> => {
+    const { data } = await apiClient.post("/admin/promotions", toPromotionMutationDto(payload));
     const response = extractData<unknown>(data);
 
     return response ? mapPromotionFromApi(response) : null;
 };
 
-export const updatePromotion = async (promotionId: number, payload: PromotionMutationPayload): Promise<Promotion | null> => {
-    const { data } = await apiClient.patch(`/admin/promotions/${promotionId}`, toPromotionMutationDto(payload));
+export const updatePromotion = async (
+    promotionId: number,
+    payload: PromotionMutationPayload,
+): Promise<Promotion | null> => {
+    const { data } = await apiClient.patch(
+        `/admin/promotions/${promotionId}`,
+        toPromotionMutationDto(payload),
+    );
     const response = extractData<unknown>(data);
 
     return response ? mapPromotionFromApi(response) : null;
@@ -53,14 +63,23 @@ export const createPromotionCoupon = async (
     promotionId: number,
     payload: CouponCreatePayload,
 ): Promise<Coupon | null> => {
-    const { data } = await apiClient.post(`/admin/promotions/${promotionId}/coupons`, toCouponCreateDto(payload));
+    const { data } = await apiClient.post(
+        `/admin/promotions/${promotionId}/coupons`,
+        toCouponCreateDto(payload),
+    );
     const response = extractData<unknown>(data);
 
     return response ? mapCouponFromApi(response) : null;
 };
 
-export const updateCoupon = async (couponId: number, payload: CouponUpdatePayload): Promise<Coupon | null> => {
-    const { data } = await apiClient.patch(`/admin/coupons/${couponId}`, toCouponUpdateDto(payload));
+export const updateCoupon = async (
+    couponId: number,
+    payload: CouponUpdatePayload,
+): Promise<Coupon | null> => {
+    const { data } = await apiClient.patch(
+        `/admin/coupons/${couponId}`,
+        toCouponUpdateDto(payload),
+    );
     const response = extractData<unknown>(data);
 
     return response ? mapCouponFromApi(response) : null;

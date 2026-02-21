@@ -1,4 +1,4 @@
-import type { AdminOrderListParams } from '@/types/admin-orders';
+import type { AdminOrderListParams } from "@/types/admin-orders";
 
 export interface AdminOrderFilters {
     search: string;
@@ -7,23 +7,26 @@ export interface AdminOrderFilters {
     shipmentStatus: string;
 }
 
-export const buildAdminOrderListParams = (page: number, filters: AdminOrderFilters): AdminOrderListParams => {
+export const buildAdminOrderListParams = (
+    page: number,
+    filters: AdminOrderFilters,
+): AdminOrderListParams => {
     const params: AdminOrderListParams = { page };
     const query = filters.search.trim();
 
-    if (query !== '') {
+    if (query !== "") {
         params.q = query;
     }
 
-    if (filters.orderStatus !== 'all') {
+    if (filters.orderStatus !== "all") {
         params.status = filters.orderStatus;
     }
 
-    if (filters.paymentStatus !== 'all') {
+    if (filters.paymentStatus !== "all") {
         params.payment_status = filters.paymentStatus;
     }
 
-    if (filters.shipmentStatus !== 'all') {
+    if (filters.shipmentStatus !== "all") {
         params.shipment_status = filters.shipmentStatus;
     }
 

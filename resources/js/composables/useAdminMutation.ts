@@ -13,7 +13,9 @@ interface ExecuteAdminMutationOptions<TResult> {
 }
 
 export const useAdminMutation = (notice: AdminMutationNoticeAdapter) => {
-    const executeMutation = async <TResult>(options: ExecuteAdminMutationOptions<TResult>): Promise<TResult | null> => {
+    const executeMutation = async <TResult>(
+        options: ExecuteAdminMutationOptions<TResult>,
+    ): Promise<TResult | null> => {
         if (options.clearNotice ?? true) {
             notice.clearNotice();
         }

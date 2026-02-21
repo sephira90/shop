@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
-import { apiClient } from '@/api/client';
+import { apiClient } from "@/api/client";
 
 export interface CartItem {
     product_variant_id: number;
@@ -23,7 +23,7 @@ interface CartPayload {
     };
 }
 
-export const useCartStore = defineStore('cart', {
+export const useCartStore = defineStore("cart", {
     state: () => ({
         cart: null as CartPayload | null,
         loading: false,
@@ -35,14 +35,14 @@ export const useCartStore = defineStore('cart', {
         async fetchCart(): Promise<void> {
             this.loading = true;
             try {
-                const guestToken = localStorage.getItem('shop_guest_token');
-                const { data } = await apiClient.get('/cart', {
+                const guestToken = localStorage.getItem("shop_guest_token");
+                const { data } = await apiClient.get("/cart", {
                     params: guestToken ? { guest_token: guestToken } : {},
                 });
                 const cart = data.data as CartPayload;
                 this.cart = cart;
                 if (cart.guest_token) {
-                    localStorage.setItem('shop_guest_token', cart.guest_token);
+                    localStorage.setItem("shop_guest_token", cart.guest_token);
                 }
             } finally {
                 this.loading = false;
@@ -54,13 +54,14 @@ export const useCartStore = defineStore('cart', {
             }
 
             const currentQuantity =
-                this.cart?.items.find((item) => item.product_variant_id === productVariantId)?.quantity ?? 0;
+                this.cart?.items.find((item) => item.product_variant_id === productVariantId)
+                    ?.quantity ?? 0;
 
             await this.upsertItem(productVariantId, currentQuantity + 1);
         },
         async upsertItem(productVariantId: number, quantity: number): Promise<void> {
-            const guestToken = localStorage.getItem('shop_guest_token');
-            const { data } = await apiClient.post('/cart/items', {
+            const guestToken = localStorage.getItem("shop_guest_token");
+            const { data } = await apiClient.post("/cart/items", {
                 product_variant_id: productVariantId,
                 quantity,
                 guest_token: guestToken,
@@ -68,11 +69,11 @@ export const useCartStore = defineStore('cart', {
             const cart = data.data as CartPayload;
             this.cart = cart;
             if (cart.guest_token) {
-                localStorage.setItem('shop_guest_token', cart.guest_token);
+                localStorage.setItem("shop_guest_token", cart.guest_token);
             }
         },
         async removeItem(productVariantId: number): Promise<void> {
-            const guestToken = localStorage.getItem('shop_guest_token');
+            const guestToken = localStorage.getItem("shop_guest_token");
             const { data } = await apiClient.delete(`/cart/items/${productVariantId}`, {
                 params: guestToken ? { guest_token: guestToken } : {},
             });

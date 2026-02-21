@@ -1,4 +1,9 @@
-import type { CheckoutAddressForm, CheckoutAddressPayload, CheckoutFormState, CheckoutPlaceOrderPayload } from '@/types/checkout';
+import type {
+    CheckoutAddressForm,
+    CheckoutAddressPayload,
+    CheckoutFormState,
+    CheckoutPlaceOrderPayload,
+} from "@/types/checkout";
 
 const normalizeAddress = (address: CheckoutAddressForm): CheckoutAddressPayload => {
     return {
@@ -9,20 +14,20 @@ const normalizeAddress = (address: CheckoutAddressForm): CheckoutAddressPayload 
     };
 };
 
-export const createCheckoutFormState = (email = ''): CheckoutFormState => ({
+export const createCheckoutFormState = (email = ""): CheckoutFormState => ({
     email: email.trim(),
-    coupon_code: '',
+    coupon_code: "",
     billing_address: {
-        line1: '',
-        city: '',
-        country: 'US',
-        postcode: '',
+        line1: "",
+        city: "",
+        country: "US",
+        postcode: "",
     },
     shipping_address: {
-        line1: '',
-        city: '',
-        country: 'US',
-        postcode: '',
+        line1: "",
+        city: "",
+        country: "US",
+        postcode: "",
     },
 });
 
@@ -32,13 +37,13 @@ export const buildCheckoutPayload = (
 ): CheckoutPlaceOrderPayload => {
     const payload: CheckoutPlaceOrderPayload = {
         email: form.email.trim(),
-        coupon_code: form.coupon_code.trim() === '' ? null : form.coupon_code.trim(),
+        coupon_code: form.coupon_code.trim() === "" ? null : form.coupon_code.trim(),
         billing_address: normalizeAddress(form.billing_address),
         shipping_address: normalizeAddress(form.shipping_address),
     };
-    const normalizedGuestToken = (guestToken ?? '').trim();
+    const normalizedGuestToken = (guestToken ?? "").trim();
 
-    if (normalizedGuestToken !== '') {
+    if (normalizedGuestToken !== "") {
         payload.guest_token = normalizedGuestToken;
     }
 
@@ -46,7 +51,10 @@ export const buildCheckoutPayload = (
 };
 
 export const buildCheckoutIdempotencyKey = (): string => {
-    if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
+    if (
+        typeof globalThis.crypto !== "undefined" &&
+        typeof globalThis.crypto.randomUUID === "function"
+    ) {
         return globalThis.crypto.randomUUID();
     }
 

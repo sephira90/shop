@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
 
-vi.mock('@/api/client', () => ({
+vi.mock("@/api/client", () => ({
     apiClient: {
         get: vi.fn(),
         post: vi.fn(),
@@ -9,8 +9,8 @@ vi.mock('@/api/client', () => ({
     },
 }));
 
-import { apiClient } from '@/api/client';
-import { useCartStore } from '@/stores/cart';
+import { apiClient } from "@/api/client";
+import { useCartStore } from "@/stores/cart";
 
 const apiClientMock = apiClient as unknown as {
     get: ReturnType<typeof vi.fn>;
@@ -19,13 +19,13 @@ const apiClientMock = apiClient as unknown as {
 };
 
 const buildCartPayload = (quantity: number) => ({
-    id: 'cart-1',
+    id: "cart-1",
     guest_token: null,
     items: [
         {
             product_variant_id: 101,
-            sku: 'SKU-101',
-            name: 'Variant 101',
+            sku: "SKU-101",
+            name: "Variant 101",
             quantity,
             unit_price: 15,
             line_total: 15 * quantity,
@@ -39,21 +39,21 @@ const buildCartPayload = (quantity: number) => ({
     },
 });
 
-describe('cart store', () => {
+describe("cart store", () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.clearAllMocks();
         localStorage.clear();
     });
 
-    it('starts with empty cart', () => {
+    it("starts with empty cart", () => {
         const cartStore = useCartStore();
 
         expect(cartStore.cart).toBeNull();
         expect(cartStore.itemCount).toBe(0);
     });
 
-    it('increments existing item by one via addOneItem', async () => {
+    it("increments existing item by one via addOneItem", async () => {
         apiClientMock.get.mockResolvedValueOnce({
             data: {
                 data: buildCartPayload(2),
@@ -70,10 +70,10 @@ describe('cart store', () => {
 
         await cartStore.addOneItem(101);
 
-        expect(apiClientMock.get).toHaveBeenCalledWith('/cart', {
+        expect(apiClientMock.get).toHaveBeenCalledWith("/cart", {
             params: {},
         });
-        expect(apiClientMock.post).toHaveBeenCalledWith('/cart/items', {
+        expect(apiClientMock.post).toHaveBeenCalledWith("/cart/items", {
             product_variant_id: 101,
             quantity: 3,
             guest_token: null,
@@ -81,7 +81,7 @@ describe('cart store', () => {
         expect(cartStore.cart?.items[0]?.quantity).toBe(3);
     });
 
-    it('uses current store state for addOneItem without extra cart fetch', async () => {
+    it("uses current store state for addOneItem without extra cart fetch", async () => {
         apiClientMock.post.mockResolvedValueOnce({
             data: {
                 data: buildCartPayload(2),
@@ -94,7 +94,7 @@ describe('cart store', () => {
         await cartStore.addOneItem(101);
 
         expect(apiClientMock.get).not.toHaveBeenCalled();
-        expect(apiClientMock.post).toHaveBeenCalledWith('/cart/items', {
+        expect(apiClientMock.post).toHaveBeenCalledWith("/cart/items", {
             product_variant_id: 101,
             quantity: 2,
             guest_token: null,

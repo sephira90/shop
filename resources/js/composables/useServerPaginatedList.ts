@@ -1,8 +1,8 @@
-import { ref, type WatchSource } from 'vue';
+import { ref, type WatchSource } from "vue";
 
-import type { ListResponse } from '@/api/response';
-import { usePaginationMeta } from '@/composables/usePaginationMeta';
-import { useServerListFilters } from '@/composables/useServerListFilters';
+import type { ListResponse } from "@/api/response";
+import { usePaginationMeta } from "@/composables/usePaginationMeta";
+import { useServerListFilters } from "@/composables/useServerListFilters";
 
 interface UseServerPaginatedListOptions<TItem, TParams> {
     buildParams: (page: number) => TParams;
@@ -16,7 +16,9 @@ interface UseServerPaginatedListOptions<TItem, TParams> {
     onError?: (error: unknown) => void;
 }
 
-export const useServerPaginatedList = <TItem, TParams>(options: UseServerPaginatedListOptions<TItem, TParams>) => {
+export const useServerPaginatedList = <TItem, TParams>(
+    options: UseServerPaginatedListOptions<TItem, TParams>,
+) => {
     const items = ref<TItem[]>([]);
     const page = ref(Math.max(1, options.initialPage ?? 1));
     const isLoading = ref(false);

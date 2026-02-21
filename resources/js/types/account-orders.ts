@@ -1,4 +1,4 @@
-import type { ListResponse } from '@/api/response';
+import type { ListResponse } from "@/api/response";
 
 export interface AccountOrderItem {
     product_variant_id: number;
@@ -38,7 +38,7 @@ export interface AccountOrderListParams {
     page?: number;
     per_page?: number;
     q?: string;
-    status?: Exclude<AccountOrderStatusFilter, 'all'>;
+    status?: Exclude<AccountOrderStatusFilter, "all">;
 }
 
 export interface AccountOrdersSummary {
@@ -49,11 +49,11 @@ export interface AccountOrdersSummary {
 }
 
 export type AccountOrderStatusFilter =
-    | 'all'
-    | 'pending'
-    | 'paid'
-    | 'processing'
-    | 'shipped'
-    | 'completed'
-    | 'cancelled'
-    | 'refunded';
+    | "all"
+    | "pending"
+    | "paid"
+    | "processing"
+    | "shipped"
+    | "completed"
+    | "cancelled"
+    | "refunded";

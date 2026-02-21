@@ -26,7 +26,7 @@
 
             <div class="actions">
                 <button class="btn btn-primary" type="submit" :disabled="isSubmittingCoupon">
-                    {{ isSubmittingCoupon ? 'Adding...' : 'Add coupon' }}
+                    {{ isSubmittingCoupon ? "Adding..." : "Add coupon" }}
                 </button>
             </div>
         </form>
@@ -34,47 +34,57 @@
         <div class="table-wrap actions--top">
             <table class="table">
                 <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Status</th>
-                    <th>Redeemed</th>
-                    <th>Max</th>
-                    <th>Expires</th>
-                    <th>Actions</th>
-                </tr>
+                    <tr>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th>Redeemed</th>
+                        <th>Max</th>
+                        <th>Expires</th>
+                        <th>Actions</th>
+                    </tr>
                 </thead>
                 <tbody v-if="selectedPromotion.coupons.length">
-                <tr v-for="coupon in selectedPromotion.coupons" :key="coupon.id">
-                    <td>{{ coupon.code }}</td>
-                    <td>
-                        <span class="status-chip" :class="coupon.is_active ? 'status-chip--good' : 'status-chip--neutral'">
-                            {{ coupon.is_active ? 'active' : 'inactive' }}
-                        </span>
-                    </td>
-                    <td>{{ coupon.redeemed_count }}</td>
-                    <td>{{ coupon.max_redemptions ?? '-' }}</td>
-                    <td>{{ formatDateTime(coupon.expires_at) }}</td>
-                    <td>
-                        <button class="btn btn-muted" type="button" :disabled="updatingCouponId === coupon.id" @click="$emit('toggle', coupon)">
-                            {{
-                                updatingCouponId === coupon.id
-                                    ? 'Applying...'
-                                    : coupon.is_active
-                                      ? 'Disable'
-                                      : 'Enable'
-                            }}
-                        </button>
-                    </td>
-                </tr>
+                    <tr v-for="coupon in selectedPromotion.coupons" :key="coupon.id">
+                        <td>{{ coupon.code }}</td>
+                        <td>
+                            <span
+                                class="status-chip"
+                                :class="
+                                    coupon.is_active ? 'status-chip--good' : 'status-chip--neutral'
+                                "
+                            >
+                                {{ coupon.is_active ? "active" : "inactive" }}
+                            </span>
+                        </td>
+                        <td>{{ coupon.redeemed_count }}</td>
+                        <td>{{ coupon.max_redemptions ?? "-" }}</td>
+                        <td>{{ formatDateTime(coupon.expires_at) }}</td>
+                        <td>
+                            <button
+                                class="btn btn-muted"
+                                type="button"
+                                :disabled="updatingCouponId === coupon.id"
+                                @click="$emit('toggle', coupon)"
+                            >
+                                {{
+                                    updatingCouponId === coupon.id
+                                        ? "Applying..."
+                                        : coupon.is_active
+                                          ? "Disable"
+                                          : "Enable"
+                                }}
+                            </button>
+                        </td>
+                    </tr>
                 </tbody>
                 <tbody v-else>
-                <tr>
-                    <td colspan="6">
-                        <div class="empty-state">
-                            <p>No coupons yet for this campaign.</p>
-                        </div>
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <p>No coupons yet for this campaign.</p>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -82,8 +92,8 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime } from '@/utils/datetime';
-import type { Coupon, CouponFormState, Promotion } from '@/types/admin-promotions';
+import { formatDateTime } from "@/utils/datetime";
+import type { Coupon, CouponFormState, Promotion } from "@/types/admin-promotions";
 
 defineProps<{
     selectedPromotion: Promotion | null;
@@ -92,9 +102,9 @@ defineProps<{
 }>();
 
 defineEmits<{
-    (event: 'submit'): void;
-    (event: 'toggle', coupon: Coupon): void;
+    (event: "submit"): void;
+    (event: "toggle", coupon: Coupon): void;
 }>();
 
-const couponForm = defineModel<CouponFormState>('couponForm', { required: true });
+const couponForm = defineModel<CouponFormState>("couponForm", { required: true });
 </script>

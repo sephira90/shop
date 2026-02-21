@@ -1,16 +1,20 @@
-import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-import { listAccountOrders } from '@/api/account/orders';
-import { useApiError } from '@/composables/useApiError';
-import { usePaginationMeta } from '@/composables/usePaginationMeta';
+import { listAccountOrders } from "@/api/account/orders";
+import { useApiError } from "@/composables/useApiError";
+import { usePaginationMeta } from "@/composables/usePaginationMeta";
 import {
     buildAccountOrdersListParams,
     buildAccountOrdersRouteQuery,
     isSameAccountOrdersRouteQuery,
     parseAccountOrdersFiltersFromRouteQuery,
-} from '@/queries/account-orders';
-import type { AccountOrder, AccountOrderAddress, AccountOrderStatusFilter } from '@/types/account-orders';
+} from "@/queries/account-orders";
+import type {
+    AccountOrder,
+    AccountOrderAddress,
+    AccountOrderStatusFilter,
+} from "@/types/account-orders";
 
 export const useAccountOrders = () => {
     const route = useRoute();
@@ -21,7 +25,7 @@ export const useAccountOrders = () => {
     const orders = ref<AccountOrder[]>([]);
     const expandedOrderIds = ref<string[]>([]);
     const isLoading = ref(false);
-    const loadError = ref('');
+    const loadError = ref("");
     const searchQuery = ref(initialFilters.searchQuery);
     const statusFilter = ref<AccountOrderStatusFilter>(initialFilters.statusFilter);
     const page = ref(initialFilters.page);
@@ -29,24 +33,33 @@ export const useAccountOrders = () => {
 
     const filteredOrders = computed<AccountOrder[]>(() => orders.value);
 
-    const loadedTotal = computed<number>(() => orders.value.reduce((sum, order) => sum + Number(order.total ?? 0), 0));
+    const loadedTotal = computed<number>(() =>
+        orders.value.reduce((sum, order) => sum + Number(order.total ?? 0), 0),
+    );
     const paidCount = computed<number>(
-        () => orders.value.filter((order) => order.status === 'paid' || order.payment_status === 'captured').length,
+        () =>
+            orders.value.filter(
+                (order) => order.status === "paid" || order.payment_status === "captured",
+            ).length,
     );
     const shipmentActiveCount = computed<number>(
-        () => orders.value.filter((order) => ['packed', 'shipped'].includes(order.shipment_status)).length,
+        () =>
+            orders.value.filter((order) => ["packed", "shipped"].includes(order.shipment_status))
+                .length,
     );
 
     const fetchOrders = async (targetPage: number): Promise<void> => {
         const requestId = ++activeRequestId;
         isLoading.value = true;
-        loadError.value = '';
+        loadError.value = "";
 
         try {
-            const response = await listAccountOrders(buildAccountOrdersListParams(targetPage, {
-                searchQuery: searchQuery.value,
-                statusFilter: statusFilter.value,
-            }));
+            const response = await listAccountOrders(
+                buildAccountOrdersListParams(targetPage, {
+                    searchQuery: searchQuery.value,
+                    statusFilter: statusFilter.value,
+                }),
+            );
 
             if (requestId !== activeRequestId) {
                 return;
@@ -61,7 +74,7 @@ export const useAccountOrders = () => {
                 return;
             }
 
-            loadError.value = parseApiError(error, 'Unable to load orders.');
+            loadError.value = parseApiError(error, "Unable to load orders.");
             orders.value = [];
             resetMeta();
             page.value = 1;
@@ -114,11 +127,12 @@ export const useAccountOrders = () => {
         expandedOrderIds.value = [...expandedOrderIds.value, orderId];
     };
 
-    const totalItems = (order: AccountOrder): number => order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalItems = (order: AccountOrder): number =>
+        order.items.reduce((sum, item) => sum + item.quantity, 0);
 
-    const formatPrice = (value: number, currency = 'USD'): string => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
+    const formatPrice = (value: number, currency = "USD"): string => {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
             currency,
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -127,53 +141,63 @@ export const useAccountOrders = () => {
 
     const formatDate = (value: string | null): string => {
         if (!value) {
-            return 'Unknown date';
+            return "Unknown date";
         }
 
-        return new Intl.DateTimeFormat('en-US', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
+        return new Intl.DateTimeFormat("en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
         }).format(new Date(value));
     };
 
     const formatAddress = (address: AccountOrderAddress | null): string => {
         if (!address) {
-            return 'Not provided';
+            return "Not provided";
         }
 
-        return [address.line1, address.city, address.country, address.postcode].filter(Boolean).join(', ') || 'Not provided';
+        return (
+            [address.line1, address.city, address.country, address.postcode]
+                .filter(Boolean)
+                .join(", ") || "Not provided"
+        );
     };
 
     const orderStatusClass = (status: string): string => {
-        return {
-            pending: 'status-chip--warn',
-            paid: 'status-chip--good',
-            processing: 'status-chip--info',
-            shipped: 'status-chip--info',
-            completed: 'status-chip--good',
-            cancelled: 'status-chip--bad',
-            refunded: 'status-chip--neutral',
-        }[status] ?? 'status-chip--neutral';
+        return (
+            {
+                pending: "status-chip--warn",
+                paid: "status-chip--good",
+                processing: "status-chip--info",
+                shipped: "status-chip--info",
+                completed: "status-chip--good",
+                cancelled: "status-chip--bad",
+                refunded: "status-chip--neutral",
+            }[status] ?? "status-chip--neutral"
+        );
     };
 
     const paymentStatusClass = (status: string): string => {
-        return {
-            pending: 'status-chip--warn',
-            authorized: 'status-chip--info',
-            captured: 'status-chip--good',
-            failed: 'status-chip--bad',
-            refunded: 'status-chip--neutral',
-        }[status] ?? 'status-chip--neutral';
+        return (
+            {
+                pending: "status-chip--warn",
+                authorized: "status-chip--info",
+                captured: "status-chip--good",
+                failed: "status-chip--bad",
+                refunded: "status-chip--neutral",
+            }[status] ?? "status-chip--neutral"
+        );
     };
 
     const shipmentStatusClass = (status: string): string => {
-        return {
-            pending: 'status-chip--warn',
-            packed: 'status-chip--info',
-            shipped: 'status-chip--info',
-            delivered: 'status-chip--good',
-            returned: 'status-chip--bad',
-        }[status] ?? 'status-chip--neutral';
+        return (
+            {
+                pending: "status-chip--warn",
+                packed: "status-chip--info",
+                shipped: "status-chip--info",
+                delivered: "status-chip--good",
+                returned: "status-chip--bad",
+            }[status] ?? "status-chip--neutral"
+        );
     };
 
     watch(
