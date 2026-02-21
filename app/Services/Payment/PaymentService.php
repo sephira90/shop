@@ -32,7 +32,9 @@ final readonly class PaymentService
      */
     public function initiate(Order $order, string $idempotencyKey): Payment
     {
-        return DB::transaction(function () use ($order, $idempotencyKey): Payment {
+        $gatewayDriver = $this->gatewayDriver();
+
+        return DB::transaction(function () use ($order, $idempotencyKey, $gatewayDriver): Payment {
             $lockedOrder = Order::query()
                 ->whereKey($order->id)
                 ->lockForUpdate()
@@ -72,7 +74,7 @@ final readonly class PaymentService
             return Payment::query()->create([
                 'order_id' => $lockedOrder->id,
                 'idempotency_key' => $idempotencyKey,
-                'gateway' => 'fake-payment',
+                'gateway' => $gatewayDriver,
                 'transaction_id' => $result['transaction_id'],
                 'amount' => $lockedOrder->total,
                 'currency' => $lockedOrder->currency,
@@ -92,6 +94,7 @@ final readonly class PaymentService
         $startedAt = hrtime(true);
         $eventId = 'unknown';
         $outcome = 'rejected';
+        $gatewayDriver = $this->gatewayDriver();
 
         try {
             if (! $this->gateway->verifyWebhookSignature($payload, $signature)) {
@@ -106,9 +109,9 @@ final readonly class PaymentService
 
             $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-            DB::transaction(function () use ($payload, $eventId, $payloadHash, &$outcome): void {
+            DB::transaction(function () use ($payload, $eventId, $payloadHash, &$outcome, $gatewayDriver): void {
                 $receipt = WebhookReceipt::query()->firstOrCreate(
-                    ['provider' => 'fake-payment', 'event_id' => $eventId],
+                    ['provider' => $gatewayDriver, 'event_id' => $eventId],
                     [
                         'payload_hash' => $payloadHash,
                         'processed_at' => null,
@@ -137,7 +140,7 @@ final readonly class PaymentService
                 $paymentStatus = $this->gateway->resolveWebhookStatus($payload);
 
                 $payment = Payment::query()
-                    ->where('gateway', 'fake-payment')
+                    ->where('gateway', $gatewayDriver)
                     ->where('transaction_id', $transactionId)
                     ->lockForUpdate()
                     ->first();
@@ -202,6 +205,11 @@ final readonly class PaymentService
                 lagMs: $lagMs,
             );
         }
+    }
+
+    private function gatewayDriver(): string
+    {
+        return (string) config('payment.driver', 'fake-payment');
     }
 
     /**

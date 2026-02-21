@@ -176,9 +176,14 @@
 - `php artisan app:webhook-flow-smoke`
 - `php artisan app:api-contract-smoke`
 - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-21` — `Phase 1` provider strategy batch выполнен:
+- добавлены config-driven драйверы `payment.driver` / `shipping.driver` (`config/payment.php`, `config/shipping.php`, `.env*.example`, `.env.testing`);
+- `AppServiceProvider` переведен на резолвинг gateway-реализаций из config map с явной валидацией драйвера;
+- в `PaymentService` и `ShippingService` удалены hardcoded provider/gateway значения, используется активный driver из конфига;
+- добавлены unit-тесты резолвинга драйверов (`tests/Unit/GatewayDriverBindingTest.php`).
+- `2026-02-21` — для provider strategy batch повторно прогнан полный production-readiness quality gate в green (все команды из секции `Quality Gates`).
 
 ## Следующий batch
 
-1. Завершить оставшиеся задачи `Phase 1` по provider strategy (`payment.driver` / `shipping.driver`).
-2. Укрепить webhook identity constraints (уникальные ограничения и индексы).
-3. Подготовить batch для `Phase 2` contract & flow unification.
+1. Укрепить webhook identity constraints (уникальные ограничения и индексы).
+2. Подготовить batch для `Phase 2` contract & flow unification.

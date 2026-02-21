@@ -30,11 +30,12 @@ final readonly class ShippingService
      */
     public function createShipment(Order $order): Shipment
     {
+        $shippingDriver = $this->shippingDriver();
         $result = $this->gateway->createShipment($order);
 
         return Shipment::query()->create([
             'order_id' => $order->id,
-            'provider' => 'fake-shipping',
+            'provider' => $shippingDriver,
             'tracking_number' => $result['tracking_number'],
             'status' => $result['status']->value,
             'cost' => $result['cost'],
@@ -52,6 +53,7 @@ final readonly class ShippingService
         $startedAt = hrtime(true);
         $eventId = 'unknown';
         $outcome = 'rejected';
+        $shippingDriver = $this->shippingDriver();
 
         try {
             if (! $this->gateway->verifyWebhookSignature($payload, $signature)) {
@@ -65,9 +67,9 @@ final readonly class ShippingService
 
             $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-            DB::transaction(function () use ($payload, $eventId, $payloadHash, &$outcome): void {
+            DB::transaction(function () use ($payload, $eventId, $payloadHash, &$outcome, $shippingDriver): void {
                 $receipt = WebhookReceipt::query()->firstOrCreate(
-                    ['provider' => 'fake-shipping', 'event_id' => $eventId],
+                    ['provider' => $shippingDriver, 'event_id' => $eventId],
                     [
                         'payload_hash' => $payloadHash,
                         'processed_at' => null,
@@ -160,6 +162,11 @@ final readonly class ShippingService
                 lagMs: $lagMs,
             );
         }
+    }
+
+    private function shippingDriver(): string
+    {
+        return (string) config('shipping.driver', 'fake-shipping');
     }
 
     /**
