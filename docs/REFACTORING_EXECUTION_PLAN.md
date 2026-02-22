@@ -222,8 +222,13 @@
   - list/detail: `PaginateAdminProductsHandler`, `GetAdminProductDetailHandler` (+ query DTO);
   - mutation flow: `Create/Update/DeleteAdminProductHandler` (+ command DTO);
 - `App\Http\Controllers\Api\V1\Admin\ProductController` переведен на application-layer orchestration без прямой зависимости от repository/service.
+- `2026-02-22` — `Phase 3` admin categories application-layer batch выполнен:
+- добавлен модуль `app/Application/Admin/Categories` с query/command handlers:
+  - list/detail: `PaginateAdminCategoriesHandler`, `GetAdminCategoryDetailHandler` (+ query DTO);
+  - mutation flow: `Create/Update/DeleteAdminCategoryHandler` (+ command DTO);
+- `App\Http\Controllers\Api\V1\Admin\CategoryController` переведен на application-layer orchestration без прямой зависимости от repository/service.
 
 ## Следующий batch
 
-1. Продолжить `Phase 3`: перенести admin `Categories` orchestration в application-layer handlers (list/show/create/update/delete).
-2. После этого зафиксировать единый шаблон thin-controller + application handlers для всех admin модулей.
+1. Завершить `Phase 3`: зафиксировать единый шаблон thin-controller + application handlers для всех admin модулей (Orders/Promotions/Products/Categories).
+2. Подготовить итоговый архитектурный ADR по application-layer conventions и DI boundaries.

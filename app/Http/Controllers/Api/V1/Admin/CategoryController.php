@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Application\Admin\Categories\Commands\CreateAdminCategoryCommand;
+use App\Application\Admin\Categories\Commands\CreateAdminCategoryHandler;
+use App\Application\Admin\Categories\Commands\DeleteAdminCategoryCommand;
+use App\Application\Admin\Categories\Commands\DeleteAdminCategoryHandler;
+use App\Application\Admin\Categories\Commands\UpdateAdminCategoryCommand;
+use App\Application\Admin\Categories\Commands\UpdateAdminCategoryHandler;
+use App\Application\Admin\Categories\Queries\GetAdminCategoryDetailHandler;
+use App\Application\Admin\Categories\Queries\GetAdminCategoryDetailQuery;
+use App\Application\Admin\Categories\Queries\PaginateAdminCategoriesHandler;
+use App\Application\Admin\Categories\Queries\PaginateAdminCategoriesQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CategoryIndexRequest;
 use App\Http\Requests\Admin\CategoryStoreRequest;
 use App\Http\Requests\Admin\CategoryUpdateRequest;
 use App\Models\Category;
-use App\Repositories\CategoryRepository;
-use App\Services\Admin\AdminCategoryService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
@@ -20,8 +28,11 @@ class CategoryController extends Controller
      * Create controller instance.
      */
     public function __construct(
-        private readonly CategoryRepository $categoryRepository,
-        private readonly AdminCategoryService $adminCategoryService,
+        private readonly PaginateAdminCategoriesHandler $paginateAdminCategoriesHandler,
+        private readonly GetAdminCategoryDetailHandler $getAdminCategoryDetailHandler,
+        private readonly CreateAdminCategoryHandler $createAdminCategoryHandler,
+        private readonly UpdateAdminCategoryHandler $updateAdminCategoryHandler,
+        private readonly DeleteAdminCategoryHandler $deleteAdminCategoryHandler,
     ) {}
 
     /**
@@ -30,7 +41,9 @@ class CategoryController extends Controller
     public function index(CategoryIndexRequest $request): JsonResponse
     {
         $this->authorize('viewAny', Category::class);
-        $categories = $this->categoryRepository->paginateForAdmin($request->filter());
+        $categories = $this->paginateAdminCategoriesHandler->handle(
+            new PaginateAdminCategoriesQuery($request->filter())
+        );
 
         return ApiResponse::paginated($categories->items(), $categories);
     }
@@ -42,7 +55,9 @@ class CategoryController extends Controller
     {
         $this->authorize('create', Category::class);
 
-        $category = $this->adminCategoryService->create($request->validated());
+        $category = $this->createAdminCategoryHandler->handle(
+            new CreateAdminCategoryCommand($request->validated())
+        );
 
         return ApiResponse::data($category, 201);
     }
@@ -54,7 +69,11 @@ class CategoryController extends Controller
     {
         $this->authorize('view', $category);
 
-        return ApiResponse::data($category->load(['parent:id,name,slug'])->loadCount(['children', 'products']));
+        $detail = $this->getAdminCategoryDetailHandler->handle(
+            new GetAdminCategoryDetailQuery($category)
+        );
+
+        return ApiResponse::data($detail);
     }
 
     /**
@@ -64,7 +83,9 @@ class CategoryController extends Controller
     {
         $this->authorize('update', $category);
 
-        $updated = $this->adminCategoryService->update($category, $request->validated());
+        $updated = $this->updateAdminCategoryHandler->handle(
+            new UpdateAdminCategoryCommand($category, $request->validated())
+        );
 
         return ApiResponse::data($updated);
     }
@@ -76,7 +97,7 @@ class CategoryController extends Controller
     {
         $this->authorize('delete', $category);
 
-        $this->adminCategoryService->delete($category);
+        $this->deleteAdminCategoryHandler->handle(new DeleteAdminCategoryCommand($category));
 
         return ApiResponse::deleted();
     }
