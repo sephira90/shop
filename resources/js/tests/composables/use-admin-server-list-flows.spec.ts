@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { effectScope, nextTick } from "vue";
+import { effectScope, nextTick, reactive } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 
 import type { ListResponse } from "@/api/response";
@@ -247,6 +247,212 @@ describe("admin server-driven list flows", () => {
             is_active: false,
         });
         expect(api.page.value).toBe(1);
+
+        scope.stop();
+    });
+
+    it("syncs orders filters and page with route query when routeSync is enabled", async () => {
+        listAdminOrdersMock.mockImplementation(async (params: Record<string, unknown>) => {
+            const page = Number(params.page ?? 1);
+
+            return buildListResponse([buildOrderSummary(`order-${page}`)], page);
+        });
+        getAdminOrderDetailMock.mockImplementation(async (orderId: string) =>
+            buildOrderDetail(orderId),
+        );
+
+        const route = reactive<{ query: Record<string, unknown> }>({
+            query: {},
+        });
+        const replace = vi.fn(async (to: unknown) => {
+            const query = (to as { query?: Record<string, unknown> }).query ?? {};
+            route.query = query;
+        });
+
+        const scope = effectScope();
+        const api = scope.run(() =>
+            useAdminOrders({
+                routeSync: {
+                    route,
+                    router: { replace },
+                },
+            }),
+        );
+
+        expect(api).not.toBeNull();
+        if (!api) {
+            scope.stop();
+            return;
+        }
+
+        await api.loadOrders(3);
+
+        expect(replace).toHaveBeenCalledWith({
+            query: {
+                page: "3",
+            },
+        });
+        expect(listAdminOrdersMock).toHaveBeenLastCalledWith({
+            page: 3,
+        });
+
+        api.filters.search = "  jane@example.com  ";
+        await nextTick();
+        api.filters.orderStatus = "completed";
+        await nextTick();
+        api.filters.paymentStatus = "captured";
+        await nextTick();
+        api.filters.shipmentStatus = "delivered";
+        await nextTick();
+
+        await vi.advanceTimersByTimeAsync(300);
+
+        expect(replace).toHaveBeenCalledWith({
+            query: {
+                q: "jane@example.com",
+                status: "completed",
+                payment_status: "captured",
+                shipment_status: "delivered",
+            },
+        });
+        expect(listAdminOrdersMock).toHaveBeenLastCalledWith({
+            page: 1,
+            q: "jane@example.com",
+            status: "completed",
+            payment_status: "captured",
+            shipment_status: "delivered",
+        });
+        expect(api.page.value).toBe(1);
+
+        scope.stop();
+    });
+
+    it("syncs promotions filters and page with route query when routeSync is enabled", async () => {
+        listPromotionsMock.mockImplementation(async (params: Record<string, unknown>) => {
+            const page = Number(params.page ?? 1);
+
+            return buildListResponse([buildPromotion(page)], page);
+        });
+
+        const route = reactive<{ query: Record<string, unknown> }>({
+            query: {
+                q: "  vip ",
+                status: "active",
+                page: "2",
+            },
+        });
+        const replace = vi.fn(async (to: unknown) => {
+            const query = (to as { query?: Record<string, unknown> }).query ?? {};
+            route.query = query;
+        });
+
+        const scope = effectScope();
+        const api = scope.run(() =>
+            useAdminPromotions({
+                routeSync: {
+                    route,
+                    router: { replace },
+                },
+            }),
+        );
+
+        expect(api).not.toBeNull();
+        if (!api) {
+            scope.stop();
+            return;
+        }
+
+        await api.loadPromotions();
+        expect(listPromotionsMock).toHaveBeenLastCalledWith({
+            page: 2,
+            q: "vip",
+            is_active: true,
+        });
+
+        api.searchQuery.value = "  winter  ";
+        await nextTick();
+        api.statusFilter.value = "inactive";
+        await nextTick();
+
+        await vi.advanceTimersByTimeAsync(300);
+
+        expect(replace).toHaveBeenCalledWith({
+            query: {
+                q: "winter",
+                status: "inactive",
+            },
+        });
+        expect(listPromotionsMock).toHaveBeenLastCalledWith({
+            page: 1,
+            q: "winter",
+            is_active: false,
+        });
+
+        scope.stop();
+    });
+
+    it("syncs categories filters and page with route query when routeSync is enabled", async () => {
+        listAdminCategoriesMock.mockImplementation(async (params: Record<string, unknown>) => {
+            const page = Number(params.page ?? 1);
+
+            return buildListResponse([buildCategory(page)], page);
+        });
+
+        const route = reactive<{ query: Record<string, unknown> }>({
+            query: {
+                q: "  shoes ",
+                status: "active",
+                page: "2",
+            },
+        });
+        const replace = vi.fn(async (to: unknown) => {
+            const query = (to as { query?: Record<string, unknown> }).query ?? {};
+            route.query = query;
+        });
+
+        const scope = effectScope();
+        const api = scope.run(() =>
+            useAdminCategories({
+                routeSync: {
+                    route,
+                    router: { replace },
+                },
+            }),
+        );
+
+        expect(api).not.toBeNull();
+        if (!api) {
+            scope.stop();
+            return;
+        }
+
+        await api.loadCategories();
+        expect(listAdminCategoriesMock).toHaveBeenLastCalledWith({
+            page: 2,
+            per_page: 200,
+            q: "shoes",
+            is_active: true,
+        });
+
+        api.searchQuery.value = "  boots ";
+        await nextTick();
+        api.statusFilter.value = "inactive";
+        await nextTick();
+
+        await vi.advanceTimersByTimeAsync(300);
+
+        expect(replace).toHaveBeenCalledWith({
+            query: {
+                q: "boots",
+                status: "inactive",
+            },
+        });
+        expect(listAdminCategoriesMock).toHaveBeenLastCalledWith({
+            page: 1,
+            per_page: 200,
+            q: "boots",
+            is_active: false,
+        });
 
         scope.stop();
     });

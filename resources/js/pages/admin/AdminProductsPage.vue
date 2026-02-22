@@ -413,9 +413,15 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
+import { createBrowserAdminUiEffects } from "@/composables/admin/adminUiEffects";
 import { useAdminProducts } from "@/composables/admin/useAdminProducts";
 import { formatDateTime } from "@/utils/datetime";
+
+const uiEffects = createBrowserAdminUiEffects();
+const route = useRoute();
+const router = useRouter();
 
 const {
     categories,
@@ -445,7 +451,13 @@ const {
     refreshCatalogCache,
     toggleCatalogVisibility,
     isVisibleInCatalog,
-} = useAdminProducts();
+} = useAdminProducts({
+    uiEffects,
+    routeSync: {
+        route,
+        router,
+    },
+});
 
 onMounted(async () => {
     await Promise.all([loadCategories(), loadProducts()]);

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAdminCategoryListParams } from "@/queries/admin/categories";
+import {
+    buildAdminCategoryListParams,
+    buildAdminCategoryRouteQuery,
+    isSameAdminCategoryRouteQuery,
+    parseAdminCategoryFiltersFromRouteQuery,
+} from "@/queries/admin/categories";
 
 describe("category query", () => {
     it("builds params with search and active status", () => {
@@ -39,6 +44,41 @@ describe("category query", () => {
         ).toEqual({
             page: 1,
             per_page: 200,
+        });
+    });
+
+    it("parses route query and compares normalized values", () => {
+        expect(
+            parseAdminCategoryFiltersFromRouteQuery({
+                q: "  shoes  ",
+                status: "active",
+                page: "3",
+            }),
+        ).toEqual({
+            searchQuery: "shoes",
+            statusFilter: "active",
+            page: 3,
+        });
+
+        expect(
+            isSameAdminCategoryRouteQuery(
+                { q: " shoes ", status: "active", page: "1" },
+                { q: "shoes", status: "active" },
+            ),
+        ).toBe(true);
+    });
+
+    it("builds route query without defaults", () => {
+        expect(
+            buildAdminCategoryRouteQuery({
+                searchQuery: "  shoes ",
+                statusFilter: "inactive",
+                page: 2,
+            }),
+        ).toEqual({
+            q: "shoes",
+            status: "inactive",
+            page: "2",
         });
     });
 });

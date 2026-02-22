@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAdminPromotionListParams } from "@/queries/admin/promotions";
+import {
+    buildAdminPromotionListParams,
+    buildAdminPromotionRouteQuery,
+    isSameAdminPromotionRouteQuery,
+    parseAdminPromotionFiltersFromRouteQuery,
+} from "@/queries/admin/promotions";
 
 describe("promotion query", () => {
     it("builds params with search and active status", () => {
@@ -36,6 +41,41 @@ describe("promotion query", () => {
             }),
         ).toEqual({
             page: 1,
+        });
+    });
+
+    it("parses route query and compares normalized shape", () => {
+        expect(
+            parseAdminPromotionFiltersFromRouteQuery({
+                q: "  vip  ",
+                status: "active",
+                page: "3",
+            }),
+        ).toEqual({
+            searchQuery: "vip",
+            statusFilter: "active",
+            page: 3,
+        });
+
+        expect(
+            isSameAdminPromotionRouteQuery(
+                { q: " vip ", status: "active", page: "1" },
+                { q: "vip", status: "active" },
+            ),
+        ).toBe(true);
+    });
+
+    it("builds route query without defaults", () => {
+        expect(
+            buildAdminPromotionRouteQuery({
+                searchQuery: "  vip ",
+                statusFilter: "inactive",
+                page: 2,
+            }),
+        ).toEqual({
+            q: "vip",
+            status: "inactive",
+            page: "2",
         });
     });
 });

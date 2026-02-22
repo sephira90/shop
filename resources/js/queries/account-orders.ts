@@ -1,6 +1,11 @@
 import type { LocationQueryRaw } from "vue-router";
 
 import type { AccountOrderListParams, AccountOrderStatusFilter } from "@/types/account-orders";
+import {
+    normalizeEnumQuery,
+    normalizePageFromQuery,
+    toSingleQueryValue,
+} from "@/queries/route-query";
 
 const ALLOWED_STATUS_FILTERS: AccountOrderStatusFilter[] = [
     "all",
@@ -19,42 +24,17 @@ export interface AccountOrdersFilters {
     page: number;
 }
 
-const toSingleQueryValue = (value: unknown): string => {
-    if (Array.isArray(value)) {
-        const first = value.find((item) => typeof item === "string");
-
-        return typeof first === "string" ? first : "";
-    }
-
-    return typeof value === "string" ? value : "";
-};
-
 const normalizeStatusFilter = (value: unknown): AccountOrderStatusFilter => {
-    const normalized = toSingleQueryValue(value).trim().toLowerCase();
-
-    return ALLOWED_STATUS_FILTERS.includes(normalized as AccountOrderStatusFilter)
-        ? (normalized as AccountOrderStatusFilter)
-        : "all";
-};
-
-const normalizePage = (value: unknown): number => {
-    const raw = toSingleQueryValue(value).trim();
-    const parsed = Number(raw);
-
-    if (!Number.isInteger(parsed) || parsed < 1) {
-        return 1;
-    }
-
-    return parsed;
+    return normalizeEnumQuery(value, ALLOWED_STATUS_FILTERS, "all");
 };
 
 export const parseAccountOrdersFiltersFromRouteQuery = (
-    query: Record<string, unknown>,
+    query: Readonly<Record<string, unknown>>,
 ): AccountOrdersFilters => {
     return {
         searchQuery: toSingleQueryValue(query.q).trim(),
         statusFilter: normalizeStatusFilter(query.status),
-        page: normalizePage(query.page),
+        page: normalizePageFromQuery(query.page),
     };
 };
 
@@ -78,8 +58,8 @@ export const buildAccountOrdersRouteQuery = (filters: AccountOrdersFilters): Loc
 };
 
 export const isSameAccountOrdersRouteQuery = (
-    left: Record<string, unknown>,
-    right: Record<string, unknown>,
+    left: Readonly<Record<string, unknown>>,
+    right: Readonly<Record<string, unknown>>,
 ): boolean => {
     const parsedLeft = parseAccountOrdersFiltersFromRouteQuery(left);
     const parsedRight = parseAccountOrdersFiltersFromRouteQuery(right);

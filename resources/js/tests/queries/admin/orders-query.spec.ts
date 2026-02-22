@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAdminOrderListParams } from "@/queries/admin/orders";
+import {
+    buildAdminOrderListParams,
+    buildAdminOrderRouteQuery,
+    isSameAdminOrderRouteQuery,
+    parseAdminOrderFiltersFromRouteQuery,
+} from "@/queries/admin/orders";
 
 describe("order query", () => {
     it("builds list params from filter state", () => {
@@ -45,5 +50,57 @@ describe("order query", () => {
             page: 2,
             payment_status: "failed",
         });
+    });
+
+    it("parses route query with normalized values", () => {
+        expect(
+            parseAdminOrderFiltersFromRouteQuery({
+                q: "  ORD-22  ",
+                status: "completed",
+                payment_status: "captured",
+                shipment_status: "delivered",
+                page: "3",
+            }),
+        ).toEqual({
+            search: "ORD-22",
+            orderStatus: "completed",
+            paymentStatus: "captured",
+            shipmentStatus: "delivered",
+            page: 3,
+        });
+    });
+
+    it("builds route query without default filters", () => {
+        expect(
+            buildAdminOrderRouteQuery({
+                search: "  mary@example.com ",
+                orderStatus: "all",
+                paymentStatus: "captured",
+                shipmentStatus: "all",
+                page: 2,
+            }),
+        ).toEqual({
+            q: "mary@example.com",
+            payment_status: "captured",
+            page: "2",
+        });
+    });
+
+    it("compares route queries by normalized filters", () => {
+        expect(
+            isSameAdminOrderRouteQuery(
+                {
+                    q: "  ORD-22 ",
+                    status: "completed",
+                    payment_status: "captured",
+                },
+                {
+                    q: "ORD-22",
+                    status: "completed",
+                    payment_status: "captured",
+                    page: "1",
+                },
+            ),
+        ).toBe(true);
     });
 });

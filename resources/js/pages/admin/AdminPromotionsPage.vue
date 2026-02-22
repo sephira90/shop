@@ -41,11 +41,17 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import PromotionCampaignForm from "@/components/admin/promotions/PromotionCampaignForm.vue";
 import PromotionCampaignTable from "@/components/admin/promotions/PromotionCampaignTable.vue";
 import PromotionCouponsPanel from "@/components/admin/promotions/PromotionCouponsPanel.vue";
+import { createBrowserAdminUiEffects } from "@/composables/admin/adminUiEffects";
 import { useAdminPromotions } from "@/composables/admin/useAdminPromotions";
+
+const uiEffects = createBrowserAdminUiEffects();
+const route = useRoute();
+const router = useRouter();
 
 const {
     page,
@@ -72,7 +78,13 @@ const {
     removePromotion,
     createCoupon,
     toggleCoupon,
-} = useAdminPromotions();
+} = useAdminPromotions({
+    uiEffects,
+    routeSync: {
+        route,
+        router,
+    },
+});
 
 onMounted(async () => {
     await loadPromotions();

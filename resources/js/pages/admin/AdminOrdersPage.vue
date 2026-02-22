@@ -338,9 +338,13 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import { useAdminOrders } from "@/composables/admin/useAdminOrders";
 import { formatDateTime } from "@/utils/datetime";
+
+const route = useRoute();
+const router = useRouter();
 
 const {
     orders,
@@ -365,7 +369,12 @@ const {
     orderStatusClass,
     paymentStatusClass,
     shipmentStatusClass,
-} = useAdminOrders();
+} = useAdminOrders({
+    routeSync: {
+        route,
+        router,
+    },
+});
 
 onMounted(async () => {
     await loadOrders();

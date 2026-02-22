@@ -224,8 +224,14 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
+import { createBrowserAdminUiEffects } from "@/composables/admin/adminUiEffects";
 import { useAdminCategories } from "@/composables/admin/useAdminCategories";
+
+const uiEffects = createBrowserAdminUiEffects();
+const route = useRoute();
+const router = useRouter();
 
 const {
     page,
@@ -246,7 +252,13 @@ const {
     submitCategory,
     startEdit,
     removeCategory,
-} = useAdminCategories();
+} = useAdminCategories({
+    uiEffects,
+    routeSync: {
+        route,
+        router,
+    },
+});
 
 onMounted(async () => {
     await loadCategories();

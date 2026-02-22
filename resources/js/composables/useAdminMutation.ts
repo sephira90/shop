@@ -1,9 +1,9 @@
-interface AdminMutationNoticeAdapter {
+export interface AdminMutationNoticeAdapter {
     clearNotice: () => void;
     showApiError: (error: unknown, fallback: string) => void;
 }
 
-interface ExecuteAdminMutationOptions<TResult> {
+export interface ExecuteAdminMutationOptions<TResult> {
     run: () => Promise<TResult>;
     errorMessage: string;
     setPending?: (pending: boolean) => void;
@@ -12,8 +12,12 @@ interface ExecuteAdminMutationOptions<TResult> {
     clearNotice?: boolean;
 }
 
+export type ExecuteAdminMutation = <TResult>(
+    options: ExecuteAdminMutationOptions<TResult>,
+) => Promise<TResult | null>;
+
 export const useAdminMutation = (notice: AdminMutationNoticeAdapter) => {
-    const executeMutation = async <TResult>(
+    const executeMutation: ExecuteAdminMutation = async <TResult>(
         options: ExecuteAdminMutationOptions<TResult>,
     ): Promise<TResult | null> => {
         if (options.clearNotice ?? true) {
