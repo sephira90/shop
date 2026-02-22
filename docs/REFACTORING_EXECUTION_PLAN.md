@@ -189,7 +189,14 @@
 - `ShippingService` обновлен на поиск shipment по `(provider, tracking_number)` для provider-safe webhook обработки;
 - добавлены feature-тесты ограничений идентичности (`tests/Feature/WebhookIdentityConstraintTest.php`).
 - `2026-02-21` — для webhook identity batch повторно прогнан полный production-readiness quality gate в green (все команды из секции `Quality Gates`).
+- `2026-02-22` — `Phase 2` contract & flow unification batch выполнен:
+- `checkout/place-order` приведен к единому `data`-envelope (убран top-level `payment`, платежный payload вложен в `data.payment`);
+- `bootstrap/app.php` и `EnsureRoleMiddleware` переведены на единый error pipeline через `ApiResponse::error(...)`;
+- убран неиспользуемый `ApiResponse::payload(...)`, в API остались единые response helpers (`data/paginated/error/deleted`);
+- `app:api-contract-smoke` расширен проверкой success-контракта `checkout/place-order` (включая запрет top-level `payment`);
+- обновлены тесты checkout-контракта (`tests/Feature/GuestCheckoutTest.php`) и contract smoke (`tests/Feature/ApiContractSmokeCommandTest.php`).
 
 ## Следующий batch
 
-1. Подготовить batch для `Phase 2` contract & flow unification.
+1. Закрыть оставшиеся пункты `Phase 2` по frontend data parser alignment (добавить контрактные frontend-тесты для checkout response/error shape).
+2. Подготовить следующий execution batch для `Phase 3` (application-layer handlers для Checkout/Orders/Promotions).
