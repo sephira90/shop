@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Support\Observability\ObservabilityService;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -106,5 +107,18 @@ class ObservabilityReportCommandTest extends TestCase
             ->assertFailed()
             ->expectsOutputToContain('Required webhook samples are missing in selected window.')
             ->expectsOutputToContain('Observability threshold checks failed.');
+    }
+
+    /**
+     * Ensure observability SLO alerts command is wired in scheduler.
+     */
+    public function test_observability_alerts_command_is_registered_in_scheduler(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+
+        $event = collect($schedule->events())
+            ->first(static fn ($scheduledEvent) => str_contains((string) ($scheduledEvent->command ?? ''), 'app:observability-alert-check'));
+
+        $this->assertNotNull($event);
     }
 }
