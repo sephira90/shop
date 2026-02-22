@@ -232,8 +232,13 @@
 - добавлен итоговый ADR по application-layer conventions и DI boundaries:
   - `docs/adr/ADR-0001-admin-application-layer-conventions.md`;
   - индекс ADR: `docs/adr/README.md`.
+- `2026-02-22` — `Phase 4` admin integration/UI-flow tests batch выполнен:
+- добавлен integration test-suite `resources/js/tests/composables/use-admin-server-list-flows.spec.ts` для server-driven list flow:
+  - `useAdminOrders`: debounce фильтров и перезагрузка с `page=1` + проверка server params;
+  - `useAdminPromotions`: синхронизация search/status фильтров с перезагрузкой `page=1`;
+  - `useAdminCategories`: синхронизация search/status фильтров и стабильный `per_page=200` contract.
 
 ## Следующий batch
 
-1. Стартовать `Phase 4`: выделить integration/UI-flow тесты для admin страниц под server-driven фильтры и pagination sync.
-2. Укрепить frontend decomposition для оставшихся composable с UI side-effects переносом в view-layer.
+1. Продолжить `Phase 4`: вынести `window.confirm` / `window.scrollTo` из `useAdminProducts`, `useAdminPromotions`, `useAdminCategories` в view-layer.
+2. Добавить composable-level contracts для UI side-effects adapters (injectable confirm/scroll), чтобы исключить прямой DOM coupling.
