@@ -205,8 +205,14 @@
   - `PaginateMyOrdersHandler` (+ query DTO);
   - `GetMyOrdersSummaryHandler` (+ query DTO);
 - `CheckoutController` переведен на application-layer orchestration (тонкий transport-слой без прямой доменной оркестрации).
+- `2026-02-22` — `Phase 3` admin orders application-layer batch выполнен:
+- добавлен модуль `app/Application/Admin/Orders` с command/query handlers:
+  - `PaginateAdminOrdersHandler` (+ query DTO);
+  - `GetAdminOrderDetailHandler` (+ query DTO);
+  - `UpdateAdminOrderStatusHandler` (+ command DTO);
+- `App\Http\Controllers\Api\V1\Admin\OrderController` переведен на application-layer orchestration без прямой зависимости от repository/service.
 
 ## Следующий batch
 
-1. Продолжить `Phase 3`: перенести admin `Orders` orchestration в application-layer handlers (list/show/update-status).
-2. Применить тот же extraction шаблон к `Promotions` (list/create/update/delete + coupons flow).
+1. Продолжить `Phase 3`: перенести admin `Promotions` orchestration в application-layer handlers (list/create/update/delete + coupons flow).
+2. После promotions извлечь аналогичный application-layer для admin `Products` и `Categories`.

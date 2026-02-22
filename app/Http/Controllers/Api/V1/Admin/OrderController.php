@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Application\Admin\Orders\Commands\UpdateAdminOrderStatusCommand;
+use App\Application\Admin\Orders\Commands\UpdateAdminOrderStatusHandler;
+use App\Application\Admin\Orders\Queries\GetAdminOrderDetailHandler;
+use App\Application\Admin\Orders\Queries\GetAdminOrderDetailQuery;
+use App\Application\Admin\Orders\Queries\PaginateAdminOrdersHandler;
+use App\Application\Admin\Orders\Queries\PaginateAdminOrdersQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OrderIndexRequest;
 use App\Http\Requests\Admin\OrderStatusUpdateRequest;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\OrderSummaryResource;
 use App\Models\Order;
-use App\Repositories\OrderRepository;
-use App\Services\Admin\AdminOrderService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
@@ -21,8 +25,9 @@ class OrderController extends Controller
      * Create controller instance.
      */
     public function __construct(
-        private readonly OrderRepository $orderRepository,
-        private readonly AdminOrderService $adminOrderService,
+        private readonly PaginateAdminOrdersHandler $paginateAdminOrdersHandler,
+        private readonly GetAdminOrderDetailHandler $getAdminOrderDetailHandler,
+        private readonly UpdateAdminOrderStatusHandler $updateAdminOrderStatusHandler,
     ) {}
 
     /**
@@ -32,7 +37,9 @@ class OrderController extends Controller
     {
         $this->authorize('viewAny', Order::class);
 
-        $orders = $this->orderRepository->paginateSummaryForAdmin($request->filter());
+        $orders = $this->paginateAdminOrdersHandler->handle(
+            new PaginateAdminOrdersQuery($request->filter())
+        );
 
         return ApiResponse::paginated(OrderSummaryResource::collection($orders->items()), $orders);
     }
@@ -44,7 +51,9 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        return ApiResponse::data(OrderResource::make($order->load(['items', 'payments', 'shipments', 'user'])));
+        $detail = $this->getAdminOrderDetailHandler->handle(new GetAdminOrderDetailQuery($order));
+
+        return ApiResponse::data(OrderResource::make($detail));
     }
 
     /**
@@ -54,7 +63,9 @@ class OrderController extends Controller
     {
         $this->authorize('update', $order);
 
-        $updated = $this->adminOrderService->updateStatus($order, $request->validated());
+        $updated = $this->updateAdminOrderStatusHandler->handle(
+            new UpdateAdminOrderStatusCommand($order, $request->validated())
+        );
 
         return ApiResponse::data(OrderResource::make($updated));
     }
