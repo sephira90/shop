@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\Api\ApiResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,21 +19,13 @@ class EnsureRoleMiddleware
         $user = $request->user();
 
         if ($user === null) {
-            return response()->json([
-                'error' => [
-                    'message' => 'Authentication is required.',
-                ],
-            ], Response::HTTP_UNAUTHORIZED);
+            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
         if ($roles === [] || $user->roles()->whereIn('name', $roles)->exists()) {
             return $next($request);
         }
 
-        return response()->json([
-            'error' => [
-                'message' => 'Access denied for current role.',
-            ],
-        ], Response::HTTP_FORBIDDEN);
+        return ApiResponse::error('Access denied for current role.', Response::HTTP_FORBIDDEN);
     }
 }

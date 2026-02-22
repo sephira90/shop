@@ -63,9 +63,10 @@ class CheckoutController extends Controller
         }
 
         $payment = $this->paymentService->initiate($order, 'checkout-'.$idempotencyKey);
+        $orderData = OrderResource::make($order)->toArray($request);
 
-        return ApiResponse::payload([
-            'data' => OrderResource::make($order),
+        return ApiResponse::data([
+            ...$orderData,
             'payment' => [
                 'payment_id' => $payment->id,
                 'transaction_id' => $payment->transaction_id,

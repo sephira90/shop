@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Middleware\ApiRequestTelemetryMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureRoleMiddleware;
+use App\Support\Api\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -44,22 +45,19 @@ return Application::configure(basePath: dirname(__DIR__))
                 default => 500,
             };
 
+            $message = $status >= 500 ? 'Internal server error.' : trim($exception->getMessage());
+            if ($message === '') {
+                $message = Response::$statusTexts[$status] ?? 'Request failed.';
+            }
+
             $error = [
-                'message' => $status >= 500 ? 'Internal server error.' : $exception->getMessage(),
                 'type' => class_basename($exception),
             ];
-
-            $correlationId = $request->headers->get('X-Correlation-Id');
-            if (is_string($correlationId) && $correlationId !== '') {
-                $error['request_id'] = $correlationId;
-            }
 
             if ($exception instanceof ValidationException) {
                 $error['validation'] = $exception->errors();
             }
 
-            return response()->json([
-                'error' => $error,
-            ], $status);
+            return ApiResponse::error($message, $status, $error);
         });
     })->create();

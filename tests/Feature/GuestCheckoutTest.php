@@ -49,14 +49,16 @@ class GuestCheckoutTest extends TestCase
 
         $first = $this->withHeader('Idempotency-Key', 'guest-checkout-idempotency')
             ->postJson('/api/v1/checkout/place-order', $payload)
-            ->assertCreated();
+            ->assertCreated()
+            ->assertJsonMissingPath('payment');
 
         $second = $this->withHeader('Idempotency-Key', 'guest-checkout-idempotency')
             ->postJson('/api/v1/checkout/place-order', $payload)
-            ->assertCreated();
+            ->assertCreated()
+            ->assertJsonMissingPath('payment');
 
         $this->assertSame($first->json('data.id'), $second->json('data.id'));
-        $this->assertSame($first->json('payment.payment_id'), $second->json('payment.payment_id'));
+        $this->assertSame($first->json('data.payment.payment_id'), $second->json('data.payment.payment_id'));
     }
 
     /**

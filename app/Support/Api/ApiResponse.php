@@ -20,16 +20,6 @@ final class ApiResponse
     }
 
     /**
-     * Return custom payload envelope.
-     *
-     * @param  array<string, mixed>  $payload
-     */
-    public static function payload(array $payload, int $status = 200): JsonResponse
-    {
-        return response()->json($payload, $status);
-    }
-
-    /**
      * Return list envelope with pagination meta.
      *
      * @param  LengthAwarePaginator<int, mixed>  $paginator

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\RoleName;
+use App\Models\ProductVariant;
 use App\Models\User;
 use App\Support\Observability\ObservabilityService;
 use Database\Seeders\CatalogSeeder;
@@ -115,6 +116,7 @@ class AppApiContractSmokeCommand extends Command
             $this->checkCatalogList(),
             $this->checkCatalogNotFound(),
             $this->checkCartShow(),
+            $this->checkCheckoutPlaceOrder(),
             $this->checkCheckoutMissingIdempotency(),
             $this->checkAdminProductsList($adminToken),
             $this->checkAdminProductsValidation($adminToken),
@@ -261,6 +263,77 @@ class AppApiContractSmokeCommand extends Command
 
         return [
             'name' => 'checkout_missing_idempotency',
+            'status' => $response['status'],
+            'result' => 'ok',
+        ];
+    }
+
+    /**
+     * Check checkout place-order success envelope shape.
+     *
+     * @return array{name: string, status: int, result: string}
+     */
+    private function checkCheckoutPlaceOrder(): array
+    {
+        $variantId = (int) (ProductVariant::query()->value('id') ?? 0);
+        if ($variantId <= 0) {
+            throw new DomainException('checkout place-order precondition failed: no product variant found.');
+        }
+
+        $guestToken = 'contract-smoke-guest-'.Str::lower(Str::random(12));
+        $checkoutKey = 'contract-smoke-checkout-'.Str::lower(Str::random(12));
+
+        $cartResponse = $this->request('POST', '/api/v1/cart/items', [
+            'product_variant_id' => $variantId,
+            'quantity' => 1,
+            'guest_token' => $guestToken,
+        ]);
+        $this->assertStatus($cartResponse['status'], HttpResponse::HTTP_OK, 'checkout cart setup');
+
+        $response = $this->request(
+            'POST',
+            '/api/v1/checkout/place-order',
+            [
+                'guest_token' => $guestToken,
+                'email' => 'contract@example.com',
+                'billing_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+                'shipping_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+            ],
+            [
+                'Idempotency-Key' => $checkoutKey,
+            ],
+        );
+        $json = $response['json'];
+
+        $this->assertStatus($response['status'], HttpResponse::HTTP_CREATED, 'checkout place-order');
+        $this->assertHasKeys($json, ['data'], 'checkout place-order');
+
+        $data = (array) ($json['data'] ?? []);
+        $this->assertHasKeys($data, ['id', 'order_number', 'payment'], 'checkout place-order data');
+
+        if (array_key_exists('payment', $json)) {
+            throw new DomainException('checkout place-order should not expose top-level "payment".');
+        }
+
+        $payment = $data['payment'] ?? null;
+        if (! is_array($payment)) {
+            throw new DomainException('checkout place-order payment payload is not an object.');
+        }
+
+        $this->assertHasKeys($payment, ['payment_id', 'transaction_id', 'status', 'payload'], 'checkout place-order payment');
+
+        return [
+            'name' => 'checkout_place_order',
             'status' => $response['status'],
             'result' => 'ok',
         ];
