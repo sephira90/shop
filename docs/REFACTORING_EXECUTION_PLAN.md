@@ -195,8 +195,12 @@
 - убран неиспользуемый `ApiResponse::payload(...)`, в API остались единые response helpers (`data/paginated/error/deleted`);
 - `app:api-contract-smoke` расширен проверкой success-контракта `checkout/place-order` (включая запрет top-level `payment`);
 - обновлены тесты checkout-контракта (`tests/Feature/GuestCheckoutTest.php`) и contract smoke (`tests/Feature/ApiContractSmokeCommandTest.php`).
+- `2026-02-22` — `Phase 2` frontend parser alignment batch выполнен:
+- `placeCheckoutOrder` переведен на строгий mapper checkout-ответа (`resources/js/mappers/checkout.ts`) с обязательной проверкой `data.id`, `data.order_number`, `data.payment.*`;
+- добавлены frontend contract tests для success-shape checkout ответа (`resources/js/tests/api/checkout-api.spec.ts`);
+- добавлены frontend contract tests для error envelope parser (`resources/js/tests/api/response-error.spec.ts`).
 
 ## Следующий batch
 
-1. Закрыть оставшиеся пункты `Phase 2` по frontend data parser alignment (добавить контрактные frontend-тесты для checkout response/error shape).
-2. Подготовить следующий execution batch для `Phase 3` (application-layer handlers для Checkout/Orders/Promotions).
+1. Стартовать `Phase 3`: выделить application-layer handlers для `Checkout` (command/query граница + DI wiring).
+2. Подготовить extraction шаблон для `Orders`/`Promotions` на основе первого checkout handler.

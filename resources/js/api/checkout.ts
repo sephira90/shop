@@ -1,5 +1,6 @@
 import { apiClient } from "@/api/client";
-import { asRecord, toString } from "@/mappers/common";
+import { extractData } from "@/api/response";
+import { mapCheckoutOrderFromApi } from "@/mappers/checkout";
 import type { CheckoutOrderResult, CheckoutPlaceOrderPayload } from "@/types/checkout";
 
 export const placeCheckoutOrder = async (
@@ -11,15 +12,7 @@ export const placeCheckoutOrder = async (
             "Idempotency-Key": idempotencyKey,
         },
     });
-    const record = asRecord(data);
-    const order = asRecord(record.data);
-    const orderNumber = toString(order.order_number).trim();
+    const response = extractData<unknown>(data);
 
-    if (orderNumber === "") {
-        return null;
-    }
-
-    return {
-        order_number: orderNumber,
-    };
+    return response ? mapCheckoutOrderFromApi(response) : null;
 };

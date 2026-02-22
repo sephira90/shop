@@ -27,6 +27,15 @@ export interface CheckoutPlaceOrderPayload {
     shipping_address: CheckoutAddressPayload;
 }
 
+export interface CheckoutPaymentResult {
+    payment_id: number;
+    transaction_id: string;
+    status: string;
+    payload: Record<string, unknown>;
+}
+
 export interface CheckoutOrderResult {
+    id: number;
     order_number: string;
+    payment: CheckoutPaymentResult;
 }
