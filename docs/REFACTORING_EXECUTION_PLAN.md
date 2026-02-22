@@ -211,8 +211,14 @@
   - `GetAdminOrderDetailHandler` (+ query DTO);
   - `UpdateAdminOrderStatusHandler` (+ command DTO);
 - `App\Http\Controllers\Api\V1\Admin\OrderController` переведен на application-layer orchestration без прямой зависимости от repository/service.
+- `2026-02-22` — `Phase 3` admin promotions application-layer batch выполнен:
+- добавлен модуль `app/Application/Admin/Promotions` с query/command handlers:
+  - list: `PaginateAdminPromotionsHandler` (+ query DTO);
+  - mutation flow: `Create/Update/DeleteAdminPromotionHandler` (+ command DTO);
+  - coupons flow: `Create/UpdateAdminPromotionCouponHandler` (+ command DTO);
+- `App\Http\Controllers\Api\V1\Admin\PromotionController` переведен на application-layer orchestration без прямой зависимости от repository/service.
 
 ## Следующий batch
 
-1. Продолжить `Phase 3`: перенести admin `Promotions` orchestration в application-layer handlers (list/create/update/delete + coupons flow).
-2. После promotions извлечь аналогичный application-layer для admin `Products` и `Categories`.
+1. Продолжить `Phase 3`: перенести admin `Products` orchestration в application-layer handlers (list/show/create/update/delete).
+2. Затем вынести admin `Categories` orchestration в application-layer handlers и синхронизировать шаблон контроллеров.

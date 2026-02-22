@@ -4,6 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Application\Admin\Promotions\Commands\CreateAdminPromotionCommand;
+use App\Application\Admin\Promotions\Commands\CreateAdminPromotionCouponCommand;
+use App\Application\Admin\Promotions\Commands\CreateAdminPromotionCouponHandler;
+use App\Application\Admin\Promotions\Commands\CreateAdminPromotionHandler;
+use App\Application\Admin\Promotions\Commands\DeleteAdminPromotionCommand;
+use App\Application\Admin\Promotions\Commands\DeleteAdminPromotionHandler;
+use App\Application\Admin\Promotions\Commands\UpdateAdminPromotionCommand;
+use App\Application\Admin\Promotions\Commands\UpdateAdminPromotionCouponCommand;
+use App\Application\Admin\Promotions\Commands\UpdateAdminPromotionCouponHandler;
+use App\Application\Admin\Promotions\Commands\UpdateAdminPromotionHandler;
+use App\Application\Admin\Promotions\Queries\PaginateAdminPromotionsHandler;
+use App\Application\Admin\Promotions\Queries\PaginateAdminPromotionsQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CouponStoreRequest;
 use App\Http\Requests\Admin\CouponUpdateRequest;
@@ -13,8 +25,6 @@ use App\Http\Requests\Admin\PromotionUpdateRequest;
 use App\Http\Resources\PromotionResource;
 use App\Models\Coupon;
 use App\Models\Promotion;
-use App\Repositories\PromotionRepository;
-use App\Services\Admin\AdminPromotionService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
@@ -24,8 +34,12 @@ class PromotionController extends Controller
      * Create controller instance.
      */
     public function __construct(
-        private readonly PromotionRepository $promotionRepository,
-        private readonly AdminPromotionService $adminPromotionService,
+        private readonly PaginateAdminPromotionsHandler $paginateAdminPromotionsHandler,
+        private readonly CreateAdminPromotionHandler $createAdminPromotionHandler,
+        private readonly UpdateAdminPromotionHandler $updateAdminPromotionHandler,
+        private readonly DeleteAdminPromotionHandler $deleteAdminPromotionHandler,
+        private readonly CreateAdminPromotionCouponHandler $createAdminPromotionCouponHandler,
+        private readonly UpdateAdminPromotionCouponHandler $updateAdminPromotionCouponHandler,
     ) {}
 
     /**
@@ -35,7 +49,9 @@ class PromotionController extends Controller
     {
         $this->authorize('viewAny', Promotion::class);
 
-        $promotions = $this->promotionRepository->paginateForAdmin($request->filter());
+        $promotions = $this->paginateAdminPromotionsHandler->handle(
+            new PaginateAdminPromotionsQuery($request->filter())
+        );
 
         return ApiResponse::paginated(PromotionResource::collection($promotions->items()), $promotions);
     }
@@ -47,7 +63,9 @@ class PromotionController extends Controller
     {
         $this->authorize('create', Promotion::class);
 
-        $promotion = $this->adminPromotionService->create($request->validated());
+        $promotion = $this->createAdminPromotionHandler->handle(
+            new CreateAdminPromotionCommand($request->validated())
+        );
 
         return ApiResponse::data(PromotionResource::make($promotion), 201);
     }
@@ -59,7 +77,9 @@ class PromotionController extends Controller
     {
         $this->authorize('update', $promotion);
 
-        $promotion = $this->adminPromotionService->update($promotion, $request->validated());
+        $promotion = $this->updateAdminPromotionHandler->handle(
+            new UpdateAdminPromotionCommand($promotion, $request->validated())
+        );
 
         return ApiResponse::data(PromotionResource::make($promotion));
     }
@@ -71,7 +91,7 @@ class PromotionController extends Controller
     {
         $this->authorize('delete', $promotion);
 
-        $this->adminPromotionService->delete($promotion);
+        $this->deleteAdminPromotionHandler->handle(new DeleteAdminPromotionCommand($promotion));
 
         return ApiResponse::deleted();
     }
@@ -83,7 +103,9 @@ class PromotionController extends Controller
     {
         $this->authorize('update', $promotion);
 
-        $coupon = $this->adminPromotionService->createCoupon($promotion, $request->validated());
+        $coupon = $this->createAdminPromotionCouponHandler->handle(
+            new CreateAdminPromotionCouponCommand($promotion, $request->validated())
+        );
 
         return ApiResponse::data($coupon, 201);
     }
@@ -95,7 +117,9 @@ class PromotionController extends Controller
     {
         $this->authorize('update', $coupon);
 
-        $coupon = $this->adminPromotionService->updateCoupon($coupon, $request->validated());
+        $coupon = $this->updateAdminPromotionCouponHandler->handle(
+            new UpdateAdminPromotionCouponCommand($coupon, $request->validated())
+        );
 
         return ApiResponse::data($coupon);
     }
