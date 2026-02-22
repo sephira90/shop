@@ -237,8 +237,342 @@
   - `useAdminOrders`: debounce фильтров и перезагрузка с `page=1` + проверка server params;
   - `useAdminPromotions`: синхронизация search/status фильтров с перезагрузкой `page=1`;
   - `useAdminCategories`: синхронизация search/status фильтров и стабильный `per_page=200` contract.
+- `2026-02-22` — `Phase 4` composable layering + UI-effects adapter batch выполнен:
+- добавлен единый injectable контракт UI-сайдэффектов `resources/js/composables/admin/adminUiEffects.ts` (`confirm`, `scrollToTop`);
+- `window.confirm`/`window.scrollTo` удалены из `useAdminProducts`, `useAdminPromotions`, `useAdminCategories`; browser-адаптер инжектируется из `AdminProductsPage.vue`, `AdminPromotionsPage.vue`, `AdminCategoriesPage.vue`;
+- `useAdminPromotions` и `useAdminCategories` декомпозированы на query/mutation/view-model слои:
+  - promotions: `resources/js/composables/admin/promotions/useAdminPromotionsQuery.ts`, `resources/js/composables/admin/promotions/useAdminPromotionsMutations.ts`, `resources/js/composables/admin/promotions/useAdminPromotionsViewModel.ts`;
+  - categories: `resources/js/composables/admin/categories/useAdminCategoriesQuery.ts`, `resources/js/composables/admin/categories/useAdminCategoriesMutations.ts`, `resources/js/composables/admin/categories/useAdminCategoriesViewModel.ts`;
+- добавлены composable-level tests для UI effects adapter integration:
+  - `resources/js/tests/composables/admin-ui-effects-adapter.spec.ts`;
+- для batch прогнаны quality gates в green:
+  - `composer run lint`
+  - `composer run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+- `php artisan app:webhook-flow-smoke`
+- `php artisan app:api-contract-smoke`
+- `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 4` admin products composable decomposition batch выполнен:
+- `useAdminProducts` разделен на query/mutation/view-model слои с сохранением публичного API:
+  - `resources/js/composables/admin/products/useAdminProductsQuery.ts`
+  - `resources/js/composables/admin/products/useAdminProductsMutations.ts`
+  - `resources/js/composables/admin/products/useAdminProductsViewModel.ts`
+  - compatibility re-export: `resources/js/composables/admin/useAdminProducts.ts`;
+- product-form category loading перенесен в query-layer (`loadCategories`) с сохранением server-driven пагинационного сбора и `per_page=200`;
+- mutation/view-model слой сохранил текущий UX-контракт (`startEdit`, `removeProduct`, `toggleCatalogVisibility`, `refreshCatalogCache`, variant form helpers);
+- для batch прогнаны quality gates в green:
+  - `composer run lint`
+  - `composer run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 4` admin orders composable decomposition batch выполнен:
+- `useAdminOrders` разделен на query/mutation/view-model слои с сохранением публичного API:
+  - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts`
+  - `resources/js/composables/admin/orders/useAdminOrdersMutations.ts`
+  - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`
+  - compatibility re-export: `resources/js/composables/admin/useAdminOrders.ts`;
+- query-слой выделяет server-driven list/detail + drafts/metrics (`filters`, `loadOrders`, `loadOrderDetail`, `currentDraft`, счетчики статусов);
+- mutation-слой выделяет status update flow (`updateSelectedOrderStatus`) с синхронизацией detail/list моделей;
+- view-model слой инкапсулирует notice/mutation orchestration и UI formatters (`formatPrice`, `formatAddress`, status class mappers);
+- для batch прогнаны quality gates в green:
+  - `composer run lint`
+  - `composer run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 4` composable contracts + presentation helpers batch выполнен:
+- вынесен общий mutation-контракт в `resources/js/composables/useAdminMutation.ts`:
+  - экспортированы `ExecuteAdminMutationOptions<TResult>` и `ExecuteAdminMutation`;
+  - дубли типов удалены из admin-модулей mutations/query:
+    - `resources/js/composables/admin/categories/useAdminCategoriesMutations.ts`
+    - `resources/js/composables/admin/promotions/useAdminPromotionsMutations.ts`
+    - `resources/js/composables/admin/products/useAdminProductsMutations.ts`
+    - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts`
+    - `resources/js/composables/admin/orders/useAdminOrdersMutations.ts`;
+- выделены общие order/profile presentation-форматтеры:
+  - `resources/js/utils/order-presentation.ts` (`formatMoney`, `formatOrderDate`, `formatOrderAddress`, `orderStatusClass`, `paymentStatusClass`, `shipmentStatusClass`);
+- composable переключены на shared helpers:
+  - `resources/js/composables/useAccountOrders.ts`
+  - `resources/js/composables/useAccountProfile.ts`
+  - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`;
+- добавлены unit tests для shared presentation helpers:
+  - `resources/js/tests/utils/order-presentation.spec.ts`;
+- для batch прогнаны quality gates в green:
+  - `composer run lint`
+  - `composer run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 4` account composables decomposition + tests batch выполнен:
+- `useAccountOrders` разделен на query/view-model слои с сохранением публичного API:
+  - `resources/js/composables/account/orders/useAccountOrdersQuery.ts`
+  - `resources/js/composables/account/orders/useAccountOrdersViewModel.ts`
+  - compatibility re-export: `resources/js/composables/useAccountOrders.ts`;
+- в `useAccountOrdersQuery` добавлена опциональная инъекция `route/router` для тестируемости без DOM/router runtime coupling;
+- добавлены composable-level tests для account-потока:
+  - `resources/js/tests/composables/use-account-orders.spec.ts` (route-sync filters, pagination reload, details toggling);
+  - `resources/js/tests/composables/use-account-profile.spec.ts` (profile load/update success+error, metrics loading);
+- расширен frontend unit-coverage shared helpers и account-потока:
+  - total frontend tests: `22 files / 70 tests` (green);
+- для batch прогнаны quality gates в green:
+  - `composer run lint`
+  - `composer run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 4` admin mutation-flow stability tests batch выполнен:
+- добавлен integration test-suite `resources/js/tests/composables/use-admin-mutation-flows.spec.ts`:
+  - `products`: проверка стабильности page/filter после `submitProduct` (edit) и fallback до предыдущей страницы после `removeProduct` (delete last item on page);
+  - `promotions`: проверка стабильности page/search/status после `submitPromotion` и fallback-page после `removePromotion`;
+  - `categories`: проверка стабильности page/search/status/`per_page=200` после `submitCategory` и fallback-page после `removeCategory`;
+  - покрыто `6` сценариев (`6` тестов, green).
+- для batch прогнаны frontend quality gates в green:
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test -- use-admin-mutation-flows.spec.ts`
+  - `npm run build`
+- `2026-02-22` — `Phase 4` account profile composable decomposition batch выполнен:
+- `useAccountProfile` декомпозирован на query/mutation/view-model слои с сохранением публичного API:
+  - `resources/js/composables/account/profile/useAccountProfileQuery.ts`
+  - `resources/js/composables/account/profile/useAccountProfileMutations.ts`
+  - `resources/js/composables/account/profile/useAccountProfileViewModel.ts`
+  - compatibility re-export: `resources/js/composables/useAccountProfile.ts`;
+- сохранены текущие UI-контракты `AccountProfilePage` (`loadProfile`, `submitProfileUpdate`, `resetProfileForm`, profile computed fields, metrics, notice state);
+- regression tests green:
+  - `resources/js/tests/composables/use-account-profile.spec.ts`
+  - `resources/js/tests/composables/use-admin-mutation-flows.spec.ts`;
+- для batch прогнаны full production-readiness quality gates в green:
+  - `composer run lint` (через `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 4` route-synced server-list abstraction batch выполнен:
+- добавлен общий route-query normalization helper:
+  - `resources/js/queries/route-query.ts` (`toSingleQueryValue`, `normalizePageFromQuery`, `normalizeEnumQuery`);
+- добавлен общий composable для route sync + pagination reload:
+  - `resources/js/composables/useRouteSyncedPagination.ts`;
+- общий abstraction применен в account/admin list flows:
+  - `useAccountOrdersQuery` переведен на `useRouteSyncedPagination` с сохранением публичного API;
+  - admin query composables получили route-sync интеграцию (опционально через `routeSync`):
+    - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts`
+    - `resources/js/composables/admin/promotions/useAdminPromotionsQuery.ts`
+    - `resources/js/composables/admin/categories/useAdminCategoriesQuery.ts`
+    - `resources/js/composables/admin/products/useAdminProductsQuery.ts`;
+  - добавлен shared type-контракт admin route-sync options:
+    - `resources/js/composables/admin/adminRouteSync.ts`;
+- admin pages переведены на URL-синхронизацию filters/page (route+router injection в view-model):
+  - `resources/js/pages/admin/AdminOrdersPage.vue`
+  - `resources/js/pages/admin/AdminPromotionsPage.vue`
+  - `resources/js/pages/admin/AdminCategoriesPage.vue`
+  - `resources/js/pages/admin/AdminProductsPage.vue`;
+- расширены query-level и integration tests:
+  - новый suite: `resources/js/tests/composables/use-route-synced-pagination.spec.ts`;
+  - `resources/js/tests/composables/use-admin-server-list-flows.spec.ts` расширен route-sync сценариями для orders/promotions/categories;
+  - `resources/js/tests/queries/admin/orders-query.spec.ts`, `resources/js/tests/queries/admin/promotions-query.spec.ts`, `resources/js/tests/queries/admin/categories-query.spec.ts`, `resources/js/tests/queries/admin/products-query.spec.ts` расширены parse/build/compare route-query assertions;
+  - `resources/js/tests/composables/use-account-orders.spec.ts` обновлен под общий router-signature;
+- для batch прогнаны full production-readiness quality gates в green:
+  - `composer run lint` (через `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 5` cleanup lifecycle + ops runbook batch выполнен:
+- добавлен lifecycle cleanup command `app:maintenance-cleanup` с dry-run и retention overrides:
+  - `app/Console/Commands/AppMaintenanceCleanupCommand.php`;
+  - `config/cleanup.php`;
+  - scheduler wiring: `routes/console.php`;
+  - feature coverage: `tests/Feature/AppMaintenanceCleanupCommandTest.php`;
+- добавлен config-driven SLO alert scheduling через `app:observability-report`:
+  - `config/observability.php` (`alerts` блок: cron/window/thresholds/required samples);
+  - scheduler wiring: `routes/console.php`;
+  - feature coverage: `tests/Feature/ObservabilityReportCommandTest.php` (scheduler registration assertion);
+  - env templates синхронизированы: `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
+- добавлен operational runbook для инцидентов checkout/webhooks:
+  - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
+  - README синхронизирован по командам и конфигам (`README.md`).
+- для batch прогнаны full production-readiness quality gates в green:
+  - `composer run lint` (через `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+- `2026-02-22` — `Phase 5` observability alert-routing batch выполнен:
+- добавлен command-wrapper `app:observability-alert-check`:
+  - запускает `app:observability-report` с config-driven SLO thresholds;
+  - при `FAIL` маршрутизирует алерты по каналам и возвращает non-zero статус;
+  - файлы: `app/Console/Commands/AppObservabilityAlertCheckCommand.php`, `routes/console.php`;
+- добавлен alert routing service + email notification:
+  - `app/Support/Observability/ObservabilityAlertRouter.php`;
+  - `app/Notifications/ObservabilitySloFailureNotification.php`;
+  - поддержаны каналы: `email`, `slack webhook`, `pagerduty events v2`;
+  - добавлен cooldown suppression для защиты от alert storm;
+- расширен observability alerts config и env templates:
+  - `config/observability.php` (`alerts.email/slack/pagerduty`, `cooldown_minutes`);
+  - `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
+- добавлено покрытие alert-routing и scheduler wiring:
+  - `tests/Feature/ObservabilityAlertCheckCommandTest.php`;
+  - `tests/Feature/ObservabilityReportCommandTest.php` (scheduler assertion обновлен на `app:observability-alert-check`);
+- документация синхронизирована:
+  - `README.md`
+  - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
+- для batch прогнаны full production-readiness quality gates в green:
+  - `composer run lint` (через `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+- `2026-02-22` — `Phase 5` on-call drill сценарий + coverage batch выполнен:
+- добавлен выделенный drill smoke orchestration command:
+  - `app:oncall-drill-smoke` (`app/Console/Commands/AppOncallDrillSmokeCommand.php`);
+  - dry-run checks: `app:healthcheck`, `app:observability-report` (alerts-threshold config), `app:maintenance-cleanup --dry-run`;
+  - optional extended checks: `--with-write-smokes` (`app:api-contract-smoke`, `app:webhook-flow-smoke`) с поддержкой `--persist`;
+  - встроена escalation matrix по check-кодам (`severity/owner/next_step`) в output;
+- добавлено feature coverage drill-процесса:
+  - `tests/Feature/OncallDrillSmokeCommandTest.php` (success/failure сценарии);
+- runbook расширен tabletop процедурой и escalation matrix:
+  - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
+- README синхронизирован новой командой:
+  - `README.md` (`php artisan app:oncall-drill-smoke`).
+- для batch прогнаны full production-readiness quality gates в green:
+  - `composer run lint` (через `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`
+- `2026-02-22` — `Phase 5` final closeout выполнен:
+- проверены и зафиксированы exit criteria `Phase 5`:
+  - controlled growth служебных таблиц закрыт через cleanup lifecycle (`app:maintenance-cleanup`, scheduler, retention config, feature tests);
+  - прозрачный operational мониторинг закрыт через SLO report + alert routing + on-call drill + incident runbook;
+- оформлен release readiness checklist:
+  - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` (go/no-go, env/scheduler readiness, quality/smoke verification);
+- `Phase 5` зафиксирован как завершенный, дальнейшие действия вынесены в post-closeout backlog.
+- `2026-02-22` — `Phase 5` follow-up (scheduled on-call drill wiring) выполнен:
+- принято решение и реализовано регулярное расписание `app:oncall-drill-smoke` с env-guard:
+  - `config/oncall.php` (`enabled/cron/with_write_smokes/persist`);
+  - scheduler wiring: `routes/console.php` (`withoutOverlapping`, config-driven command options);
+  - env templates синхронизированы: `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
+- покрытие scheduler wiring добавлено в:
+  - `tests/Feature/OncallDrillSmokeCommandTest.php` (`test_oncall_drill_command_is_registered_in_scheduler`);
+- документация синхронизирована:
+  - `README.md` (on-call drill schedule config variables);
+  - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md` (drill scheduling section);
+  - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` (scheduler readiness updated).
+- для batch прогнаны full production-readiness quality gates в green:
+  - `composer run lint` (через `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`
 
 ## Следующий batch
 
-1. Продолжить `Phase 4`: вынести `window.confirm` / `window.scrollTo` из `useAdminProducts`, `useAdminPromotions`, `useAdminCategories` в view-layer.
-2. Добавить composable-level contracts для UI side-effects adapters (injectable confirm/scroll), чтобы исключить прямой DOM coupling.
+1. Разбить накопленные изменения на коммиты по логическим блокам и запушить.
+2. Подготовить стартовый backlog следующего этапа (post-`Phase 5`) с приоритизацией по рискам production эксплуатации.
+3. Зафиксировать финальный `Phase 5` summary в архитектурной документации (`docs/ARCHITECTURE_REFACTOR_PLAN.md`).

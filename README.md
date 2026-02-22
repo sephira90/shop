@@ -49,6 +49,10 @@ php artisan app:performance-smoke
 php artisan app:webhook-flow-smoke
 php artisan app:api-contract-smoke
 php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples
+php artisan app:observability-alert-check
+php artisan app:oncall-drill-smoke
+php artisan app:maintenance-cleanup --dry-run
+php artisan app:maintenance-cleanup
 ```
 
 ## API scope
@@ -96,6 +100,8 @@ Structured telemetry is emitted into logs for:
 - rolling snapshot report (`php artisan app:observability-report --minutes=60`)
 - optional SLO checks with non-zero exit code for CI (`--max-api-slow-rate`, `--max-webhook-lag-warn-rate`)
 - required samples guards (`--require-api-samples`, `--require-webhook-samples`)
+- scheduled alert check wrapper (`php artisan app:observability-alert-check`) for routing failures to email/slack/pagerduty
+- scheduled on-call drill command (`php artisan app:oncall-drill-smoke`)
 
 Configuration:
 
@@ -105,6 +111,25 @@ Configuration:
 - `OBSERVABILITY_CATALOG_SLOW_MS`
 - `OBSERVABILITY_WEBHOOK_SLOW_MS`
 - `OBSERVABILITY_WEBHOOK_LAG_WARN_MS`
+- `APP_OBSERVABILITY_ALERTS_ENABLED`
+- `APP_OBSERVABILITY_ALERTS_CRON`
+- `APP_OBSERVABILITY_ALERTS_WINDOW_MINUTES`
+- `APP_OBSERVABILITY_ALERTS_MAX_API_SLOW_RATE`
+- `APP_OBSERVABILITY_ALERTS_MAX_WEBHOOK_LAG_WARN_RATE`
+- `APP_OBSERVABILITY_ALERTS_REQUIRE_API_SAMPLES`
+- `APP_OBSERVABILITY_ALERTS_REQUIRE_WEBHOOK_SAMPLES`
+- `APP_OBSERVABILITY_ALERTS_COOLDOWN_MINUTES`
+- `APP_OBSERVABILITY_ALERTS_EMAIL_ENABLED`
+- `APP_OBSERVABILITY_ALERTS_EMAIL_RECIPIENTS`
+- `APP_OBSERVABILITY_ALERTS_SLACK_ENABLED`
+- `APP_OBSERVABILITY_ALERTS_SLACK_WEBHOOK_URL`
+- `APP_OBSERVABILITY_ALERTS_PAGERDUTY_ENABLED`
+- `APP_OBSERVABILITY_ALERTS_PAGERDUTY_INTEGRATION_KEY`
+- `APP_OBSERVABILITY_ALERTS_PAGERDUTY_SEVERITY`
+- `APP_ONCALL_DRILL_ENABLED`
+- `APP_ONCALL_DRILL_CRON`
+- `APP_ONCALL_DRILL_WITH_WRITE_SMOKES`
+- `APP_ONCALL_DRILL_PERSIST`
 - `LOG_OBSERVABILITY_PATH`
 - `LOG_OBSERVABILITY_LEVEL`
 
@@ -134,3 +159,5 @@ To enforce blocking merges, configure branch protection for `main` and require s
 - Project contribution rules: `AGENTS.md`
 - Cursor/agent rules: `.cursorrules`
 - Architecture refactor roadmap: `docs/ARCHITECTURE_REFACTOR_PLAN.md`
+- Execution plan: `docs/REFACTORING_EXECUTION_PLAN.md`
+- Ops runbook (checkout/webhooks): `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`
