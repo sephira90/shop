@@ -217,8 +217,13 @@
   - mutation flow: `Create/Update/DeleteAdminPromotionHandler` (+ command DTO);
   - coupons flow: `Create/UpdateAdminPromotionCouponHandler` (+ command DTO);
 - `App\Http\Controllers\Api\V1\Admin\PromotionController` переведен на application-layer orchestration без прямой зависимости от repository/service.
+- `2026-02-22` — `Phase 3` admin products application-layer batch выполнен:
+- добавлен модуль `app/Application/Admin/Products` с query/command handlers:
+  - list/detail: `PaginateAdminProductsHandler`, `GetAdminProductDetailHandler` (+ query DTO);
+  - mutation flow: `Create/Update/DeleteAdminProductHandler` (+ command DTO);
+- `App\Http\Controllers\Api\V1\Admin\ProductController` переведен на application-layer orchestration без прямой зависимости от repository/service.
 
 ## Следующий batch
 
-1. Продолжить `Phase 3`: перенести admin `Products` orchestration в application-layer handlers (list/show/create/update/delete).
-2. Затем вынести admin `Categories` orchestration в application-layer handlers и синхронизировать шаблон контроллеров.
+1. Продолжить `Phase 3`: перенести admin `Categories` orchestration в application-layer handlers (list/show/create/update/delete).
+2. После этого зафиксировать единый шаблон thin-controller + application handlers для всех admin модулей.
