@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Application\Checkout\Commands\PlaceCheckoutOrderCommand;
+use App\Application\Checkout\Commands\PlaceCheckoutOrderHandler;
+use App\Application\Checkout\Queries\GetMyOrdersSummaryHandler;
+use App\Application\Checkout\Queries\GetMyOrdersSummaryQuery;
+use App\Application\Checkout\Queries\PaginateMyOrdersHandler;
+use App\Application\Checkout\Queries\PaginateMyOrdersQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Account\AccountOrderIndexRequest;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\User;
-use App\Repositories\OrderRepository;
-use App\Services\Cart\CartService;
-use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
 use App\Support\Api\ApiResponse;
 use DomainException;
@@ -27,10 +30,10 @@ class CheckoutController extends Controller
      * Create controller instance.
      */
     public function __construct(
-        private readonly CartService $cartService,
-        private readonly CheckoutService $checkoutService,
+        private readonly PlaceCheckoutOrderHandler $placeCheckoutOrderHandler,
+        private readonly PaginateMyOrdersHandler $paginateMyOrdersHandler,
+        private readonly GetMyOrdersSummaryHandler $getMyOrdersSummaryHandler,
         private readonly PaymentService $paymentService,
-        private readonly OrderRepository $orderRepository,
     ) {}
 
     /**
@@ -46,32 +49,23 @@ class CheckoutController extends Controller
 
         $payload = $request->validated();
         $currentUser = $this->resolveCurrentUser($request);
-        $guestToken = trim((string) ($payload['guest_token'] ?? ''));
+        $command = new PlaceCheckoutOrderCommand($payload, $idempotencyKey, $currentUser);
 
         try {
-            if ($currentUser !== null && $guestToken !== '') {
-                $this->cartService->mergeGuestCart($currentUser, $guestToken);
-            }
-
-            $cart = $this->cartService->resolveForCheckout(
-                $currentUser,
-                $guestToken === '' ? null : $guestToken
-            );
-            $order = $this->checkoutService->placeOrder($cart, $payload, $idempotencyKey, $currentUser);
+            $result = $this->placeCheckoutOrderHandler->handle($command);
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $payment = $this->paymentService->initiate($order, 'checkout-'.$idempotencyKey);
-        $orderData = OrderResource::make($order)->toArray($request);
+        $orderData = OrderResource::make($result->order)->toArray($request);
 
         return ApiResponse::data([
             ...$orderData,
             'payment' => [
-                'payment_id' => $payment->id,
-                'transaction_id' => $payment->transaction_id,
-                'status' => $payment->status?->value,
-                'payload' => $payment->payload,
+                'payment_id' => $result->payment->id,
+                'transaction_id' => $result->payment->transaction_id,
+                'status' => $result->payment->status?->value,
+                'payload' => $result->payment->payload,
             ],
         ], Response::HTTP_CREATED);
     }
@@ -105,7 +99,9 @@ class CheckoutController extends Controller
             return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
-        $orders = $this->orderRepository->paginateForUser($currentUser, $request->filter());
+        $orders = $this->paginateMyOrdersHandler->handle(
+            new PaginateMyOrdersQuery($currentUser, $request->filter())
+        );
 
         return ApiResponse::paginated(OrderResource::collection($orders->items()), $orders);
     }
@@ -121,7 +117,9 @@ class CheckoutController extends Controller
             return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
-        return ApiResponse::data($this->orderRepository->summaryForUser($currentUser));
+        return ApiResponse::data(
+            $this->getMyOrdersSummaryHandler->handle(new GetMyOrdersSummaryQuery($currentUser))
+        );
     }
 
     /**

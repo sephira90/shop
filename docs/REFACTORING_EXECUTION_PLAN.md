@@ -199,8 +199,14 @@
 - `placeCheckoutOrder` переведен на строгий mapper checkout-ответа (`resources/js/mappers/checkout.ts`) с обязательной проверкой `data.id`, `data.order_number`, `data.payment.*`;
 - добавлены frontend contract tests для success-shape checkout ответа (`resources/js/tests/api/checkout-api.spec.ts`);
 - добавлены frontend contract tests для error envelope parser (`resources/js/tests/api/response-error.spec.ts`).
+- `2026-02-22` — `Phase 3` checkout application-layer bootstrap batch выполнен:
+- добавлены command/query handlers для checkout-потока:
+  - `PlaceCheckoutOrderHandler` (+ command/result DTO);
+  - `PaginateMyOrdersHandler` (+ query DTO);
+  - `GetMyOrdersSummaryHandler` (+ query DTO);
+- `CheckoutController` переведен на application-layer orchestration (тонкий transport-слой без прямой доменной оркестрации).
 
 ## Следующий batch
 
-1. Стартовать `Phase 3`: выделить application-layer handlers для `Checkout` (command/query граница + DI wiring).
-2. Подготовить extraction шаблон для `Orders`/`Promotions` на основе первого checkout handler.
+1. Продолжить `Phase 3`: перенести admin `Orders` orchestration в application-layer handlers (list/show/update-status).
+2. Применить тот же extraction шаблон к `Promotions` (list/create/update/delete + coupons flow).
