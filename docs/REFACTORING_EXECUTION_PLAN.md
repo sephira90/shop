@@ -227,8 +227,13 @@
   - list/detail: `PaginateAdminCategoriesHandler`, `GetAdminCategoryDetailHandler` (+ query DTO);
   - mutation flow: `Create/Update/DeleteAdminCategoryHandler` (+ command DTO);
 - `App\Http\Controllers\Api\V1\Admin\CategoryController` переведен на application-layer orchestration без прямой зависимости от repository/service.
+- `2026-02-22` — `Phase 3` finalization batch выполнен:
+- зафиксирован архитектурный guardrail-тест `tests/Unit/Architecture/AdminControllerArchitectureTest.php`, проверяющий DI-границы admin-контроллеров (только `App\Application\Admin\...\*Handler`);
+- добавлен итоговый ADR по application-layer conventions и DI boundaries:
+  - `docs/adr/ADR-0001-admin-application-layer-conventions.md`;
+  - индекс ADR: `docs/adr/README.md`.
 
 ## Следующий batch
 
-1. Завершить `Phase 3`: зафиксировать единый шаблон thin-controller + application handlers для всех admin модулей (Orders/Promotions/Products/Categories).
-2. Подготовить итоговый архитектурный ADR по application-layer conventions и DI boundaries.
+1. Стартовать `Phase 4`: выделить integration/UI-flow тесты для admin страниц под server-driven фильтры и pagination sync.
+2. Укрепить frontend decomposition для оставшихся composable с UI side-effects переносом в view-layer.
