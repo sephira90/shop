@@ -1756,3 +1756,71 @@
 1. Оставить `AppRadioInput/AppRadioGroup` в backlog до появления подтвержденных `>=2` повторов `radio/fieldset`.
 2. Усилить edge-case контракты layout wrappers (`AppFormLayout`, `AppStackBetween`, `AppTableSection`) и pagination edge-cases (`AppPaginationBar` disabled/loading semantics).
 3. Прогнать следующий full quality gate после batch и зафиксировать изменения в `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` и `docs/REFACTORING_EXECUTION_PLAN.md`.
+- `2026-02-23` — создан отдельный стратегический план глубокого рефакторинга:
+  - добавлен файл `docs/DEEP_REFACTORING_PLAN.md` с волнами `P0/P1/P2`, Definition of Done, рисками, порядком исполнения и quality gate;
+  - выполнен quality gate в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.1` completed (frontend race-safety / cancellation):
+  - `resources/js/composables/useServerPaginatedList.ts`:
+    - добавлены `activeRequestId` + stale-response guard;
+    - добавлен cancel in-flight через `AbortController`;
+    - добавлена фильтрация abort-ошибок (`AbortError` / `CanceledError` / `ERR_CANCELED`);
+    - добавлен cleanup на `onScopeDispose`;
+    - поддержка контекста `fetchPage(params, { signal })` без ломки существующих 1-аргументных call-sites;
+  - list API получили optional `signal` для реального network cancel в admin списках:
+    - `resources/js/api/admin/products.ts`
+    - `resources/js/api/admin/orders.ts`
+    - `resources/js/api/admin/promotions.ts`
+    - `resources/js/api/admin/categories.ts`;
+  - `resources/js/tests/composables/use-server-paginated-list.spec.ts`:
+    - добавлены тесты на out-of-order response protection;
+    - добавлены тесты на abort previous request без ложного `onError`;
+    - общий coverage composable увеличен (3 -> 5 тестов);
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.1` отмечен как completed;
+  - выполнен full production-readiness quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.2` completed (transport purity API controllers):
+  - application-layer orchestration закрыт для:
+    - `app/Http/Controllers/Api/V1/Auth/AuthController.php`
+    - `app/Http/Controllers/Api/V1/CartController.php`
+    - `app/Http/Controllers/Api/V1/CatalogController.php`
+    - `app/Http/Controllers/Api/V1/CheckoutController.php`
+    - `app/Http/Controllers/Api/V1/Admin/CacheController.php`;
+  - добавлены application handlers/commands для auth/cart/catalog/checkout pay/admin cache:
+    - `app/Application/Auth/**`
+    - `app/Application/Cart/**`
+    - `app/Application/Catalog/**`
+    - `app/Application/Checkout/Commands/InitiateCheckoutPayment*`
+    - `app/Application/Admin/Cache/Commands/RefreshAdminCatalogCache*`;
+  - архитектурные guardrails расширены:
+    - `tests/Unit/Architecture/AdminControllerArchitectureTest.php` (включен `CacheController`);
+    - `tests/Unit/Architecture/PublicApiControllerArchitectureTest.php` (контракт на handler-only зависимости для `Auth/Cart/Catalog/Checkout`);
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.2` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan optimize:clear`
+    - `php artisan route:list --path=api/v1/admin/promotions`.
