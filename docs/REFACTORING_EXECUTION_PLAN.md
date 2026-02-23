@@ -570,9 +570,1163 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`
+- `2026-02-22` — подготовлен детальный план декомпозиции page templates на component-level:
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` (wave-based roadmap, target component map, testing/DoD/commit strategy).
+- `2026-02-22` — `Template Componentization` Wave 1 batch (Admin products + admin orders) выполнен:
+- `AdminProductsPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/products/AdminProductsListCard.vue`
+  - `resources/js/components/admin/products/AdminProductVariantsSection.vue`
+  - `resources/js/components/admin/products/AdminProductVariantCard.vue`;
+- `AdminOrdersPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/admin/orders/AdminOrdersHeaderCard.vue`
+  - `resources/js/components/admin/orders/AdminOrdersMetricsRow.vue`
+  - `resources/js/components/admin/orders/AdminOrdersFiltersBar.vue`
+  - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
+  - `resources/js/components/admin/orders/AdminOrdersPaginationBar.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`;
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox` (автофикс после `format:ox:check`)
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 1 finalization batch (Admin categories) выполнен:
+- `AdminCategoriesPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesListCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFiltersBar.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesPaginationBar.vue`;
+- сохранены текущие UX/flow контракты:
+  - route-synced filters + pagination (`searchQuery`, `statusFilter`, page navigation);
+  - mutation flows `submitCategory`, `startEdit`, `removeCategory`, `resetForm`;
+  - ACL behavior delete-button (`canDeleteCategories`) и notice rendering;
+- повторно выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox` (автофикс после `format:ox:check`)
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` component-tests + vitest vue-runtime batch выполнен:
+- добавлен component-level test suite:
+  - `resources/js/tests/components/admin/admin-component-contracts.spec.ts`;
+- покрыты render/emit контракты для новых admin UI-компонентов:
+  - `AdminProductsListCard.vue`
+  - `AdminOrdersTableCard.vue`
+  - `AdminCategoriesListCard.vue`;
+- добавлен `vitest.config.ts` с `@vitejs/plugin-vue` и alias-конфигом для стабильной SFC-трансформации в тестах;
+- итоговый frontend test baseline: `25 files / 96 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 2.1 batch (account orders + shared tabs) выполнен:
+- `AccountOrdersPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
+  - `resources/js/components/account/orders/AccountOrdersMetricsRow.vue`
+  - `resources/js/components/account/orders/AccountOrdersFiltersBar.vue`
+  - `resources/js/components/account/orders/AccountOrderCard.vue`
+  - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
+  - `resources/js/components/account/orders/AccountOrdersPaginationCard.vue`;
+- добавлен shared account navigation компонент и подключен в account pages:
+  - `resources/js/components/account/AccountTabsNav.vue`
+  - `resources/js/pages/AccountOrdersPage.vue`
+  - `resources/js/pages/AccountProfilePage.vue`;
+- добавлен component-level account contract suite:
+  - `resources/js/tests/components/account/account-orders-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `26 files / 100 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 2.2 batch (account profile) выполнен:
+- `AccountProfilePage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/account/profile/AccountHeroCard.vue`
+  - `resources/js/components/account/profile/AccountMetricsGrid.vue`
+  - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+  - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`;
+- общий `AccountTabsNav` переиспользуется в `AccountProfilePage` и `AccountOrdersPage`;
+- добавлен component-level account profile contract suite:
+  - `resources/js/tests/components/account/account-profile-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `27 files / 104 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 3.1 batch (catalog page) выполнен:
+- `CatalogPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/catalog/CatalogFiltersCard.vue`
+  - `resources/js/components/catalog/CatalogProductGrid.vue`
+  - `resources/js/components/catalog/CatalogProductCard.vue`
+  - `resources/js/components/catalog/CatalogEmptyState.vue`;
+- добавлен component-level catalog contract suite:
+  - `resources/js/tests/components/catalog/catalog-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `28 files / 108 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 3.2 batch (product page) выполнен:
+- `ProductPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/product/ProductInfoCard.vue`
+  - `resources/js/components/product/ProductPurchaseCard.vue`;
+- добавлен component-level product contract suite:
+  - `resources/js/tests/components/product/product-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `29 files / 110 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 3.3 batch (cart page) выполнен:
+- `CartPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/cart/CartSummaryHeader.vue`
+  - `resources/js/components/cart/CartItemsTable.vue`
+  - `resources/js/components/cart/CartQuantityControl.vue`
+  - `resources/js/components/cart/CartEmptyState.vue`;
+- добавлен component-level cart contract suite:
+  - `resources/js/tests/components/cart/cart-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `30 files / 114 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — smoke command reliability hardening batch выполнен:
+- устранены флейки выбора варианта в smoke-командах на “грязной” базе:
+  - `app:api-contract-smoke`: checkout setup теперь выбирает только активный, опубликованный и доступный по inventory variant;
+  - `app:webhook-flow-smoke`: `findActiveVariant()` теперь требует положительную доступность (`quantity > reserved_quantity`);
+- добавлены регрессионные feature-тесты:
+  - `tests/Feature/ApiContractSmokeCommandTest.php` (`uses_available_variant_for_checkout_setup`);
+  - `tests/Feature/WebhookFlowSmokeCommandTest.php` (`uses_variant_with_available_inventory`);
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 3.4 + 3.5 batch (checkout + auth pages) выполнен:
+- `CheckoutPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/checkout/CheckoutHeader.vue`
+  - `resources/js/components/checkout/CheckoutContactFields.vue`
+  - `resources/js/components/checkout/CheckoutAddressCard.vue`
+  - `resources/js/components/checkout/CheckoutResultNotice.vue`;
+- `AuthPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/auth/AuthHeroCard.vue`
+  - `resources/js/components/auth/AuthModeSwitcher.vue`
+  - `resources/js/components/auth/AuthLoginForm.vue`
+  - `resources/js/components/auth/AuthRegisterForm.vue`;
+- добавлены component-level contract suites:
+  - `resources/js/tests/components/checkout/checkout-component-contracts.spec.ts`
+  - `resources/js/tests/components/auth/auth-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `32 files / 122 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.1 batch (home + admin dashboard pages) выполнен:
+- `HomePage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/home/HomeHeroSection.vue`
+  - `resources/js/components/home/HomeKpiGrid.vue`;
+- `AdminDashboardPage` переведен на orchestration-only template, добавлены feature-компоненты:
+  - `resources/js/components/admin/dashboard/AdminDashboardHero.vue`
+  - `resources/js/components/admin/dashboard/AdminDashboardNavGrid.vue`
+  - `resources/js/components/admin/dashboard/AdminDashboardNavCard.vue`;
+- добавлены component-level contract suites:
+  - `resources/js/tests/components/home/home-component-contracts.spec.ts`
+  - `resources/js/tests/components/admin/admin-dashboard-component-contracts.spec.ts`;
+- итоговый frontend test baseline: `34 files / 128 tests` (green);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.2 batch (shared ui notice/empty/pagination) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppNotice.vue`
+  - `resources/js/components/ui/AppEmptyState.vue`
+  - `resources/js/components/ui/AppPaginationBar.vue`;
+- выполнена миграция повторяющихся template-блоков (`>=2` использования) на shared primitives:
+  - notice: auth/account/admin/catalog/checkout (`AuthPage.vue`, `AccountOrdersPage.vue`, `AdminOrdersPage.vue`, `CatalogFiltersCard.vue`, form-card компоненты, `CheckoutResultNotice.vue`);
+  - empty-state: storefront/account/admin tables/details (`ProductPage.vue`, `CartEmptyState.vue`, `CatalogEmptyState.vue`, `Admin*Table*.vue`, `Promotion*Panel/Table.vue`, `AdminOrderDetailsPanel.vue`);
+  - pagination: `AdminOrdersPaginationBar.vue`, `AdminCategoriesPaginationBar.vue`, `AccountOrdersPaginationCard.vue`, `AdminProductsListCard.vue`, `PromotionCampaignTable.vue`;
+- добавлен component-level contract suite для shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`;
+- обновлены проектные правила и план по порогу реюза:
+  - `.cursorrules`, `AGENTS.md`, `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` (правило `>=2 использования -> вынос`).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.3 batch (shared status/badge primitives) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppStatusChip.vue`
+  - `resources/js/components/ui/AppBadge.vue`;
+- выполнена миграция повторяющихся `status-chip/badge` блоков (`>=2` использования):
+  - status-chip: `AccountOrderCard.vue`, `AccountHeroCard.vue`, `AdminOrdersTableCard.vue`, `AdminOrderDetailsPanel.vue`, `PromotionCampaignTable.vue`, `PromotionCouponsPanel.vue`;
+  - badge: `AdminProductsListCard.vue`, `AdminCategoriesTable.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppStatusChip` и `AppBadge`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.3 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.4 batch (shared layout helpers) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppMetricCard.vue`
+  - `resources/js/components/ui/AppDetailBox.vue`;
+- выполнена миграция повторяющихся `metric-card/order-detail-box` блоков (`>=2` использования):
+  - metric-card: `AccountMetricsGrid.vue`, `AccountOrdersMetricsRow.vue`, `AdminOrdersMetricsRow.vue`, `AdminOrderDetailsPanel.vue`;
+  - detail-box: `AccountOrderDetailsTable.vue`, `AdminOrderDetailsPanel.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppMetricCard` и `AppDetailBox`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.4 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.5 batch (shared status stack) выполнен:
+- добавлен shared UI-примитив:
+  - `resources/js/components/ui/AppStatusStack.vue`;
+- выполнена миграция повторяющихся групп статусов в order-компонентах:
+  - `AccountOrderCard.vue`, `AdminOrdersTableCard.vue`, `AdminOrderDetailsPanel.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppStatusStack`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.5 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.6 batch (shared table section wrapper) выполнен:
+- добавлен shared UI-примитив:
+  - `resources/js/components/ui/AppTableSection.vue`;
+- выполнена миграция повторяющихся `table-wrap/table` блоков (`>=2` использования):
+  - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/admin/products/AdminProductsListCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
+  - `resources/js/components/cart/CartItemsTable.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppTableSection`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.6 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.7 batch (shared actions/stack wrappers) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppActionsRow.vue`
+  - `resources/js/components/ui/AppStackBetween.vue`;
+- выполнена миграция повторяющихся `actions/actions--top` и `stack stack--between` блоков (`>=2` использования):
+  - `resources/js/components/catalog/CatalogFiltersCard.vue`
+  - `resources/js/components/cart/CartItemsTable.vue`
+  - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFiltersBar.vue`
+  - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`
+  - `resources/js/components/account/orders/AccountOrdersFiltersBar.vue`
+  - `resources/js/components/admin/orders/AdminOrdersFiltersBar.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+  - `resources/js/components/admin/products/AdminProductsListCard.vue`
+  - `resources/js/components/cart/CartSummaryHeader.vue`
+  - `resources/js/components/ui/AppPaginationBar.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/account/orders/AccountOrderCard.vue`
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/auth/AuthModeSwitcher.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesListCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/admin/orders/AdminOrdersHeaderCard.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppActionsRow` и `AppStackBetween`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.7 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.8 batch (shared form/grid layout wrappers) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppFormLayout.vue`
+  - `resources/js/components/ui/AppGridTwoColumns.vue`;
+- выполнена миграция повторяющихся `form-grid actions--top` и `grid grid-2` блоков (`>=2` использования):
+  - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/admin/products/AdminProductVariantCard.vue`
+  - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/auth/AuthRegisterForm.vue`
+  - `resources/js/pages/ProductPage.vue`
+  - `resources/js/pages/CheckoutPage.vue`
+  - `resources/js/pages/AuthPage.vue`
+  - `resources/js/pages/AccountProfilePage.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppFormLayout` и `AppGridTwoColumns`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.8 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-22` — `Template Componentization` Wave 4.9 batch (shared grid-3 + action-group standardization) выполнен:
+- добавлен shared UI-примитив:
+  - `resources/js/components/ui/AppGridThreeColumns.vue`;
+- выполнена миграция повторяющихся `grid grid-3` блоков (`>=2` использования):
+  - `resources/js/components/home/HomeKpiGrid.vue`
+  - `resources/js/components/catalog/CatalogProductGrid.vue`
+  - `resources/js/components/admin/dashboard/AdminDashboardNavGrid.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`
+  - `resources/js/components/admin/products/AdminProductVariantCard.vue`;
+- завершена миграция raw `div.actions` action-group блоков на `AppActionsRow`:
+  - `resources/js/components/account/orders/AccountOrderCard.vue`
+  - `resources/js/components/account/profile/AccountHeroCard.vue`
+  - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/products/AdminProductsListCard.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/cart/CartQuantityControl.vue`
+  - `resources/js/components/ui/AppPaginationBar.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppGridThreeColumns`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.9 status).
+- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`.
+- `2026-02-23` — `Template Componentization` Wave 4.10 batch (shared field/checkbox + submit-reset wrappers) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppFormField.vue`
+  - `resources/js/components/ui/AppCheckboxField.vue`
+  - `resources/js/components/ui/AppSubmitResetActions.vue`;
+- выполнена миграция повторов `field` / `checkbox-field` / submit-reset action-pairs (`>=2` использования):
+  - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/admin/products/AdminProductVariantCard.vue`
+  - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppFormField`, `AppCheckboxField`, `AppSubmitResetActions`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.10 status).
+- `2026-02-23` — `Template Componentization` Wave 4.11 batch (shared section/muted text wrappers) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppSectionTitle.vue`
+  - `resources/js/components/ui/AppMutedText.vue`;
+- выполнена миграция повторов `section-title` / `muted` (`>=2` использования):
+  - `resources/js/components/account/orders/AccountOrderCard.vue`
+  - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
+  - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
+  - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+  - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`
+  - `resources/js/components/admin/dashboard/AdminDashboardNavCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+  - `resources/js/components/admin/orders/AdminOrdersHeaderCard.vue`
+  - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/products/AdminProductsListCard.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/auth/AuthModeSwitcher.vue`
+  - `resources/js/components/cart/CartSummaryHeader.vue`
+  - `resources/js/components/catalog/CatalogFiltersCard.vue`
+  - `resources/js/components/catalog/CatalogProductCard.vue`
+  - `resources/js/components/checkout/CheckoutHeader.vue`
+  - `resources/js/components/product/ProductInfoCard.vue`
+  - `resources/js/components/product/ProductPurchaseCard.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppSectionTitle`, `AppMutedText`);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.11 status).
+- `2026-02-23` — `Template Componentization` Wave 4.12 batch (shared card/button wrappers) выполнен:
+- добавлены shared UI-примитивы:
+  - `resources/js/components/ui/AppCard.vue`
+  - `resources/js/components/ui/AppButton.vue`;
+- выполнена миграция повторов `card` / `btn btn-*` (`>=2` использования):
+  - pages orchestration: `resources/js/pages/AuthPage.vue`, `resources/js/pages/CheckoutPage.vue`, `resources/js/pages/CartPage.vue`, `resources/js/pages/AccountOrdersPage.vue`, `resources/js/pages/admin/AdminOrdersPage.vue`;
+  - shared/layout: `resources/js/components/AppHeader.vue`, `resources/js/components/home/HomeHeroSection.vue`, `resources/js/components/home/HomeKpiGrid.vue`, `resources/js/components/ui/AppPaginationBar.vue`;
+  - account/admin/storefront cards & actions:
+    - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+    - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`
+    - `resources/js/components/account/orders/AccountOrderCard.vue`
+    - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
+    - `resources/js/components/admin/dashboard/AdminDashboardNavCard.vue`
+    - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+    - `resources/js/components/admin/categories/AdminCategoriesListCard.vue`
+    - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
+    - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+    - `resources/js/components/admin/orders/AdminOrdersHeaderCard.vue`
+    - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
+    - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`
+    - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+    - `resources/js/components/admin/products/AdminProductsListCard.vue`
+    - `resources/js/components/admin/products/AdminProductVariantCard.vue`
+    - `resources/js/components/admin/products/AdminProductVariantsSection.vue`
+    - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+    - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+    - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+    - `resources/js/components/auth/AuthModeSwitcher.vue`
+    - `resources/js/components/auth/AuthLoginForm.vue`
+    - `resources/js/components/auth/AuthRegisterForm.vue`
+    - `resources/js/components/cart/CartItemsTable.vue`
+    - `resources/js/components/cart/CartQuantityControl.vue`
+    - `resources/js/components/catalog/CatalogFiltersCard.vue`
+    - `resources/js/components/catalog/CatalogProductCard.vue`
+    - `resources/js/components/checkout/CheckoutAddressCard.vue`
+    - `resources/js/components/product/ProductInfoCard.vue`
+    - `resources/js/components/product/ProductPurchaseCard.vue`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppCard`, `AppButton`);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.12 status).
+- `2026-02-23` — `Template Componentization` Wave 4.13 batch (card-composition hardening + KPI domain wrapper) выполнен:
+- убраны conditional `card`-классы через композицию с `AppCard`:
+  - `resources/js/components/ui/AppEmptyState.vue`
+  - `resources/js/components/ui/AppMetricCard.vue`
+  - `resources/js/components/ui/AppPaginationBar.vue`;
+- добавлен domain-shared wrapper KPI-card паттерна (`>=2` использования):
+  - `resources/js/components/home/HomeKpiCard.vue`;
+  - `resources/js/components/home/HomeKpiGrid.vue` переведен на `HomeKpiCard`;
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppPaginationBar` + `wrapInCard`);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.13 status).
+- `2026-02-23` — `Template Componentization` Wave 4.14 batch (shared tone/variant API + AppButton transport hardening) выполнен:
+- унифицированы `tone/variant` API в shared UI с backward compatibility:
+  - `resources/js/components/ui/AppStatusChip.vue` (`tone`, fallback `toneClass`);
+  - `resources/js/components/ui/AppBadge.vue` (`tone`, fallback `toneClass`);
+  - `resources/js/components/ui/AppMetricCard.vue` (`variant`, fallback `soft`);
+  - `resources/js/components/ui/AppStatusStack.vue` (`tone` passthrough);
+- статические usages переведены на новый API:
+  - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
+  - `resources/js/components/account/profile/AccountHeroCard.vue`
+  - `resources/js/components/account/orders/AccountOrdersMetricsRow.vue`
+  - `resources/js/components/admin/orders/AdminOrdersMetricsRow.vue`
+  - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`;
+- усилен `AppButton` как единый transport-layer `button/a/router-link`:
+  - `resources/js/components/ui/AppButton.vue` (auto resolve by `to/href`, secure `rel` for external `_blank`, disabled-link semantics, attrs passthrough);
+- расширен component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (edge-cases `AppButton`, tone/variant contracts);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.14 status).
+- `2026-02-23` — `Template Componentization` Wave 4.15 batch (AppButton router-link migration + typed presenter rollout) выполнен:
+- завершена миграция `AppButton` c `:as="RouterLink"` на упрощенный `to` API:
+  - `resources/js/components/catalog/CatalogProductCard.vue`
+  - `resources/js/components/cart/CartItemsTable.vue`
+  - `resources/js/components/home/HomeHeroSection.vue`
+  - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`;
+- внедрен typed presenter-layer для status/badge конфигурации (без передачи raw CSS-class строк из pages/composables):
+  - shared mapper: `resources/js/utils/order-presentation.ts` (`order/payment/shipment/verification` tone + `productStatusBadgeTone`);
+  - account/admin/product компоненты переведены на `tone` contracts:
+    - `resources/js/components/account/orders/AccountOrderCard.vue`
+    - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
+    - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
+    - `resources/js/components/account/profile/AccountHeroCard.vue`
+    - `resources/js/components/admin/products/AdminProductsListCard.vue`;
+- обновлены composable/page bindings под `tone` contracts:
+  - `resources/js/composables/account/orders/useAccountOrdersViewModel.ts`
+  - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`
+  - `resources/js/composables/account/profile/useAccountProfileQuery.ts`
+  - `resources/js/composables/account/profile/useAccountProfileViewModel.ts`
+  - `resources/js/composables/admin/products/useAdminProductsViewModel.ts`
+  - `resources/js/pages/AccountOrdersPage.vue`
+  - `resources/js/pages/admin/AdminOrdersPage.vue`
+  - `resources/js/pages/AccountProfilePage.vue`
+  - `resources/js/pages/admin/AdminProductsPage.vue`;
+- обновлены tests под migration-path:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`
+  - `resources/js/tests/components/account/account-orders-component-contracts.spec.ts`
+  - `resources/js/tests/components/account/account-profile-component-contracts.spec.ts`
+  - `resources/js/tests/components/admin/admin-component-contracts.spec.ts`
+  - `resources/js/tests/utils/order-presentation.spec.ts`;
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.15 status).
+- `2026-02-23` — `Template Componentization` Wave 4.16 batch (semantic filter inputs extraction) выполнен:
+- добавлены shared UI-примитивы для filter/list input semantics:
+  - `resources/js/components/ui/AppSearchInput.vue`
+  - `resources/js/components/ui/AppFilterSelect.vue`;
+- повторяющиеся `search + select` блоки переведены на shared-компоненты:
+  - `resources/js/components/account/orders/AccountOrdersFiltersBar.vue`
+  - `resources/js/components/admin/orders/AdminOrdersFiltersBar.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFiltersBar.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+  - `resources/js/components/catalog/CatalogFiltersCard.vue`
+  - `resources/js/components/admin/products/AdminProductsListCard.vue`;
+- расширен shared UI contract suite:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppSearchInput` и `AppFilterSelect`);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.16 status).
+- `2026-02-23` — `Template Componentization` Wave 4.17 batch (semantic form inputs extraction) выполнен:
+- добавлены shared UI-примитивы form-ввода:
+  - `resources/js/components/ui/AppTextInput.vue`
+  - `resources/js/components/ui/AppNumberInput.vue`
+  - `resources/js/components/ui/AppDateTimeInput.vue`
+  - `resources/js/components/ui/AppTextareaInput.vue`;
+- повторяющиеся text/number/datetime/textarea поля переведены на shared-компоненты:
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/products/AdminProductVariantCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+  - `resources/js/components/account/profile/AccountProfileFormCard.vue`
+  - `resources/js/components/auth/AuthLoginForm.vue`
+  - `resources/js/components/auth/AuthRegisterForm.vue`
+  - `resources/js/components/checkout/CheckoutContactFields.vue`
+  - `resources/js/components/checkout/CheckoutAddressCard.vue`;
+- `AppNumberInput` усилен typed-adapter поддержкой `v-model.number` (сохранен compatibility path для string/number моделей);
+- расширен shared UI contract suite:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppTextInput`, `AppNumberInput`, `AppDateTimeInput`, `AppTextareaInput`);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.17 status).
+- `2026-02-23` — `Template Componentization` Wave 4.18 batch (semantic select inputs extraction) выполнен:
+- добавлены shared UI-примитивы select-уровня:
+  - `resources/js/components/ui/AppSelectInput.vue`
+  - `resources/js/components/ui/AppEnumSelect.vue`;
+- повторяющиеся enum/dynamic select блоки переведены на shared-компоненты:
+  - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+  - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+  - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+  - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`
+  - `resources/js/components/product/ProductPurchaseCard.vue`;
+- `resources/js/components/ui/AppFilterSelect.vue` переведен на композицию через `AppSelectInput`;
+- расширен shared UI contract suite:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppSelectInput`, `AppEnumSelect`);
+- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `C:\composer\composer.bat run lint`
+  - `C:\composer\composer.bat run analyse`
+  - `php artisan test`
+  - `npm run lint`
+  - `npm run lint:ox`
+  - `npm run format:ox`
+  - `npm run format:ox:check`
+  - `npm run type-check`
+  - `npm run test`
+  - `npm run build`
+  - `php artisan app:healthcheck`
+  - `php artisan app:performance-smoke`
+  - `php artisan app:webhook-flow-smoke`
+  - `php artisan app:api-contract-smoke`
+  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - `php artisan app:observability-alert-check`
+  - `php artisan app:oncall-drill-smoke`;
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.18 status).
+- `2026-02-23` — обновлены проектные правила строгого архитектурного стандарта:
+  - `.cursorrules`: добавлено обязательное требование всегда строго следовать лучшей архитектуре и не допускать архитектурных shortcuts;
+  - `AGENTS.md`: добавлен детализированный mandatory-раздел по строгой архитектуре (boundary rules backend/frontend, contract/schema discipline, architecture acceptance checklist).
+  - для блока правил повторно выполнен full production-readiness quality gate в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`.
+- `2026-02-23` — `Template Componentization` Wave 4.19 batch (semantic checkbox + quantity/read-only hardening) выполнен:
+  - добавлены shared UI-примитивы:
+    - `resources/js/components/ui/AppCheckboxInput.vue`
+    - `resources/js/components/ui/AppQuantityInput.vue`;
+  - raw checkbox input переведены на semantic wrapper (`>=2` использования):
+    - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
+    - `resources/js/components/admin/products/AdminProductsFormCard.vue`
+    - `resources/js/components/admin/products/AdminProductVariantCard.vue`
+    - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
+    - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`;
+  - закрыт read-only/disabled profile path через shared input:
+    - `resources/js/components/account/profile/AccountProfileFormCard.vue`;
+  - cart quantity flow переведен на `AppQuantityInput`:
+    - `resources/js/components/cart/CartQuantityControl.vue`;
+  - расширен shared UI contract suite:
+    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppCheckboxInput`, `AppQuantityInput`);
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`.
+- `2026-02-23` — `Template Componentization` Wave 4.20 batch (semantic form-shell extraction) выполнен:
+  - добавлен shared UI-примитив:
+    - `resources/js/components/ui/AppFormShell.vue`;
+  - повторяющиеся `form class=\"grid actions--top\"` переведены на shared wrapper (`>=2` использования):
+    - `resources/js/components/auth/AuthLoginForm.vue`
+    - `resources/js/components/auth/AuthRegisterForm.vue`
+    - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
+    - `resources/js/pages/CheckoutPage.vue`;
+  - расширен shared UI contract suite:
+    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракт `AppFormShell`);
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`.
+- `2026-02-23` — `Template Componentization` Wave 4.21 batch (shared form/input edge-case contracts) выполнен:
+  - усилено component-level покрытие edge-cases для shared wrappers:
+    - `resources/js/components/ui/AppFormShell.vue`
+    - `resources/js/components/ui/AppTextInput.vue`
+    - `resources/js/components/ui/AppNumberInput.vue`
+    - `resources/js/components/ui/AppDateTimeInput.vue`
+    - `resources/js/components/ui/AppTextareaInput.vue`
+    - `resources/js/components/ui/AppSelectInput.vue`;
+  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
+    - `attrs passthrough` для root/native элементов;
+    - `disabled/readonly` состояния для input/textarea/select wrappers;
+    - `AppFormShell` contract без `actions--top` при `withTopSpacing=false`;
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`;
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.21 status).
+- `2026-02-23` — `Template Componentization` Wave 4.22 batch (checkbox/quantity edge-case contracts + radio inventory) выполнен:
+  - проведена инвентаризация `radio/fieldset` в `resources/js/**/*.{vue,ts}`:
+    - повторов не найдено; `AppRadioInput/AppRadioGroup` оставлены отложенным шагом до порога `>=2`;
+  - усилены component-level edge-case контракты для:
+    - `resources/js/components/ui/AppCheckboxInput.vue`
+    - `resources/js/components/ui/AppQuantityInput.vue`;
+  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
+    - `AppCheckboxInput`: `attrs passthrough` + model binding;
+    - `AppQuantityInput`: `attrs passthrough`, `disabled/readonly`, integer/boundary normalization;
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`;
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.22 status).
+- `2026-02-23` — `Template Componentization` Wave 4.23 batch (search/filter/enum edge-case contracts) выполнен:
+  - усилены component-level edge-case контракты для:
+    - `resources/js/components/ui/AppSearchInput.vue`
+    - `resources/js/components/ui/AppFilterSelect.vue`
+    - `resources/js/components/ui/AppEnumSelect.vue`;
+  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
+    - `AppSearchInput`: `attrs passthrough`, `disabled` contract, emit только по `keyup.enter`;
+    - `AppFilterSelect`: `attrs passthrough`, `disabled` на nested select, change/update model flow;
+    - `AppEnumSelect`: `attrs passthrough`, `disabled` на nested select, options mapping и change/update model flow;
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`;
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.23 status).
+- `2026-02-23` — `Template Componentization` Wave 4.24 batch (field/actions edge-case contracts) выполнен:
+  - усилены component-level edge-case контракты для:
+    - `resources/js/components/ui/AppFormField.vue`
+    - `resources/js/components/ui/AppSubmitResetActions.vue`
+    - `resources/js/components/ui/AppActionsRow.vue`;
+  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
+    - `AppFormField`: `attrs passthrough` + slot stability;
+    - `AppSubmitResetActions`: `withTopSpacing` + attrs passthrough на actions-root;
+    - `AppActionsRow`: attrs/class passthrough + default layout contract без `actions--top`;
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`;
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.24 status).
+- `2026-02-23` — `Template Componentization` Wave 4.25 batch (table primitives + order-items unification) выполнен:
+  - добавлены shared table-примитивы:
+    - `resources/js/components/ui/AppTableActionsCell.vue`
+    - `resources/js/components/ui/AppTableEmptyStateRow.vue`
+    - `resources/js/components/ui/BooleanStatusChip.vue`;
+  - добавлен domain-shared компонент для order-line таблиц:
+    - `resources/js/components/orders/OrderItemsTable.vue`;
+  - на shared table-примитивы переведены админ-таблицы (`>=2` использования):
+    - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
+    - `resources/js/components/admin/products/AdminProductsListCard.vue`
+    - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
+    - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
+    - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`;
+  - таблицы order items унифицированы через `OrderItemsTable`:
+    - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
+    - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`;
+  - расширено component-level contract coverage:
+    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`
+    - `resources/js/tests/components/orders/order-items-table-component-contracts.spec.ts`;
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`;
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.25 status).
 
 ## Следующий batch
 
-1. Разбить накопленные изменения на коммиты по логическим блокам и запушить.
-2. Подготовить стартовый backlog следующего этапа (post-`Phase 5`) с приоритизацией по рискам production эксплуатации.
-3. Зафиксировать финальный `Phase 5` summary в архитектурной документации (`docs/ARCHITECTURE_REFACTOR_PLAN.md`).
+1. Оставить `AppRadioInput/AppRadioGroup` в backlog до появления подтвержденных `>=2` повторов `radio/fieldset`.
+2. Усилить edge-case контракты layout wrappers (`AppFormLayout`, `AppStackBetween`, `AppTableSection`) и pagination edge-cases (`AppPaginationBar` disabled/loading semantics).
+3. Прогнать следующий full quality gate после batch и зафиксировать изменения в `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` и `docs/REFACTORING_EXECUTION_PLAN.md`.

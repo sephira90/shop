@@ -7,9 +7,14 @@ Follow `AGENTS.md` as the primary project policy.
 - Keep solutions production-oriented and minimal in scope.
 - Commit changes in logical blocks (one commit = one coherent concern).
 - Respect existing architecture and naming conventions.
+- Always follow the best-architecture standard strictly; no temporary shortcuts that degrade layering, contracts, or maintainability.
+- If a request conflicts with architecture quality, clarify constraints first and implement an architecture-safe solution.
+- If a UI/template block appears in `>=2` places, extract it to a shared component.
 - Do not weaken validation, authorization, idempotency, or webhook safety.
 - Prefer explicit, typed, and testable code paths.
 - Add or update tests for behavior changes.
+- Run all test commands sequentially only; never parallelize `php artisan test`/`npm run test` executions.
+- For backend feature tests, avoid parallel runs due shared `database/testing.sqlite` contention/corruption risk.
 - Never commit secrets or real credentials.
 
 ## Definition of done
@@ -29,6 +34,7 @@ Follow `AGENTS.md` as the primary project policy.
 - `npm run type-check`
 - `npm run test`
 - `npm run build`
+- Execute checks in strict sequence (one command at a time), not in parallel.
 - If checks fail, fix and rerun; do not finish on code edits only.
 - If route/controller code changed, run:
 - `php artisan optimize:clear`
