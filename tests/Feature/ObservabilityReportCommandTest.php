@@ -33,6 +33,7 @@ class ObservabilityReportCommandTest extends TestCase
         $this->artisan('app:observability-report --minutes=60')
             ->assertSuccessful()
             ->expectsOutputToContain('api_request_count')
+            ->expectsOutputToContain('snapshot_source')
             ->expectsOutputToContain('products_list')
             ->expectsOutputToContain('payment')
             ->expectsOutputToContain('Observability report generated.');
@@ -77,6 +78,55 @@ class ObservabilityReportCommandTest extends TestCase
         $this->artisan('app:observability-report --max-api-slow-rate=foo')
             ->assertFailed()
             ->expectsOutputToContain('Option --max-api-slow-rate must be a number in [0..1].');
+    }
+
+    /**
+     * Ensure report defaults to runtime source and ignores smoke-only samples.
+     */
+    public function test_observability_report_defaults_to_runtime_source_and_ignores_smoke_samples(): void
+    {
+        config()->set('observability.enabled', true);
+        config()->set('observability.channel', 'null');
+        Cache::flush();
+
+        $service = app(ObservabilityService::class);
+        $service->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0, 'smoke');
+        $service->webhook('payment', 'evt-test-smoke', 'processed', 30.0, 200.0, 'smoke');
+
+        $this->artisan('app:observability-report --minutes=60 --require-api-samples --require-webhook-samples')
+            ->assertFailed()
+            ->expectsOutputToContain('Required API samples are missing in selected window.')
+            ->expectsOutputToContain('Required webhook samples are missing in selected window.')
+            ->expectsOutputToContain('Observability threshold checks failed.');
+    }
+
+    /**
+     * Ensure report can read smoke metrics when source option is smoke.
+     */
+    public function test_observability_report_uses_smoke_source_when_requested(): void
+    {
+        config()->set('observability.enabled', true);
+        config()->set('observability.channel', 'null');
+        Cache::flush();
+
+        $service = app(ObservabilityService::class);
+        $service->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0, 'smoke');
+        $service->webhook('payment', 'evt-test-smoke-source', 'processed', 30.0, 200.0, 'smoke');
+
+        $this->artisan('app:observability-report --minutes=60 --source=smoke --require-api-samples --require-webhook-samples')
+            ->assertSuccessful()
+            ->expectsOutputToContain('snapshot_source')
+            ->expectsOutputToContain('Observability report generated.');
+    }
+
+    /**
+     * Ensure observability report validates source option.
+     */
+    public function test_observability_report_command_rejects_invalid_source_option(): void
+    {
+        $this->artisan('app:observability-report --source=invalid-source')
+            ->assertFailed()
+            ->expectsOutputToContain('Option --source must be one of: runtime, smoke.');
     }
 
     /**

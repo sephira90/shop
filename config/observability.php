@@ -29,11 +29,16 @@ return [
         'lag_warn_ms' => (int) env('OBSERVABILITY_WEBHOOK_LAG_WARN_MS', 1500),
     ],
 
+    'snapshot' => [
+        'default_source' => (string) env('OBSERVABILITY_SNAPSHOT_SOURCE', 'runtime'),
+    ],
+
     'alerts' => [
         // Run periodic SLO checks through app:observability-report.
         'enabled' => (bool) env('APP_OBSERVABILITY_ALERTS_ENABLED', true),
         'cron' => (string) env('APP_OBSERVABILITY_ALERTS_CRON', '*/30 * * * *'),
         'minutes' => (int) env('APP_OBSERVABILITY_ALERTS_WINDOW_MINUTES', 120),
+        'source' => (string) env('APP_OBSERVABILITY_ALERTS_SOURCE', 'runtime'),
         'max_api_slow_rate' => (float) env('APP_OBSERVABILITY_ALERTS_MAX_API_SLOW_RATE', 0.30),
         'max_webhook_lag_warn_rate' => (float) env('APP_OBSERVABILITY_ALERTS_MAX_WEBHOOK_LAG_WARN_RATE', 0.30),
         'require_api_samples' => (bool) env('APP_OBSERVABILITY_ALERTS_REQUIRE_API_SAMPLES', true),

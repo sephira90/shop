@@ -76,12 +76,13 @@ class AppObservabilityAlertCheckCommand extends Command
     /**
      * Build options for app:observability-report call.
      *
-     * @return array<string,bool|float|int>
+     * @return array<string,bool|float|int|string>
      */
     private function buildObservabilityReportParameters(): array
     {
         return [
             '--minutes' => (int) config('observability.alerts.minutes', 120),
+            '--source' => (string) config('observability.alerts.source', config('observability.snapshot.default_source', 'runtime')),
             '--max-api-slow-rate' => (float) config('observability.alerts.max_api_slow_rate', 0.30),
             '--max-webhook-lag-warn-rate' => (float) config('observability.alerts.max_webhook_lag_warn_rate', 0.30),
             '--require-api-samples' => (bool) config('observability.alerts.require_api_samples', true),
@@ -92,7 +93,7 @@ class AppObservabilityAlertCheckCommand extends Command
     /**
      * Cast command options to string map for notification payload.
      *
-     * @param  array<string,bool|float|int>  $parameters
+     * @param  array<string,bool|float|int|string>  $parameters
      * @return array<string,string>
      */
     private function stringifyParameters(array $parameters): array

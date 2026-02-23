@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Support\Observability\ObservabilityService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ class ObservabilityServiceTest extends TestCase
         Log::shouldReceive('info')->once()->with(
             'observability.api_request',
             \Mockery::on(static fn (array $payload): bool => $payload['metric'] === 'api.request'
+                && $payload['source'] === 'runtime'
                 && $payload['status'] === 200
                 && $payload['method'] === 'GET'),
         );
@@ -47,5 +49,39 @@ class ObservabilityServiceTest extends TestCase
         $service = new ObservabilityService;
         $service->catalogCache('products_list', true, 0.5, 10);
         $service->webhook('payment', 'evt-test', 'processed', 1.0, 0.5);
+    }
+
+    /**
+     * Ensure snapshot is scoped by metric source.
+     */
+    public function test_snapshot_filters_metrics_by_source(): void
+    {
+        config()->set('observability.enabled', true);
+        config()->set('observability.channel', 'null');
+        config()->set('observability.api.slow_ms', 1);
+        config()->set('observability.webhook.lag_warn_ms', 1);
+
+        Cache::flush();
+
+        $service = new ObservabilityService;
+        $service->apiRequest('GET', '/api/v1/catalog/products', 200, 10.0, 'runtime');
+        $service->apiRequest('GET', '/api/v1/catalog/products', 200, 15.0, 'smoke');
+        $service->webhook('payment', 'evt-runtime', 'processed', 10.0, 10.0, 'runtime');
+        $service->webhook('payment', 'evt-smoke', 'processed', 15.0, 15.0, 'smoke');
+
+        $runtimeSnapshot = $service->snapshot(60, 'runtime');
+        $smokeSnapshot = $service->snapshot(60, 'smoke');
+
+        $this->assertSame('runtime', $runtimeSnapshot['source']);
+        $this->assertSame(1, $runtimeSnapshot['api']['count']);
+        $this->assertSame(1, $runtimeSnapshot['api']['slow_count']);
+        $this->assertSame(1, $runtimeSnapshot['webhook'][0]['count']);
+        $this->assertSame(1, $runtimeSnapshot['webhook'][0]['lag_warn_count']);
+
+        $this->assertSame('smoke', $smokeSnapshot['source']);
+        $this->assertSame(1, $smokeSnapshot['api']['count']);
+        $this->assertSame(1, $smokeSnapshot['api']['slow_count']);
+        $this->assertSame(1, $smokeSnapshot['webhook'][0]['count']);
+        $this->assertSame(1, $smokeSnapshot['webhook'][0]['lag_warn_count']);
     }
 }

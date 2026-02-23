@@ -112,6 +112,7 @@ class AppOncallDrillSmokeCommand extends Command
                 'command' => 'app:observability-report',
                 'parameters' => [
                     '--minutes' => (int) config('observability.alerts.minutes', 120),
+                    '--source' => (string) config('observability.alerts.source', config('observability.snapshot.default_source', 'runtime')),
                     '--max-api-slow-rate' => (float) config('observability.alerts.max_api_slow_rate', 0.30),
                     '--max-webhook-lag-warn-rate' => (float) config('observability.alerts.max_webhook_lag_warn_rate', 0.30),
                     '--require-api-samples' => (bool) config('observability.alerts.require_api_samples', true),

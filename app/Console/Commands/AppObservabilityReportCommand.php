@@ -16,6 +16,7 @@ class AppObservabilityReportCommand extends Command
      */
     protected $signature = 'app:observability-report
         {--minutes=60 : Rolling snapshot window in minutes (1-1440)}
+        {--source= : Metric source filter (runtime|smoke)}
         {--max-api-slow-rate= : Maximum allowed API slow-request rate in [0..1]}
         {--max-webhook-lag-warn-rate= : Maximum allowed webhook lag-warn rate in [0..1]}
         {--require-api-samples : Fail if no API samples are available in selected window}
@@ -64,7 +65,12 @@ class AppObservabilityReportCommand extends Command
             $this->warn('Observability hooks are disabled (OBSERVABILITY_ENABLED=false). Snapshot may be empty.');
         }
 
-        $snapshot = $this->observabilityService->snapshot($minutes);
+        $source = $this->resolveSnapshotSourceOption();
+        if ($source === null) {
+            return self::FAILURE;
+        }
+
+        $snapshot = $this->observabilityService->snapshot($minutes, $source);
         $violations = [
             ...$this->evaluateRequiredSamples(
                 $snapshot,
@@ -92,6 +98,7 @@ class AppObservabilityReportCommand extends Command
             ['metric', 'value'],
             [
                 ['window_minutes', (string) $snapshot['minutes']],
+                ['snapshot_source', (string) $snapshot['source']],
                 ['api_request_count', (string) $snapshot['api']['count']],
                 ['api_avg_duration_ms', $this->formatFloat((float) $snapshot['api']['avg_duration_ms'])],
                 ['api_slow_count', (string) $snapshot['api']['slow_count']],
@@ -212,10 +219,33 @@ class AppObservabilityReportCommand extends Command
     }
 
     /**
+     * Resolve metric source option.
+     */
+    private function resolveSnapshotSourceOption(): ?string
+    {
+        $rawSource = trim((string) $this->option('source'));
+
+        if ($rawSource === '') {
+            $rawSource = (string) config('observability.snapshot.default_source', 'runtime');
+        }
+
+        $source = strtolower($rawSource);
+
+        if (! in_array($source, ['runtime', 'smoke'], true)) {
+            $this->error('Option --source must be one of: runtime, smoke.');
+
+            return null;
+        }
+
+        return $source;
+    }
+
+    /**
      * Build threshold violations list.
      *
      * @param  array{
      *     minutes:int,
+     *     source:string,
      *     api:array{count:int,avg_duration_ms:float,slow_count:int},
      *     catalog:list<array{
      *         segment:string,
@@ -323,6 +353,7 @@ class AppObservabilityReportCommand extends Command
      *
      * @param  array{
      *     minutes:int,
+     *     source:string,
      *     api:array{count:int,avg_duration_ms:float,slow_count:int},
      *     catalog:list<array{
      *         segment:string,

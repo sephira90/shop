@@ -76,6 +76,31 @@ class ObservabilityAlertCheckCommandTest extends TestCase
     }
 
     /**
+     * Ensure alert check uses configured source when evaluating SLO report.
+     */
+    public function test_alert_check_uses_configured_source_for_slo_report(): void
+    {
+        $this->configureBaseObservability();
+        $this->configureFailureRouting();
+        config()->set('observability.alerts.source', 'smoke');
+
+        Cache::flush();
+        Notification::fake();
+        Http::fake();
+
+        $observability = app(ObservabilityService::class);
+        $observability->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0, 'smoke');
+        $observability->webhook('payment', 'evt-ob-alert-smoke', 'processed', 15.0, 100.0, 'smoke');
+
+        $this->artisan('app:observability-alert-check')
+            ->assertSuccessful()
+            ->expectsOutputToContain('Observability alert check passed.');
+
+        Notification::assertNothingSent();
+        Http::assertNothingSent();
+    }
+
+    /**
      * Ensure cooldown suppresses duplicate alert dispatches.
      */
     public function test_alert_check_suppresses_duplicate_alerts_by_cooldown(): void
@@ -110,6 +135,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
         config()->set('observability.api.slow_ms', 800);
         config()->set('observability.webhook.lag_warn_ms', 1500);
         config()->set('observability.alerts.minutes', 60);
+        config()->set('observability.alerts.source', 'runtime');
         config()->set('observability.alerts.max_api_slow_rate', 0.30);
         config()->set('observability.alerts.max_webhook_lag_warn_rate', 0.30);
         config()->set('observability.alerts.require_api_samples', true);

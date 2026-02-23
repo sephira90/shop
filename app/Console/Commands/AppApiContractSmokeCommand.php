@@ -463,6 +463,7 @@ class AppApiContractSmokeCommand extends Command
             path: '/'.ltrim((string) $request->path(), '/'),
             status: $response->getStatusCode(),
             durationMs: $durationMs,
+            source: 'smoke',
         );
 
         $decoded = json_decode((string) $response->getContent(), true);

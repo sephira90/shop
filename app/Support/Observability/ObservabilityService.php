@@ -12,6 +12,10 @@ final class ObservabilityService
 {
     private const CACHE_TTL_MINUTES = 1440;
 
+    private const SOURCE_RUNTIME = 'runtime';
+
+    private const SOURCE_SMOKE = 'smoke';
+
     private const CATALOG_REGISTRY_KEY = 'observability:registry:catalog_segments';
 
     private const WEBHOOK_REGISTRY_KEY = 'observability:registry:webhook_providers';
@@ -19,14 +23,21 @@ final class ObservabilityService
     /**
      * Report API request latency sample.
      */
-    public function apiRequest(string $method, string $path, int $status, float $durationMs): void
-    {
+    public function apiRequest(
+        string $method,
+        string $path,
+        int $status,
+        float $durationMs,
+        string $source = self::SOURCE_RUNTIME,
+    ): void {
         if (! $this->enabled()) {
             return;
         }
 
+        $normalizedSource = $this->normalizeSource($source);
         $payload = [
             'metric' => 'api.request',
+            'source' => $normalizedSource,
             'method' => strtoupper($method),
             'path' => $path,
             'status' => $status,
@@ -35,24 +46,31 @@ final class ObservabilityService
 
         $this->logger()->info('observability.api_request', $payload);
 
-        if ($durationMs >= $this->apiSlowThresholdMs()) {
+        if ($normalizedSource === self::SOURCE_RUNTIME && $durationMs >= $this->apiSlowThresholdMs()) {
             $this->logger()->warning('observability.api_request_slow', $payload);
         }
 
-        $this->storeApiSample($durationMs);
+        $this->storeApiSample($durationMs, $normalizedSource);
     }
 
     /**
      * Report catalog cache hit ratio sample.
      */
-    public function catalogCache(string $segment, bool $hit, float $durationMs, ?int $items = null): void
-    {
+    public function catalogCache(
+        string $segment,
+        bool $hit,
+        float $durationMs,
+        ?int $items = null,
+        string $source = self::SOURCE_RUNTIME,
+    ): void {
         if (! $this->enabled()) {
             return;
         }
 
+        $normalizedSource = $this->normalizeSource($source);
         $payload = [
             'metric' => 'catalog.cache',
+            'source' => $normalizedSource,
             'segment' => $segment,
             'cache_hit' => $hit,
             'duration_ms' => round($durationMs, 2),
@@ -61,11 +79,11 @@ final class ObservabilityService
 
         $this->logger()->info('observability.catalog_cache', $payload);
 
-        if (! $hit && $durationMs >= $this->catalogSlowThresholdMs()) {
+        if ($normalizedSource === self::SOURCE_RUNTIME && ! $hit && $durationMs >= $this->catalogSlowThresholdMs()) {
             $this->logger()->warning('observability.catalog_cache_slow_miss', $payload);
         }
 
-        $this->storeCatalogSample($segment, $hit, $durationMs);
+        $this->storeCatalogSample($segment, $hit, $durationMs, $normalizedSource);
     }
 
     /**
@@ -77,13 +95,16 @@ final class ObservabilityService
         string $outcome,
         float $durationMs,
         ?float $lagMs,
+        string $source = self::SOURCE_RUNTIME,
     ): void {
         if (! $this->enabled()) {
             return;
         }
 
+        $normalizedSource = $this->normalizeSource($source);
         $payload = [
             'metric' => 'webhook.processing',
+            'source' => $normalizedSource,
             'provider' => $provider,
             'event_id' => $eventId,
             'outcome' => $outcome,
@@ -93,15 +114,15 @@ final class ObservabilityService
 
         $this->logger()->info('observability.webhook', $payload);
 
-        if ($durationMs >= $this->webhookSlowThresholdMs()) {
+        if ($normalizedSource === self::SOURCE_RUNTIME && $durationMs >= $this->webhookSlowThresholdMs()) {
             $this->logger()->warning('observability.webhook_slow', $payload);
         }
 
-        if ($lagMs !== null && $lagMs >= $this->webhookLagWarnThresholdMs()) {
+        if ($normalizedSource === self::SOURCE_RUNTIME && $lagMs !== null && $lagMs >= $this->webhookLagWarnThresholdMs()) {
             $this->logger()->warning('observability.webhook_lag', $payload);
         }
 
-        $this->storeWebhookSample($provider, $outcome, $durationMs, $lagMs);
+        $this->storeWebhookSample($provider, $outcome, $durationMs, $lagMs, $normalizedSource);
     }
 
     /**
@@ -109,6 +130,7 @@ final class ObservabilityService
      *
      * @return array{
      *     minutes:int,
+     *     source:string,
      *     api:array{count:int,avg_duration_ms:float,slow_count:int},
      *     catalog:list<array{
      *         segment:string,
@@ -131,20 +153,22 @@ final class ObservabilityService
      *     }>
      * }
      */
-    public function snapshot(int $minutes = 60): array
+    public function snapshot(int $minutes = 60, string $source = self::SOURCE_RUNTIME): array
     {
         $window = max(1, min(1440, $minutes));
+        $normalizedSource = $this->normalizeSource($source);
         $buckets = $this->windowBuckets($window);
 
-        $apiCount = $this->sumByBuckets($buckets, 'api', 'count');
-        $apiDurationTotal = $this->sumByBuckets($buckets, 'api', 'duration_ms_total');
-        $apiSlowCount = $this->sumByBuckets($buckets, 'api', 'slow_count');
+        $apiCount = $this->sumByBuckets($buckets, 'api', $normalizedSource, 'count');
+        $apiDurationTotal = $this->sumByBuckets($buckets, 'api', $normalizedSource, 'duration_ms_total');
+        $apiSlowCount = $this->sumByBuckets($buckets, 'api', $normalizedSource, 'slow_count');
 
-        $catalog = $this->catalogSnapshot($buckets);
-        $webhook = $this->webhookSnapshot($buckets);
+        $catalog = $this->catalogSnapshot($buckets, $normalizedSource);
+        $webhook = $this->webhookSnapshot($buckets, $normalizedSource);
 
         return [
             'minutes' => $window,
+            'source' => $normalizedSource,
             'api' => [
                 'count' => $apiCount,
                 'avg_duration_ms' => $apiCount > 0 ? round($apiDurationTotal / $apiCount, 2) : 0.0,
@@ -158,37 +182,37 @@ final class ObservabilityService
     /**
      * Store one API sample in rolling counters.
      */
-    private function storeApiSample(float $durationMs): void
+    private function storeApiSample(float $durationMs, string $source): void
     {
         $bucket = $this->bucket();
-        $this->incrementCounter($this->cacheKey('api', 'count', $bucket), 1);
-        $this->incrementCounter($this->cacheKey('api', 'duration_ms_total', $bucket), $this->durationToInt($durationMs));
+        $this->incrementCounter($this->cacheKey('api', $source, 'count', $bucket), 1);
+        $this->incrementCounter($this->cacheKey('api', $source, 'duration_ms_total', $bucket), $this->durationToInt($durationMs));
 
         if ($durationMs >= $this->apiSlowThresholdMs()) {
-            $this->incrementCounter($this->cacheKey('api', 'slow_count', $bucket), 1);
+            $this->incrementCounter($this->cacheKey('api', $source, 'slow_count', $bucket), 1);
         }
     }
 
     /**
      * Store one catalog sample in rolling counters.
      */
-    private function storeCatalogSample(string $segment, bool $hit, float $durationMs): void
+    private function storeCatalogSample(string $segment, bool $hit, float $durationMs, string $source): void
     {
         $normalizedSegment = $this->normalizeKeyPart($segment);
         $bucket = $this->bucket();
 
         $this->registerValue(self::CATALOG_REGISTRY_KEY, $segment);
 
-        $this->incrementCounter($this->cacheKey('catalog', $normalizedSegment, 'count', $bucket), 1);
-        $this->incrementCounter($this->cacheKey('catalog', $normalizedSegment, 'duration_ms_total', $bucket), $this->durationToInt($durationMs));
+        $this->incrementCounter($this->cacheKey('catalog', $source, $normalizedSegment, 'count', $bucket), 1);
+        $this->incrementCounter($this->cacheKey('catalog', $source, $normalizedSegment, 'duration_ms_total', $bucket), $this->durationToInt($durationMs));
 
         if ($hit) {
-            $this->incrementCounter($this->cacheKey('catalog', $normalizedSegment, 'hit_count', $bucket), 1);
+            $this->incrementCounter($this->cacheKey('catalog', $source, $normalizedSegment, 'hit_count', $bucket), 1);
         } else {
-            $this->incrementCounter($this->cacheKey('catalog', $normalizedSegment, 'miss_count', $bucket), 1);
+            $this->incrementCounter($this->cacheKey('catalog', $source, $normalizedSegment, 'miss_count', $bucket), 1);
 
             if ($durationMs >= $this->catalogSlowThresholdMs()) {
-                $this->incrementCounter($this->cacheKey('catalog', $normalizedSegment, 'slow_miss_count', $bucket), 1);
+                $this->incrementCounter($this->cacheKey('catalog', $source, $normalizedSegment, 'slow_miss_count', $bucket), 1);
             }
         }
     }
@@ -196,25 +220,30 @@ final class ObservabilityService
     /**
      * Store one webhook sample in rolling counters.
      */
-    private function storeWebhookSample(string $provider, string $outcome, float $durationMs, ?float $lagMs): void
-    {
+    private function storeWebhookSample(
+        string $provider,
+        string $outcome,
+        float $durationMs,
+        ?float $lagMs,
+        string $source,
+    ): void {
         $normalizedProvider = $this->normalizeKeyPart($provider);
         $bucket = $this->bucket();
 
         $this->registerValue(self::WEBHOOK_REGISTRY_KEY, $provider);
 
-        $this->incrementCounter($this->cacheKey('webhook', $normalizedProvider, 'count', $bucket), 1);
-        $this->incrementCounter($this->cacheKey('webhook', $normalizedProvider, 'duration_ms_total', $bucket), $this->durationToInt($durationMs));
+        $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'count', $bucket), 1);
+        $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'duration_ms_total', $bucket), $this->durationToInt($durationMs));
 
         $normalizedOutcome = $this->normalizeKeyPart($outcome);
-        $this->incrementCounter($this->cacheKey('webhook', $normalizedProvider, 'outcome', $normalizedOutcome, $bucket), 1);
+        $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'outcome', $normalizedOutcome, $bucket), 1);
 
         if ($lagMs !== null) {
-            $this->incrementCounter($this->cacheKey('webhook', $normalizedProvider, 'lag_ms_total', $bucket), $this->durationToInt($lagMs));
-            $this->incrementCounter($this->cacheKey('webhook', $normalizedProvider, 'lag_samples', $bucket), 1);
+            $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'lag_ms_total', $bucket), $this->durationToInt($lagMs));
+            $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'lag_samples', $bucket), 1);
 
             if ($lagMs >= $this->webhookLagWarnThresholdMs()) {
-                $this->incrementCounter($this->cacheKey('webhook', $normalizedProvider, 'lag_warn_count', $bucket), 1);
+                $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'lag_warn_count', $bucket), 1);
             }
         }
     }
@@ -233,7 +262,7 @@ final class ObservabilityService
      *     slow_miss_count:int
      * }>
      */
-    private function catalogSnapshot(array $buckets): array
+    private function catalogSnapshot(array $buckets, string $source): array
     {
         $segments = Cache::get(self::CATALOG_REGISTRY_KEY, []);
         if (! is_array($segments)) {
@@ -249,16 +278,16 @@ final class ObservabilityService
             }
 
             $segment = $this->normalizeKeyPart($segmentValue);
-            $count = $this->sumByBuckets($buckets, 'catalog', $segment, 'count');
+            $count = $this->sumByBuckets($buckets, 'catalog', $source, $segment, 'count');
 
             if ($count === 0) {
                 continue;
             }
 
-            $hitCount = $this->sumByBuckets($buckets, 'catalog', $segment, 'hit_count');
-            $missCount = $this->sumByBuckets($buckets, 'catalog', $segment, 'miss_count');
-            $durationTotal = $this->sumByBuckets($buckets, 'catalog', $segment, 'duration_ms_total');
-            $slowMissCount = $this->sumByBuckets($buckets, 'catalog', $segment, 'slow_miss_count');
+            $hitCount = $this->sumByBuckets($buckets, 'catalog', $source, $segment, 'hit_count');
+            $missCount = $this->sumByBuckets($buckets, 'catalog', $source, $segment, 'miss_count');
+            $durationTotal = $this->sumByBuckets($buckets, 'catalog', $source, $segment, 'duration_ms_total');
+            $slowMissCount = $this->sumByBuckets($buckets, 'catalog', $source, $segment, 'slow_miss_count');
 
             $rows[] = [
                 'segment' => $segmentValue,
@@ -289,7 +318,7 @@ final class ObservabilityService
      *     lag_warn_count:int
      * }>
      */
-    private function webhookSnapshot(array $buckets): array
+    private function webhookSnapshot(array $buckets, string $source): array
     {
         $providers = Cache::get(self::WEBHOOK_REGISTRY_KEY, []);
         if (! is_array($providers)) {
@@ -305,19 +334,19 @@ final class ObservabilityService
             }
 
             $provider = $this->normalizeKeyPart($providerValue);
-            $count = $this->sumByBuckets($buckets, 'webhook', $provider, 'count');
+            $count = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'count');
 
             if ($count === 0) {
                 continue;
             }
 
-            $processedCount = $this->sumByBuckets($buckets, 'webhook', $provider, 'outcome', 'processed');
-            $duplicateCount = $this->sumByBuckets($buckets, 'webhook', $provider, 'outcome', 'duplicate');
-            $rejectedCount = $this->sumByBuckets($buckets, 'webhook', $provider, 'outcome', 'rejected');
-            $durationTotal = $this->sumByBuckets($buckets, 'webhook', $provider, 'duration_ms_total');
-            $lagTotal = $this->sumByBuckets($buckets, 'webhook', $provider, 'lag_ms_total');
-            $lagSamples = $this->sumByBuckets($buckets, 'webhook', $provider, 'lag_samples');
-            $lagWarnCount = $this->sumByBuckets($buckets, 'webhook', $provider, 'lag_warn_count');
+            $processedCount = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'outcome', 'processed');
+            $duplicateCount = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'outcome', 'duplicate');
+            $rejectedCount = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'outcome', 'rejected');
+            $durationTotal = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'duration_ms_total');
+            $lagTotal = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'lag_ms_total');
+            $lagSamples = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'lag_samples');
+            $lagWarnCount = $this->sumByBuckets($buckets, 'webhook', $source, $provider, 'lag_warn_count');
 
             $rows[] = [
                 'provider' => $providerValue,
@@ -423,6 +452,18 @@ final class ObservabilityService
     private function normalizeKeyPart(string $value): string
     {
         return strtolower(str_replace([':', ' '], ['_', '_'], trim($value)));
+    }
+
+    /**
+     * Normalize metric source key.
+     */
+    private function normalizeSource(string $source): string
+    {
+        $normalized = $this->normalizeKeyPart($source);
+
+        return in_array($normalized, [self::SOURCE_RUNTIME, self::SOURCE_SMOKE], true)
+            ? $normalized
+            : self::SOURCE_RUNTIME;
     }
 
     /**

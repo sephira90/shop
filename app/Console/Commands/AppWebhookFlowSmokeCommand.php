@@ -326,8 +326,8 @@ class AppWebhookFlowSmokeCommand extends Command
         ];
         $signature = hash('sha256', $eventId);
 
-        $this->paymentService->processWebhook($payload, $signature);
-        $this->paymentService->processWebhook($payload, $signature);
+        $this->paymentService->processWebhook($payload, $signature, source: 'smoke');
+        $this->paymentService->processWebhook($payload, $signature, source: 'smoke');
     }
 
     /**
@@ -343,7 +343,7 @@ class AppWebhookFlowSmokeCommand extends Command
         ];
         $signature = hash('sha256', $eventId);
 
-        $this->shippingService->processWebhook($payload, $signature);
-        $this->shippingService->processWebhook($payload, $signature);
+        $this->shippingService->processWebhook($payload, $signature, source: 'smoke');
+        $this->shippingService->processWebhook($payload, $signature, source: 'smoke');
     }
 }

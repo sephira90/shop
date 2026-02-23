@@ -66,6 +66,7 @@ class OncallDrillSmokeCommandTest extends TestCase
         config()->set('observability.enabled', true);
         config()->set('observability.channel', 'null');
         config()->set('observability.alerts.minutes', 60);
+        config()->set('observability.alerts.source', 'runtime');
         config()->set('observability.alerts.max_api_slow_rate', 0.30);
         config()->set('observability.alerts.max_webhook_lag_warn_rate', 0.30);
         config()->set('observability.alerts.require_api_samples', true);
