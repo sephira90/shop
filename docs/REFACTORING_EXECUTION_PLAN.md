@@ -2005,3 +2005,37 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P2.1` completed (smoke-команды decomposed into scenarios):
+  - добавлен общий smoke support-слой:
+    - `app/Support/Smoke/SmokePersistenceGuard.php` (общий production rollback guard);
+    - `app/Support/Smoke/Api/ApiSmokeHttpClient.php` (единый HTTP-kernel API client + observability `source=smoke`);
+    - `app/Support/Smoke/Api/ApiSmokeAssertions.php` (общие envelope/status/meta assertions);
+    - `app/Support/Smoke/SmokeCheckResult.php` и `app/Support/Smoke/Api/ApiSmokeResponse.php` (typed DTO/value objects);
+  - `app:api-contract-smoke` разложен на scenario-классы:
+    - orchestrator: `app/Console/Commands/AppApiContractSmokeCommand.php`;
+    - context/interface: `app/Support/Smoke/ApiContract/ApiContractSmokeContext.php`, `app/Support/Smoke/ApiContract/ApiContractScenario.php`;
+    - scenarios:
+      - `CatalogApiContractScenario`;
+      - `CartApiContractScenario`;
+      - `CheckoutApiContractScenario`;
+      - `AdminProductsApiContractScenario`;
+      - `PaymentWebhookApiContractScenario`;
+  - `app:webhook-flow-smoke` разложен на command entrypoint + domain scenario:
+    - orchestrator: `app/Console/Commands/AppWebhookFlowSmokeCommand.php`;
+    - core flow: `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P2.1` отмечен как completed;
+  - выполнены target checks:
+    - `php artisan test --filter=ApiContractSmokeCommandTest`
+    - `php artisan test --filter=WebhookFlowSmokeCommandTest`
+    - `php artisan test --filter=OncallDrillSmokeCommandTest`
+    - `php artisan test --filter=PerformanceSmokeTest`
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

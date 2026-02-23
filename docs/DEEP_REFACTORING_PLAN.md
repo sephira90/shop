@@ -170,13 +170,17 @@ Status:
 
 #### P2.1 Декомпозиция smoke-команд
 
-- [ ] Разбить крупные smoke-команды на scenario-классы.
-- [ ] Вынести общий API test client и общие assertion helpers.
-- [ ] Сократить размер command entrypoints.
+- [x] Разбить крупные smoke-команды на scenario-классы.
+- [x] Вынести общий API test client и общие assertion helpers.
+- [x] Сократить размер command entrypoints.
 
 Definition of Done:
 
 - Команды компактны и легко расширяются новыми сценариями.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ---
 
