@@ -23,10 +23,10 @@
 </template>
 
 <script setup lang="ts">
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppSelectInput from "@/components/ui/AppSelectInput.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppSelectInput from "@/components/ui/forms/AppSelectInput.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
 import type { CatalogProduct, CatalogProductVariant } from "@/types/catalog";
 
 defineProps<{

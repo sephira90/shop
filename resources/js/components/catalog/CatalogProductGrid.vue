@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import AppGridThreeColumns from "@/components/ui/AppGridThreeColumns.vue";
+import AppGridThreeColumns from "@/components/ui/layout/AppGridThreeColumns.vue";
 import type { CatalogProduct } from "@/types/catalog";
 
 import CatalogProductCard from "./CatalogProductCard.vue";

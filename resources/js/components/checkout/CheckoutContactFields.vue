@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 
 const props = defineProps<{
     email: string;

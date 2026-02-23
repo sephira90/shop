@@ -81,23 +81,23 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppCheckboxField from "@/components/ui/AppCheckboxField.vue";
-import AppCheckboxInput from "@/components/ui/AppCheckboxInput.vue";
-import AppDateTimeInput from "@/components/ui/AppDateTimeInput.vue";
-import AppFormField from "@/components/ui/AppFormField.vue";
-import AppFormShell from "@/components/ui/AppFormShell.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppNumberInput from "@/components/ui/AppNumberInput.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
-import AppTableSection from "@/components/ui/AppTableSection.vue";
-import AppTableActionsCell from "@/components/ui/AppTableActionsCell.vue";
-import AppTableEmptyStateRow from "@/components/ui/AppTableEmptyStateRow.vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
-import BooleanStatusChip from "@/components/ui/BooleanStatusChip.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppCheckboxField from "@/components/ui/forms/AppCheckboxField.vue";
+import AppCheckboxInput from "@/components/ui/forms/AppCheckboxInput.vue";
+import AppDateTimeInput from "@/components/ui/forms/AppDateTimeInput.vue";
+import AppFormField from "@/components/ui/forms/AppFormField.vue";
+import AppFormShell from "@/components/ui/forms/AppFormShell.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppNumberInput from "@/components/ui/forms/AppNumberInput.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
+import AppTableActionsCell from "@/components/ui/table/AppTableActionsCell.vue";
+import AppTableEmptyStateRow from "@/components/ui/table/AppTableEmptyStateRow.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
+import BooleanStatusChip from "@/components/ui/data-display/BooleanStatusChip.vue";
 import { formatDateTime } from "@/utils/datetime";
 import type { Coupon, CouponFormState, Promotion } from "@/types/admin-promotions";
 

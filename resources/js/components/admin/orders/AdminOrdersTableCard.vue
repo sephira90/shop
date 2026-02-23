@@ -67,12 +67,12 @@
 </template>
 
 <script setup lang="ts">
-import AppButton from "@/components/ui/AppButton.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppTableSection from "@/components/ui/AppTableSection.vue";
-import AppTableActionsCell from "@/components/ui/AppTableActionsCell.vue";
-import AppTableEmptyStateRow from "@/components/ui/AppTableEmptyStateRow.vue";
-import AppStatusStack from "@/components/ui/AppStatusStack.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
+import AppTableActionsCell from "@/components/ui/table/AppTableActionsCell.vue";
+import AppTableEmptyStateRow from "@/components/ui/table/AppTableEmptyStateRow.vue";
+import AppStatusStack from "@/components/ui/data-display/AppStatusStack.vue";
 import type { AdminOrderSummary } from "@/types/admin-orders";
 import type { StatusTone } from "@/utils/order-presentation";
 import { formatDateTime } from "@/utils/datetime";

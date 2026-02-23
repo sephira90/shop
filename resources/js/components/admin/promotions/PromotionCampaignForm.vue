@@ -116,23 +116,23 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppCheckboxField from "@/components/ui/AppCheckboxField.vue";
-import AppCheckboxInput from "@/components/ui/AppCheckboxInput.vue";
-import AppDateTimeInput from "@/components/ui/AppDateTimeInput.vue";
-import AppEnumSelect from "@/components/ui/AppEnumSelect.vue";
-import AppFormField from "@/components/ui/AppFormField.vue";
-import AppFormLayout from "@/components/ui/AppFormLayout.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppNotice from "@/components/ui/AppNotice.vue";
-import AppNumberInput from "@/components/ui/AppNumberInput.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
-import AppSubmitResetActions from "@/components/ui/AppSubmitResetActions.vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppCheckboxField from "@/components/ui/forms/AppCheckboxField.vue";
+import AppCheckboxInput from "@/components/ui/forms/AppCheckboxInput.vue";
+import AppDateTimeInput from "@/components/ui/forms/AppDateTimeInput.vue";
+import AppEnumSelect from "@/components/ui/forms/AppEnumSelect.vue";
+import AppFormField from "@/components/ui/forms/AppFormField.vue";
+import AppFormLayout from "@/components/ui/forms/AppFormLayout.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
+import AppNumberInput from "@/components/ui/forms/AppNumberInput.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
+import AppSubmitResetActions from "@/components/ui/actions/AppSubmitResetActions.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 import type { PromotionFormState, PromotionNotice } from "@/types/admin-promotions";
 
 defineProps<{

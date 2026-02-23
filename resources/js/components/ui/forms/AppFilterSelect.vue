@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import AppSelectInput from "@/components/ui/AppSelectInput.vue";
+import AppSelectInput from "@/components/ui/forms/AppSelectInput.vue";
 
 withDefaults(
     defineProps<{

@@ -47,16 +47,16 @@
 </template>
 
 <script setup lang="ts">
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppFormField from "@/components/ui/AppFormField.vue";
-import AppFormLayout from "@/components/ui/AppFormLayout.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppNotice from "@/components/ui/AppNotice.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
-import AppSubmitResetActions from "@/components/ui/AppSubmitResetActions.vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppFormField from "@/components/ui/forms/AppFormField.vue";
+import AppFormLayout from "@/components/ui/forms/AppFormLayout.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
+import AppSubmitResetActions from "@/components/ui/actions/AppSubmitResetActions.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 
 interface AccountProfileFormState {
     first_name: string;

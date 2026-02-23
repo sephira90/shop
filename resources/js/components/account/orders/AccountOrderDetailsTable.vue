@@ -14,8 +14,8 @@
 
 <script setup lang="ts">
 import OrderItemsTable from "@/components/orders/OrderItemsTable.vue";
-import AppDetailBox from "@/components/ui/AppDetailBox.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
+import AppDetailBox from "@/components/ui/data-display/AppDetailBox.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
 import type { AccountOrder, AccountOrderAddress } from "@/types/account-orders";
 
 defineProps<{

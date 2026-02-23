@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import AppGridThreeColumns from "@/components/ui/AppGridThreeColumns.vue";
+import AppGridThreeColumns from "@/components/ui/layout/AppGridThreeColumns.vue";
 import AdminDashboardNavCard from "./AdminDashboardNavCard.vue";
 
 defineProps<{

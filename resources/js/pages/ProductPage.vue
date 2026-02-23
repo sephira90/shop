@@ -24,8 +24,8 @@
 <script setup lang="ts">
 import ProductInfoCard from "@/components/product/ProductInfoCard.vue";
 import ProductPurchaseCard from "@/components/product/ProductPurchaseCard.vue";
-import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
+import AppEmptyState from "@/components/ui/feedback/AppEmptyState.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
 import { useCatalogProduct } from "@/composables/useCatalogProduct";
 import { useCartStore } from "@/stores/cart";
 const cartStore = useCartStore();

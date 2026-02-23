@@ -23,7 +23,7 @@ import { computed, onMounted } from "vue";
 import CartEmptyState from "@/components/cart/CartEmptyState.vue";
 import CartItemsTable from "@/components/cart/CartItemsTable.vue";
 import CartSummaryHeader from "@/components/cart/CartSummaryHeader.vue";
-import AppCard from "@/components/ui/AppCard.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
 import { type CartItem, useCartStore } from "@/stores/cart";
 
 const cartStore = useCartStore();

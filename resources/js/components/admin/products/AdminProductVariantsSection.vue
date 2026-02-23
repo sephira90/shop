@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import type { ProductVariantForm } from "@/types/admin-products";
 
-import AppButton from "@/components/ui/AppButton.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
 import AdminProductVariantCard from "@/components/admin/products/AdminProductVariantCard.vue";
 
 defineEmits<{

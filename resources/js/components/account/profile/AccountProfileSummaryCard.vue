@@ -33,11 +33,11 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
 
 defineProps<{
     profileName: string;

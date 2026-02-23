@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import AppStatusChip, { type StatusChipTone } from "@/components/ui/AppStatusChip.vue";
+import AppStatusChip, { type StatusChipTone } from "@/components/ui/data-display/AppStatusChip.vue";
 
 const props = withDefaults(
     defineProps<{

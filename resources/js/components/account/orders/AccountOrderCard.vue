@@ -60,12 +60,12 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
-import AppStatusStack from "@/components/ui/AppStatusStack.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
+import AppStatusStack from "@/components/ui/data-display/AppStatusStack.vue";
 import type { AccountOrder, AccountOrderAddress } from "@/types/account-orders";
 import type { StatusTone } from "@/utils/order-presentation";
 

@@ -6,9 +6,9 @@
 </template>
 
 <script setup lang="ts">
-import AppCard from "@/components/ui/AppCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
 import type { CatalogProduct } from "@/types/catalog";
 
 defineProps<{

@@ -70,15 +70,15 @@
 </template>
 
 <script setup lang="ts">
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCheckboxField from "@/components/ui/AppCheckboxField.vue";
-import AppCheckboxInput from "@/components/ui/AppCheckboxInput.vue";
-import AppFormField from "@/components/ui/AppFormField.vue";
-import AppGridThreeColumns from "@/components/ui/AppGridThreeColumns.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
-import AppNumberInput from "@/components/ui/AppNumberInput.vue";
-import AppTextareaInput from "@/components/ui/AppTextareaInput.vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCheckboxField from "@/components/ui/forms/AppCheckboxField.vue";
+import AppCheckboxInput from "@/components/ui/forms/AppCheckboxInput.vue";
+import AppFormField from "@/components/ui/forms/AppFormField.vue";
+import AppGridThreeColumns from "@/components/ui/layout/AppGridThreeColumns.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
+import AppNumberInput from "@/components/ui/forms/AppNumberInput.vue";
+import AppTextareaInput from "@/components/ui/forms/AppTextareaInput.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 import type { ProductVariantForm } from "@/types/admin-products";
 
 defineProps<{

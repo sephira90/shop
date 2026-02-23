@@ -40,9 +40,9 @@
 <script setup lang="ts">
 import type { AdminCategory, CategoryStatusFilter } from "@/types/admin-categories";
 import type { PaginationMeta } from "@/types/pagination";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
 
 import AdminCategoriesFiltersBar from "./AdminCategoriesFiltersBar.vue";
 import AdminCategoriesPaginationBar from "./AdminCategoriesPaginationBar.vue";

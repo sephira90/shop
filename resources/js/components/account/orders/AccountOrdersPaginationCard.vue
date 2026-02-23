@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import AppPaginationBar from "@/components/ui/AppPaginationBar.vue";
+import AppPaginationBar from "@/components/ui/data-display/AppPaginationBar.vue";
 import type { PaginationMeta } from "@/types/pagination";
 
 defineProps<{

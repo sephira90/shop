@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import AppCard from "@/components/ui/AppCard.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
 
 withDefaults(
     defineProps<{

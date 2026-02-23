@@ -52,11 +52,11 @@
 </template>
 
 <script setup lang="ts">
-import AppButton from "@/components/ui/AppButton.vue";
-import AppTableSection from "@/components/ui/AppTableSection.vue";
-import AppTableActionsCell from "@/components/ui/AppTableActionsCell.vue";
-import AppTableEmptyStateRow from "@/components/ui/AppTableEmptyStateRow.vue";
-import BooleanStatusChip from "@/components/ui/BooleanStatusChip.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
+import AppTableActionsCell from "@/components/ui/table/AppTableActionsCell.vue";
+import AppTableEmptyStateRow from "@/components/ui/table/AppTableEmptyStateRow.vue";
+import BooleanStatusChip from "@/components/ui/data-display/BooleanStatusChip.vue";
 import type { AdminCategory } from "@/types/admin-categories";
 
 defineProps<{

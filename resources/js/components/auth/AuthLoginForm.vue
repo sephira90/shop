@@ -10,9 +10,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppFormShell from "@/components/ui/AppFormShell.vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppFormShell from "@/components/ui/forms/AppFormShell.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 
 const props = defineProps<{
     email: string;

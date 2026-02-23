@@ -35,9 +35,9 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppFilterSelect from "@/components/ui/AppFilterSelect.vue";
-import AppSearchInput from "@/components/ui/AppSearchInput.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppFilterSelect from "@/components/ui/forms/AppFilterSelect.vue";
+import AppSearchInput from "@/components/ui/forms/AppSearchInput.vue";
 import type { AdminOrderFilters } from "@/queries/admin/orders";
 
 defineProps<{

@@ -13,10 +13,10 @@
 </template>
 
 <script setup lang="ts">
-import AppButton from "@/components/ui/AppButton.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
 
 defineProps<{
     isLoading: boolean;

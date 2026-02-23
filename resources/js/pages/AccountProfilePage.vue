@@ -43,7 +43,7 @@ import AccountHeroCard from "@/components/account/profile/AccountHeroCard.vue";
 import AccountMetricsGrid from "@/components/account/profile/AccountMetricsGrid.vue";
 import AccountProfileFormCard from "@/components/account/profile/AccountProfileFormCard.vue";
 import AccountProfileSummaryCard from "@/components/account/profile/AccountProfileSummaryCard.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
 import { useAccountProfile } from "@/composables/useAccountProfile";
 
 const {

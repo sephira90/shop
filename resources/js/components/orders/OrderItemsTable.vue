@@ -23,8 +23,8 @@
 </template>
 
 <script setup lang="ts">
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppTableSection from "@/components/ui/AppTableSection.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
 
 export interface OrderItemsTableRow {
     name: string;

@@ -90,18 +90,18 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppFilterSelect from "@/components/ui/AppFilterSelect.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppPaginationBar from "@/components/ui/AppPaginationBar.vue";
-import AppSearchInput from "@/components/ui/AppSearchInput.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
-import AppTableSection from "@/components/ui/AppTableSection.vue";
-import AppTableActionsCell from "@/components/ui/AppTableActionsCell.vue";
-import AppTableEmptyStateRow from "@/components/ui/AppTableEmptyStateRow.vue";
-import BooleanStatusChip from "@/components/ui/BooleanStatusChip.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppFilterSelect from "@/components/ui/forms/AppFilterSelect.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppPaginationBar from "@/components/ui/data-display/AppPaginationBar.vue";
+import AppSearchInput from "@/components/ui/forms/AppSearchInput.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
+import AppTableActionsCell from "@/components/ui/table/AppTableActionsCell.vue";
+import AppTableEmptyStateRow from "@/components/ui/table/AppTableEmptyStateRow.vue";
+import BooleanStatusChip from "@/components/ui/data-display/BooleanStatusChip.vue";
 import type { Promotion, PromotionStatusFilter, PromotionType } from "@/types/admin-promotions";
 import type { PaginationMeta } from "@/types/pagination";
 

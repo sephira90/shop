@@ -46,11 +46,11 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
 import type { CartItem } from "@/stores/cart";
 
-import AppTableSection from "@/components/ui/AppTableSection.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
 import CartQuantityControl from "./CartQuantityControl.vue";
 
 defineProps<{

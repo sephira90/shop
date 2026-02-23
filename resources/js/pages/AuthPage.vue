@@ -33,9 +33,9 @@
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import AppCard from "@/components/ui/AppCard.vue";
-import AppNotice from "@/components/ui/AppNotice.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
 import AuthHeroCard from "@/components/auth/AuthHeroCard.vue";
 import AuthLoginForm from "@/components/auth/AuthLoginForm.vue";
 import AuthModeSwitcher from "@/components/auth/AuthModeSwitcher.vue";

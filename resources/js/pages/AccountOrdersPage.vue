@@ -60,9 +60,9 @@ import AccountOrdersFiltersBar from "@/components/account/orders/AccountOrdersFi
 import AccountOrdersHeaderCard from "@/components/account/orders/AccountOrdersHeaderCard.vue";
 import AccountOrdersMetricsRow from "@/components/account/orders/AccountOrdersMetricsRow.vue";
 import AccountOrdersPaginationCard from "@/components/account/orders/AccountOrdersPaginationCard.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppNotice from "@/components/ui/AppNotice.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppEmptyState from "@/components/ui/feedback/AppEmptyState.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
 import { useAccountOrders } from "@/composables/useAccountOrders";
 
 const {

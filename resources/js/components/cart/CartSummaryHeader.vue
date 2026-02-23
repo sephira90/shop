@@ -6,8 +6,8 @@
 </template>
 
 <script setup lang="ts">
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
 
 defineProps<{
     total: number;

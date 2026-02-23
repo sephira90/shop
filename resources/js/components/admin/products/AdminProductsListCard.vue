@@ -95,17 +95,17 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppBadge from "@/components/ui/AppBadge.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppPaginationBar from "@/components/ui/AppPaginationBar.vue";
-import AppSearchInput from "@/components/ui/AppSearchInput.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
-import AppTableSection from "@/components/ui/AppTableSection.vue";
-import AppTableActionsCell from "@/components/ui/AppTableActionsCell.vue";
-import AppTableEmptyStateRow from "@/components/ui/AppTableEmptyStateRow.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppBadge from "@/components/ui/data-display/AppBadge.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppPaginationBar from "@/components/ui/data-display/AppPaginationBar.vue";
+import AppSearchInput from "@/components/ui/forms/AppSearchInput.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
+import AppTableSection from "@/components/ui/table/AppTableSection.vue";
+import AppTableActionsCell from "@/components/ui/table/AppTableActionsCell.vue";
+import AppTableEmptyStateRow from "@/components/ui/table/AppTableEmptyStateRow.vue";
 import { formatDateTime } from "@/utils/datetime";
 import type { PaginationMeta } from "@/types/pagination";
 import type { AdminProduct, ProductStatus } from "@/types/admin-products";

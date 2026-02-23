@@ -16,6 +16,6 @@
 </template>
 
 <script setup lang="ts">
-import AppGridThreeColumns from "@/components/ui/AppGridThreeColumns.vue";
+import AppGridThreeColumns from "@/components/ui/layout/AppGridThreeColumns.vue";
 import HomeKpiCard from "@/components/home/HomeKpiCard.vue";
 </script>

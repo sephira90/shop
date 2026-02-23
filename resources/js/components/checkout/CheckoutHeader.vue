@@ -6,6 +6,6 @@
 </template>
 
 <script setup lang="ts">
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
 </script>

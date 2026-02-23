@@ -18,8 +18,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import AppCard from "@/components/ui/AppCard.vue";
-import AppTextInput from "@/components/ui/AppTextInput.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 import type { CheckoutAddressForm } from "@/types/checkout";
 
 const props = defineProps<{

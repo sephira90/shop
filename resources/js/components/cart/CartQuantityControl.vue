@@ -31,9 +31,9 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppQuantityInput from "@/components/ui/AppQuantityInput.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppQuantityInput from "@/components/ui/forms/AppQuantityInput.vue";
 
 withDefaults(
     defineProps<{

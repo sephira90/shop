@@ -62,8 +62,8 @@ import AdminOrdersHeaderCard from "@/components/admin/orders/AdminOrdersHeaderCa
 import AdminOrdersMetricsRow from "@/components/admin/orders/AdminOrdersMetricsRow.vue";
 import AdminOrdersPaginationBar from "@/components/admin/orders/AdminOrdersPaginationBar.vue";
 import AdminOrdersTableCard from "@/components/admin/orders/AdminOrdersTableCard.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppNotice from "@/components/ui/AppNotice.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
 import { useAdminOrders } from "@/composables/admin/useAdminOrders";
 
 const route = useRoute();

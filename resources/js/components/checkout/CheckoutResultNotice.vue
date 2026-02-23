@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import AppNotice from "@/components/ui/AppNotice.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
 
 defineProps<{
     message: string;

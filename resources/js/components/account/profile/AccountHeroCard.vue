@@ -27,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppStatusChip from "@/components/ui/AppStatusChip.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppStatusChip from "@/components/ui/data-display/AppStatusChip.vue";
 import type { StatusTone } from "@/utils/order-presentation";
 
 defineProps<{

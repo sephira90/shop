@@ -19,11 +19,11 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppEnumSelect from "@/components/ui/AppEnumSelect.vue";
-import AppFormField from "@/components/ui/AppFormField.vue";
-import AppGridThreeColumns from "@/components/ui/AppGridThreeColumns.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppEnumSelect from "@/components/ui/forms/AppEnumSelect.vue";
+import AppFormField from "@/components/ui/forms/AppFormField.vue";
+import AppGridThreeColumns from "@/components/ui/layout/AppGridThreeColumns.vue";
 import type { StatusDraft } from "@/composables/admin/orders/useAdminOrdersQuery";
 
 const draft = defineModel<StatusDraft>("draft", { required: true });

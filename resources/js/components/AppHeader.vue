@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
-import AppButton from "@/components/ui/AppButton.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
 import { useAuthStore } from "@/stores/auth";
 
 type Theme = "light" | "dark";

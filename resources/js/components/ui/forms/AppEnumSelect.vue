@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import AppSelectInput from "@/components/ui/AppSelectInput.vue";
+import AppSelectInput from "@/components/ui/forms/AppSelectInput.vue";
 
 export interface EnumSelectOption {
     value: string;

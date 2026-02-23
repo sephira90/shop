@@ -11,8 +11,8 @@
 </template>
 
 <script setup lang="ts">
-import AppStatusChip from "@/components/ui/AppStatusChip.vue";
-import type { StatusChipTone } from "@/components/ui/AppStatusChip.vue";
+import AppStatusChip from "@/components/ui/data-display/AppStatusChip.vue";
+import type { StatusChipTone } from "@/components/ui/data-display/AppStatusChip.vue";
 
 interface StatusStackItem {
     label: string;

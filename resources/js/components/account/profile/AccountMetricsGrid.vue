@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import AppMetricCard from "@/components/ui/AppMetricCard.vue";
+import AppMetricCard from "@/components/ui/data-display/AppMetricCard.vue";
 
 interface AccountProfileMetrics {
     totalOrders: number;

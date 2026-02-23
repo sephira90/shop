@@ -81,17 +81,17 @@ import type { AddressPayload, AdminOrderDetail } from "@/types/admin-orders";
 import type { StatusTone } from "@/utils/order-presentation";
 
 import OrderItemsTable from "@/components/orders/OrderItemsTable.vue";
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppDetailBox from "@/components/ui/AppDetailBox.vue";
-import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
-import AppGridThreeColumns from "@/components/ui/AppGridThreeColumns.vue";
-import AppMetricCard from "@/components/ui/AppMetricCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
-import AppStatusStack from "@/components/ui/AppStatusStack.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppDetailBox from "@/components/ui/data-display/AppDetailBox.vue";
+import AppEmptyState from "@/components/ui/feedback/AppEmptyState.vue";
+import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
+import AppGridThreeColumns from "@/components/ui/layout/AppGridThreeColumns.vue";
+import AppMetricCard from "@/components/ui/data-display/AppMetricCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
+import AppStatusStack from "@/components/ui/data-display/AppStatusStack.vue";
 import AdminOrderStatusEditor from "./AdminOrderStatusEditor.vue";
 
 defineProps<{

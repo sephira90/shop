@@ -28,10 +28,10 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppStackBetween from "@/components/ui/AppStackBetween.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
 import type { PaginationMeta } from "@/types/pagination";
 
 withDefaults(

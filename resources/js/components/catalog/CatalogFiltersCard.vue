@@ -29,14 +29,14 @@
 </template>
 
 <script setup lang="ts">
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppFilterSelect from "@/components/ui/AppFilterSelect.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
-import AppNotice from "@/components/ui/AppNotice.vue";
-import AppSearchInput from "@/components/ui/AppSearchInput.vue";
-import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppFilterSelect from "@/components/ui/forms/AppFilterSelect.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
+import AppSearchInput from "@/components/ui/forms/AppSearchInput.vue";
+import AppSectionTitle from "@/components/ui/typography/AppSectionTitle.vue";
 import type { CatalogSort } from "@/types/catalog";
 
 defineProps<{

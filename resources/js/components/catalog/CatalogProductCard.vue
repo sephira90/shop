@@ -22,9 +22,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import AppButton from "@/components/ui/AppButton.vue";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
+import AppButton from "@/components/ui/actions/AppButton.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
 import type { CatalogProduct } from "@/types/catalog";
 
 const props = defineProps<{

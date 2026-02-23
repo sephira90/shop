@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { useAttrs } from "vue";
 
-import AppActionsRow from "@/components/ui/AppActionsRow.vue";
+import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
 
 defineOptions({
     inheritAttrs: false,

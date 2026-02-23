@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import AppCard from "@/components/ui/AppCard.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
 
 type MetricCardVariant = "default" | "soft";
 

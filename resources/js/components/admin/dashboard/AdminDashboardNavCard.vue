@@ -12,8 +12,8 @@
 
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import AppCard from "@/components/ui/AppCard.vue";
-import AppMutedText from "@/components/ui/AppMutedText.vue";
+import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
 
 defineProps<{
     to: string;
