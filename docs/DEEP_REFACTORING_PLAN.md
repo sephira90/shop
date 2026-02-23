@@ -123,13 +123,17 @@ Status:
 
 #### P1.3 Strict API contract parsing на frontend
 
-- [ ] Ужесточить `normalizeListResponse` и `extractData`.
-- [ ] Убрать избыточные permissive ветки после выравнивания backend envelope.
-- [ ] Добавить контрактные тесты на отказ при неверной форме payload.
+- [x] Ужесточить `normalizeListResponse` и `extractData`.
+- [x] Убрать избыточные permissive ветки после выравнивания backend envelope.
+- [x] Добавить контрактные тесты на отказ при неверной форме payload.
 
 Definition of Done:
 
 - Любой контрактный дрейф API быстро детектируется тестами.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ---
 

@@ -1937,3 +1937,23 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.3` completed (strict API contract parsing on frontend):
+  - `resources/js/api/response.ts`:
+    - добавлен `ApiContractError`;
+    - `normalizeListResponse` ужесточен до strict envelope (`data: []` + `meta: {}`) без legacy nested fallback;
+    - `extractData` ужесточен до strict envelope (`data` обязателен) и теперь выбрасывает `ApiContractError` при drift;
+  - добавлены контрактные тесты отказа на неверный payload:
+    - `resources/js/tests/api/response-contract.spec.ts`;
+  - обновлены checkout API contract tests под strict parser semantics:
+    - `resources/js/tests/api/checkout-api.spec.ts` (invalid envelope now throws contract error);
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.3` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

@@ -72,7 +72,7 @@ describe("checkout api", () => {
         });
     });
 
-    it("returns null when response does not match unified envelope", async () => {
+    it("throws when response does not match unified envelope", async () => {
         apiClientMock.post.mockResolvedValueOnce({
             data: {
                 order_number: "ORD-1002",
@@ -85,9 +85,9 @@ describe("checkout api", () => {
             },
         });
 
-        const result = await placeCheckoutOrder(payload, "idem-2");
-
-        expect(result).toBeNull();
+        await expect(placeCheckoutOrder(payload, "idem-2")).rejects.toThrowError(
+            "API response must contain `data`.",
+        );
     });
 
     it("returns null when nested payment payload is invalid", async () => {

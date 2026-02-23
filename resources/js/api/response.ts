@@ -17,6 +17,13 @@ export interface ListResponse<TItem> {
     meta: PaginationMeta;
 }
 
+export class ApiContractError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ApiContractError";
+    }
+}
+
 const DEFAULT_META: PaginationMeta = {
     current_page: 1,
     last_page: 1,
@@ -24,12 +31,15 @@ const DEFAULT_META: PaginationMeta = {
     total: 0,
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
+
 export const normalizeMeta = (value: unknown): PaginationMeta => {
-    if (!value || typeof value !== "object") {
-        return DEFAULT_META;
+    if (!isRecord(value)) {
+        throw new ApiContractError("API list response `meta` must be an object.");
     }
 
-    const raw = value as Record<string, unknown>;
+    const raw = value;
     const currentPage = Number(raw.current_page);
     const lastPage = Number(raw.last_page);
     const perPage = Number(raw.per_page);
@@ -44,49 +54,38 @@ export const normalizeMeta = (value: unknown): PaginationMeta => {
 };
 
 export const normalizeListResponse = <TItem>(payload: unknown): ListResponse<TItem> => {
-    const fallback: ListResponse<TItem> = {
-        data: [],
-        meta: DEFAULT_META,
+    if (!isRecord(payload)) {
+        throw new ApiContractError("API list response must be an object envelope.");
+    }
+
+    if (!Object.hasOwn(payload, "data")) {
+        throw new ApiContractError("API list response must contain `data`.");
+    }
+
+    if (!Array.isArray(payload.data)) {
+        throw new ApiContractError("API list response `data` must be an array.");
+    }
+
+    if (!Object.hasOwn(payload, "meta")) {
+        throw new ApiContractError("API list response must contain `meta`.");
+    }
+
+    return {
+        data: payload.data as TItem[],
+        meta: normalizeMeta(payload.meta),
     };
-
-    if (!payload || typeof payload !== "object") {
-        return fallback;
-    }
-
-    const root = payload as Record<string, unknown>;
-    const rootData = root.data;
-
-    if (Array.isArray(rootData)) {
-        return {
-            data: rootData as TItem[],
-            meta: normalizeMeta(root.meta),
-        };
-    }
-
-    if (rootData && typeof rootData === "object") {
-        const nested = rootData as Record<string, unknown>;
-
-        return {
-            data: Array.isArray(nested.data) ? (nested.data as TItem[]) : [],
-            meta: normalizeMeta(nested.meta ?? nested),
-        };
-    }
-
-    return fallback;
 };
 
-export const extractData = <TData>(payload: unknown): TData | null => {
-    if (!payload || typeof payload !== "object") {
-        return null;
+export const extractData = <TData>(payload: unknown): TData => {
+    if (!isRecord(payload)) {
+        throw new ApiContractError("API response must be an object envelope.");
     }
 
-    const root = payload as Record<string, unknown>;
-
-    if (!Object.hasOwn(root, "data")) {
-        return null;
+    if (!Object.hasOwn(payload, "data")) {
+        throw new ApiContractError("API response must contain `data`.");
     }
 
-    return root.data as TData;
+    return payload.data as TData;
 };
 
 const extractFirstValidationError = (payload: ApiErrorEnvelope): string | null => {
