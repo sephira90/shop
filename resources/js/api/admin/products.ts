@@ -12,11 +12,17 @@ import type {
     ProductMutationPayload,
 } from "@/types/admin-products";
 
+interface ApiListRequestOptions {
+    signal?: AbortSignal;
+}
+
 export const listAdminProducts = async (
     params: AdminProductListParams,
+    options?: ApiListRequestOptions,
 ): Promise<ProductListResponse> => {
     const { data } = await apiClient.get("/admin/products", {
         params,
+        signal: options?.signal,
     });
 
     const response = normalizeListResponse<unknown>(data);

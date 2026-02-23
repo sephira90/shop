@@ -18,11 +18,17 @@ import type {
     PromotionMutationPayload,
 } from "@/types/admin-promotions";
 
+interface ApiListRequestOptions {
+    signal?: AbortSignal;
+}
+
 export const listPromotions = async (
     params: PromotionListParams,
+    options?: ApiListRequestOptions,
 ): Promise<PromotionListResponse> => {
     const { data } = await apiClient.get("/admin/promotions", {
         params,
+        signal: options?.signal,
     });
 
     const response = normalizeListResponse<unknown>(data);

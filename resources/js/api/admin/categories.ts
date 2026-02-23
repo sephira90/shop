@@ -7,11 +7,17 @@ import type {
     CategoryMutationPayload,
 } from "@/types/admin-categories";
 
+interface ApiListRequestOptions {
+    signal?: AbortSignal;
+}
+
 export const listAdminCategories = async (
     params: AdminCategoryListParams,
+    options?: ApiListRequestOptions,
 ): Promise<CategoryListResponse> => {
     const { data } = await apiClient.get("/admin/categories", {
         params,
+        signal: options?.signal,
     });
 
     const response = normalizeListResponse<unknown>(data);

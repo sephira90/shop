@@ -12,9 +12,17 @@ import type {
     OrderStatusUpdatePayload,
 } from "@/types/admin-orders";
 
-export const listAdminOrders = async (params: AdminOrderListParams): Promise<OrderListResponse> => {
+interface ApiListRequestOptions {
+    signal?: AbortSignal;
+}
+
+export const listAdminOrders = async (
+    params: AdminOrderListParams,
+    options?: ApiListRequestOptions,
+): Promise<OrderListResponse> => {
     const { data } = await apiClient.get("/admin/orders", {
         params,
+        signal: options?.signal,
     });
 
     const response = normalizeListResponse<unknown>(data);

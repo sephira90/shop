@@ -1,4 +1,4 @@
-import { ref, type WatchSource } from "vue";
+import { onScopeDispose, ref, type WatchSource } from "vue";
 
 import type { ListResponse } from "@/api/response";
 import { usePaginationMeta } from "@/composables/usePaginationMeta";
@@ -6,7 +6,12 @@ import { useServerListFilters } from "@/composables/useServerListFilters";
 
 interface UseServerPaginatedListOptions<TItem, TParams> {
     buildParams: (page: number) => TParams;
-    fetchPage: (params: TParams) => Promise<ListResponse<TItem>>;
+    fetchPage: (
+        params: TParams,
+        context?: {
+            signal?: AbortSignal;
+        },
+    ) => Promise<ListResponse<TItem>>;
     filterSource?: WatchSource<unknown> | WatchSource<unknown>[];
     debounceMs?: number;
     resetOnError?: boolean;
@@ -16,6 +21,20 @@ interface UseServerPaginatedListOptions<TItem, TParams> {
     onError?: (error: unknown) => void;
 }
 
+const isAbortError = (error: unknown): boolean => {
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+
+    const payload = error as { name?: unknown; code?: unknown };
+
+    return (
+        payload.name === "AbortError" ||
+        payload.name === "CanceledError" ||
+        payload.code === "ERR_CANCELED"
+    );
+};
+
 export const useServerPaginatedList = <TItem, TParams>(
     options: UseServerPaginatedListOptions<TItem, TParams>,
 ) => {
@@ -23,13 +42,32 @@ export const useServerPaginatedList = <TItem, TParams>(
     const page = ref(Math.max(1, options.initialPage ?? 1));
     const isLoading = ref(false);
     const { meta, applyMeta, resetMeta } = usePaginationMeta();
+    let activeRequestId = 0;
+    let activeAbortController: AbortController | null = null;
 
     const load = async (targetPage = page.value): Promise<void> => {
+        const requestId = ++activeRequestId;
+        activeAbortController?.abort();
+        const abortController =
+            typeof AbortController === "undefined" ? null : new AbortController();
+        activeAbortController = abortController;
+
         options.onLoading?.();
         isLoading.value = true;
 
         try {
-            const response = await options.fetchPage(options.buildParams(targetPage));
+            const params = options.buildParams(targetPage);
+            const response =
+                options.fetchPage.length >= 2
+                    ? await options.fetchPage(params, {
+                          signal: abortController?.signal,
+                      })
+                    : await options.fetchPage(params);
+
+            if (requestId !== activeRequestId) {
+                return;
+            }
+
             items.value = response.data;
             applyMeta(response.meta);
             page.value = response.meta.current_page;
@@ -38,6 +76,10 @@ export const useServerPaginatedList = <TItem, TParams>(
                 await options.onLoaded(response);
             }
         } catch (error: unknown) {
+            if (requestId !== activeRequestId || isAbortError(error)) {
+                return;
+            }
+
             if (options.resetOnError === true) {
                 items.value = [];
                 resetMeta();
@@ -46,7 +88,10 @@ export const useServerPaginatedList = <TItem, TParams>(
 
             options.onError?.(error);
         } finally {
-            isLoading.value = false;
+            if (requestId === activeRequestId) {
+                isLoading.value = false;
+                activeAbortController = null;
+            }
         }
     };
 
@@ -55,6 +100,12 @@ export const useServerPaginatedList = <TItem, TParams>(
             debounceMs: options.debounceMs,
         });
     }
+
+    onScopeDispose(() => {
+        activeRequestId += 1;
+        activeAbortController?.abort();
+        activeAbortController = null;
+    });
 
     return {
         items,
