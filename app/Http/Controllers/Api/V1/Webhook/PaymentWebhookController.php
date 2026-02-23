@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Webhook;
 
-use App\Contracts\PaymentGatewayInterface;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessPaymentWebhookJob;
+use App\Services\Payment\PaymentWebhookAdapter;
 use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +18,7 @@ class PaymentWebhookController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly PaymentGatewayInterface $paymentGateway) {}
+    public function __construct(private readonly PaymentWebhookAdapter $paymentWebhookAdapter) {}
 
     /**
      * Queue payment webhook processing.
@@ -32,15 +32,18 @@ class PaymentWebhookController extends Controller
         }
 
         $payload = $request->all();
-        if (! $this->paymentGateway->verifyWebhookSignature($payload, $signature)) {
-            return ApiResponse::error('Invalid webhook signature.', Response::HTTP_UNPROCESSABLE_ENTITY);
+        if (! $this->paymentWebhookAdapter->verifySignature($payload, $signature)) {
+            return ApiResponse::error(
+                $this->paymentWebhookAdapter->invalidSignatureMessage(),
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         }
 
-        if ($this->paymentGateway->extractEventId($payload) === '') {
+        if ($this->paymentWebhookAdapter->extractEventId($payload) === '') {
             return ApiResponse::error('Webhook event id is required.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if ($this->paymentGateway->extractTransactionId($payload) === '') {
+        if ($this->paymentWebhookAdapter->extractTransactionId($payload) === '') {
             return ApiResponse::error('Payment transaction id is required.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
