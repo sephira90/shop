@@ -56,27 +56,35 @@ Status:
 
 #### P0.3 Unified webhook processing pipeline
 
-- [ ] Вынести общий pipeline для webhook (receipt/dedupe/hash/lock/transition/outcome).
-- [ ] Оставить payment/shipping только в provider-specific адаптерах.
-- [ ] Стандартизировать outcome taxonomy и ошибки.
+- [x] Вынести общий pipeline для webhook (receipt/dedupe/hash/lock/transition/outcome).
+- [x] Оставить payment/shipping только в provider-specific адаптерах.
+- [x] Стандартизировать outcome taxonomy и ошибки.
 
 Definition of Done:
 
 - Нет дублирования core webhook-процесса между payment/shipping.
 - Одинаковая idempotency semantics на обоих провайдерах.
 
+Status:
+
+- Completed: 2026-02-23.
+
 ---
 
 #### P0.4 Observability hygiene
 
-- [ ] Ввести `source` измерений (`runtime|smoke`) в observability payload.
-- [ ] Исключить `smoke` события из SLO thresholds/alerting.
-- [ ] Обновить observability report/alert router и соответствующие тесты.
+- [x] Ввести `source` измерений (`runtime|smoke`) в observability payload.
+- [x] Исключить `smoke` события из SLO thresholds/alerting.
+- [x] Обновить observability report/alert router и соответствующие тесты.
 
 Definition of Done:
 
 - Smoke-запуски не искажают production SLO-картину.
 - Отчеты и алерты учитывают только runtime (или явно фильтруются политикой).
+
+Status:
+
+- Completed: 2026-02-23.
 
 ### Wave P1. Architecture Strengthening
 

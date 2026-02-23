@@ -1824,3 +1824,72 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.3` completed (unified webhook processing pipeline):
+  - вынесен единый webhook core pipeline:
+    - `app/Services/Webhook/WebhookProcessingPipeline.php`
+    - `app/Services/Webhook/WebhookProcessorAdapterInterface.php`
+    - `app/Services/Webhook/WebhookProcessingOutcome.php`;
+  - payment/shipping специфичная логика оставлена в adapter-слоях:
+    - `app/Services/Payment/PaymentWebhookAdapter.php`
+    - `app/Services/Shipping/ShippingWebhookAdapter.php`;
+  - `PaymentService` и `ShippingService` переведены на общий pipeline (удалено дублирование receipt/hash/dedupe/lock/outcome/observability path):
+    - `app/Services/Payment/PaymentService.php`
+    - `app/Services/Shipping/ShippingService.php`;
+  - `PaymentWebhookController` переведен с прямой зависимости от `PaymentGatewayInterface` на `PaymentWebhookAdapter` для preflight валидации signature/event/transaction:
+    - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
+  - стандартизирована outcome-taxonomy webhook (`processed|duplicate|rejected`) через enum `WebhookProcessingOutcome`;
+  - обновлен baseline статанализа (удалены устаревшие ignore-rules для `PaymentService`):
+    - `phpstan-baseline.neon`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.3` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan optimize:clear`
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.4` completed (observability hygiene):
+  - введен source-dimension (`runtime|smoke`) для observability метрик:
+    - `app/Support/Observability/ObservabilityService.php`:
+      - `apiRequest/catalogCache/webhook` теперь принимают `source`;
+      - payload логов содержит `source`;
+      - rolling counters и `snapshot()` разделены по source;
+      - warning hooks (`api_request_slow`, `catalog_cache_slow_miss`, `webhook_slow`, `webhook_lag`) применяются только для `runtime`;
+  - observability report/alert flow обновлен под source-фильтрацию:
+    - `app/Console/Commands/AppObservabilityReportCommand.php`:
+      - добавлен `--source` (`runtime|smoke`);
+      - snapshot строится по выбранному source (по умолчанию `observability.snapshot.default_source`);
+    - `app/Console/Commands/AppObservabilityAlertCheckCommand.php`:
+      - в параметры `app:observability-report` добавлен `--source` из `observability.alerts.source`;
+    - `app/Console/Commands/AppOncallDrillSmokeCommand.php`:
+      - SLO-check для drill также передает `--source`;
+  - smoke-флоу помечены `source=smoke`, чтобы не искажать runtime SLO:
+    - `app/Console/Commands/AppApiContractSmokeCommand.php` (`observabilityService->apiRequest(..., source: 'smoke')`);
+    - `app/Console/Commands/AppWebhookFlowSmokeCommand.php` (`paymentService/shippingService->processWebhook(..., source: 'smoke')`);
+    - `app/Services/Webhook/WebhookProcessingPipeline.php`, `app/Services/Payment/PaymentService.php`, `app/Services/Shipping/ShippingService.php` расширены параметром `source`;
+  - добавлены конфиги/ENV для source-политики:
+    - `config/observability.php` (`snapshot.default_source`, `alerts.source`);
+    - `.env.example`, `.env.testing` (`OBSERVABILITY_SNAPSHOT_SOURCE`, `APP_OBSERVABILITY_ALERTS_SOURCE`);
+  - тестовое покрытие обновлено:
+    - `tests/Unit/ObservabilityServiceTest.php` (source-фильтрация snapshot);
+    - `tests/Feature/ObservabilityReportCommandTest.php` (runtime-default ignores smoke, explicit smoke source);
+    - `tests/Feature/ObservabilityAlertCheckCommandTest.php` (alert-check uses configured source);
+    - `tests/Feature/OncallDrillSmokeCommandTest.php` (deterministic source config);
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.4` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan optimize:clear`
+    - `php artisan route:list --path=api/v1/admin/promotions`.
