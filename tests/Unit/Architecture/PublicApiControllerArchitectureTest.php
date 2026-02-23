@@ -4,28 +4,26 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Http\Controllers\Api\V1\Admin\CacheController;
-use App\Http\Controllers\Api\V1\Admin\CategoryController;
-use App\Http\Controllers\Api\V1\Admin\OrderController;
-use App\Http\Controllers\Api\V1\Admin\ProductController;
-use App\Http\Controllers\Api\V1\Admin\PromotionController;
+use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\CartController;
+use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\CheckoutController;
 use ReflectionClass;
 use ReflectionNamedType;
 use Tests\TestCase;
 
-class AdminControllerArchitectureTest extends TestCase
+class PublicApiControllerArchitectureTest extends TestCase
 {
     /**
-     * Ensure admin controllers depend only on application-layer handlers.
+     * Ensure public API controllers depend only on application-layer handlers.
      */
-    public function test_admin_controllers_depend_on_application_handlers_only(): void
+    public function test_public_api_controllers_depend_on_application_handlers_only(): void
     {
         $controllers = [
-            OrderController::class,
-            PromotionController::class,
-            ProductController::class,
-            CategoryController::class,
-            CacheController::class,
+            AuthController::class,
+            CartController::class,
+            CatalogController::class,
+            CheckoutController::class,
         ];
 
         foreach ($controllers as $controllerClass) {
@@ -50,7 +48,7 @@ class AdminControllerArchitectureTest extends TestCase
                 $dependency = $type->getName();
 
                 $this->assertStringStartsWith(
-                    'App\\Application\\Admin\\',
+                    'App\\Application\\',
                     $dependency,
                     "{$controllerClass} must not depend on repository/service layer directly."
                 );

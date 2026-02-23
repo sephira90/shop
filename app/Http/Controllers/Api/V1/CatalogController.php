@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Application\Catalog\Queries\GetCatalogProductBySlugHandler;
+use App\Application\Catalog\Queries\GetCatalogProductBySlugQuery;
+use App\Application\Catalog\Queries\ListCatalogCategoriesHandler;
+use App\Application\Catalog\Queries\PaginateCatalogProductsHandler;
+use App\Application\Catalog\Queries\PaginateCatalogProductsQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
-use App\Services\Catalog\CatalogService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +21,11 @@ class CatalogController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly CatalogService $catalogService) {}
+    public function __construct(
+        private readonly PaginateCatalogProductsHandler $paginateCatalogProductsHandler,
+        private readonly GetCatalogProductBySlugHandler $getCatalogProductBySlugHandler,
+        private readonly ListCatalogCategoriesHandler $listCatalogCategoriesHandler,
+    ) {}
 
     /**
      * Return catalog list with filters.
@@ -34,7 +42,9 @@ class CatalogController extends Controller
         ]);
 
         $perPage = (int) ($validated['per_page'] ?? 12);
-        $paginator = $this->catalogService->list($validated, $perPage);
+        $paginator = $this->paginateCatalogProductsHandler->handle(
+            new PaginateCatalogProductsQuery($validated, $perPage)
+        );
 
         return ApiResponse::paginated(ProductResource::collection($paginator->items()), $paginator);
     }
@@ -44,7 +54,9 @@ class CatalogController extends Controller
      */
     public function show(string $slug): JsonResponse
     {
-        $product = $this->catalogService->productBySlug($slug);
+        $product = $this->getCatalogProductBySlugHandler->handle(
+            new GetCatalogProductBySlugQuery($slug)
+        );
 
         if ($product === null) {
             return ApiResponse::error('Product not found.', Response::HTTP_NOT_FOUND);
@@ -58,7 +70,7 @@ class CatalogController extends Controller
      */
     public function categories(): JsonResponse
     {
-        $categories = $this->catalogService->categories();
+        $categories = $this->listCatalogCategoriesHandler->handle();
 
         return ApiResponse::data($categories);
     }

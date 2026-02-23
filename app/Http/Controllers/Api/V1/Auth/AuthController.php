@@ -4,17 +4,26 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use App\Enums\RoleName;
+use App\Application\Auth\AuthApplicationException;
+use App\Application\Auth\Commands\LoginAuthUserCommand;
+use App\Application\Auth\Commands\LoginAuthUserHandler;
+use App\Application\Auth\Commands\LogoutAuthUserCommand;
+use App\Application\Auth\Commands\LogoutAuthUserHandler;
+use App\Application\Auth\Commands\RegisterAuthUserCommand;
+use App\Application\Auth\Commands\RegisterAuthUserHandler;
+use App\Application\Auth\Commands\UpdateAuthProfileCommand;
+use App\Application\Auth\Commands\UpdateAuthProfileHandler;
+use App\Application\Auth\Queries\GetAuthProfileHandler;
+use App\Application\Auth\Queries\GetAuthProfileQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\User;
-use App\Services\Cart\CartService;
 use App\Support\Api\ApiResponse;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
@@ -22,33 +31,24 @@ class AuthController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly CartService $cartService) {}
+    public function __construct(
+        private readonly RegisterAuthUserHandler $registerAuthUserHandler,
+        private readonly LoginAuthUserHandler $loginAuthUserHandler,
+        private readonly LogoutAuthUserHandler $logoutAuthUserHandler,
+        private readonly GetAuthProfileHandler $getAuthProfileHandler,
+        private readonly UpdateAuthProfileHandler $updateAuthProfileHandler,
+    ) {}
 
     /**
      * Register new customer account.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $payload = $request->validated();
+        $payload = $this->registerAuthUserHandler->handle(
+            new RegisterAuthUserCommand($request->validated())
+        );
 
-        $user = User::query()->create([
-            'first_name' => $payload['first_name'],
-            'last_name' => $payload['last_name'],
-            'name' => trim($payload['first_name'].' '.$payload['last_name']),
-            'email' => $payload['email'],
-            'phone' => $payload['phone'] ?? null,
-            'password' => $payload['password'],
-        ]);
-
-        $user->assignRole(RoleName::CUSTOMER);
-        $user->sendEmailVerificationNotification();
-
-        $token = $user->createToken('api-register')->plainTextToken;
-
-        return ApiResponse::data([
-            'token' => $token,
-            'user' => $this->userPayload($user),
-        ], Response::HTTP_CREATED);
+        return ApiResponse::data($payload, Response::HTTP_CREATED);
     }
 
     /**
@@ -56,28 +56,17 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $payload = $request->validated();
-
-        $user = User::query()->where('email', $payload['email'])->first();
-
-        if (! $user instanceof User || ! Hash::check($payload['password'], $user->password)) {
-            return ApiResponse::error('Invalid credentials.', Response::HTTP_UNPROCESSABLE_ENTITY);
+        try {
+            $payload = $this->loginAuthUserHandler->handle(
+                new LoginAuthUserCommand($request->validated())
+            );
+        } catch (AuthApplicationException $exception) {
+            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
+        } catch (DomainException $exception) {
+            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if (! $user->is_active) {
-            return ApiResponse::error('User account is disabled.', Response::HTTP_FORBIDDEN);
-        }
-
-        if (! empty($payload['guest_token'])) {
-            $this->cartService->mergeGuestCart($user, (string) $payload['guest_token']);
-        }
-
-        $token = $user->createToken((string) ($payload['device_name'] ?? 'api-device'))->plainTextToken;
-
-        return ApiResponse::data([
-            'token' => $token,
-            'user' => $this->userPayload($user),
-        ]);
+        return ApiResponse::data($payload);
     }
 
     /**
@@ -85,7 +74,10 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $authenticated = $request->user();
+        if ($authenticated instanceof User) {
+            $this->logoutAuthUserHandler->handle(new LogoutAuthUserCommand($authenticated));
+        }
 
         return ApiResponse::data([
             'message' => 'Logged out successfully.',
@@ -103,7 +95,9 @@ class AuthController extends Controller
             return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
-        return ApiResponse::data($this->userPayload($authenticated));
+        return ApiResponse::data(
+            $this->getAuthProfileHandler->handle(new GetAuthProfileQuery($authenticated))
+        );
     }
 
     /**
@@ -117,37 +111,10 @@ class AuthController extends Controller
             return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
-        $payload = $request->validated();
-        $firstName = trim((string) $payload['first_name']);
-        $lastName = trim((string) $payload['last_name']);
-        $phone = isset($payload['phone']) ? trim((string) $payload['phone']) : '';
-
-        $authenticated->update([
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            'name' => trim($firstName.' '.$lastName),
-            'phone' => $phone !== '' ? $phone : null,
-        ]);
-
-        return ApiResponse::data($this->userPayload($authenticated->fresh()));
-    }
-
-    /**
-     * Build user payload for API responses.
-     *
-     * @return array<string, mixed>
-     */
-    private function userPayload(User $user): array
-    {
-        return [
-            'id' => $user->id,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'is_email_verified' => $user->hasVerifiedEmail(),
-            'roles' => $user->roles()->pluck('name')->all(),
-        ];
+        return ApiResponse::data(
+            $this->updateAuthProfileHandler->handle(
+                new UpdateAuthProfileCommand($authenticated, $request->validated())
+            )
+        );
     }
 }

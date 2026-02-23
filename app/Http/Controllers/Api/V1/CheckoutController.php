@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Application\Checkout\Commands\InitiateCheckoutPaymentCommand;
+use App\Application\Checkout\Commands\InitiateCheckoutPaymentHandler;
 use App\Application\Checkout\Commands\PlaceCheckoutOrderCommand;
 use App\Application\Checkout\Commands\PlaceCheckoutOrderHandler;
 use App\Application\Checkout\Queries\GetMyOrdersSummaryHandler;
@@ -16,7 +18,6 @@ use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\User;
-use App\Services\Payment\PaymentService;
 use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +34,7 @@ class CheckoutController extends Controller
         private readonly PlaceCheckoutOrderHandler $placeCheckoutOrderHandler,
         private readonly PaginateMyOrdersHandler $paginateMyOrdersHandler,
         private readonly GetMyOrdersSummaryHandler $getMyOrdersSummaryHandler,
-        private readonly PaymentService $paymentService,
+        private readonly InitiateCheckoutPaymentHandler $initiateCheckoutPaymentHandler,
     ) {}
 
     /**
@@ -78,7 +79,9 @@ class CheckoutController extends Controller
         $this->authorize('view', $order);
 
         $idempotencyKey = (string) $request->header('Idempotency-Key', 'pay-'.$order->id);
-        $payment = $this->paymentService->initiate($order, $idempotencyKey);
+        $payment = $this->initiateCheckoutPaymentHandler->handle(
+            new InitiateCheckoutPaymentCommand($order, $idempotencyKey)
+        );
 
         return ApiResponse::data([
             'payment_id' => $payment->id,

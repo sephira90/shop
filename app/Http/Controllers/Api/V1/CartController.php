@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Application\Cart\Commands\RemoveCartItemCommand;
+use App\Application\Cart\Commands\RemoveCartItemHandler;
+use App\Application\Cart\Commands\UpsertCartItemCommand;
+use App\Application\Cart\Commands\UpsertCartItemHandler;
+use App\Application\Cart\Queries\GetCurrentCartHandler;
+use App\Application\Cart\Queries\GetCurrentCartQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\UpsertCartItemRequest;
 use App\Models\User;
-use App\Services\Cart\CartService;
 use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +25,11 @@ class CartController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly CartService $cartService) {}
+    public function __construct(
+        private readonly GetCurrentCartHandler $getCurrentCartHandler,
+        private readonly UpsertCartItemHandler $upsertCartItemHandler,
+        private readonly RemoveCartItemHandler $removeCartItemHandler,
+    ) {}
 
     /**
      * Return current cart payload.
@@ -29,9 +38,11 @@ class CartController extends Controller
     {
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
         $currentUser = $this->resolveCurrentUser($request);
-        $cart = $this->cartService->resolve($currentUser, is_string($guestToken) ? $guestToken : null);
+        $payload = $this->getCurrentCartHandler->handle(
+            new GetCurrentCartQuery($currentUser, is_string($guestToken) ? $guestToken : null)
+        );
 
-        return ApiResponse::data($this->cartService->payload($cart));
+        return ApiResponse::data($payload);
     }
 
     /**
@@ -41,19 +52,21 @@ class CartController extends Controller
     {
         $payload = $request->validated();
         $currentUser = $this->resolveCurrentUser($request);
-        $cart = $this->cartService->resolve($currentUser, $payload['guest_token'] ?? null);
 
         try {
-            $cart = $this->cartService->upsertItem(
-                $cart,
-                (int) $payload['product_variant_id'],
-                (int) $payload['quantity'],
+            $cartPayload = $this->upsertCartItemHandler->handle(
+                new UpsertCartItemCommand(
+                    $currentUser,
+                    $payload['guest_token'] ?? null,
+                    (int) $payload['product_variant_id'],
+                    (int) $payload['quantity'],
+                )
             );
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return ApiResponse::data($this->cartService->payload($cart));
+        return ApiResponse::data($cartPayload);
     }
 
     /**
@@ -63,10 +76,11 @@ class CartController extends Controller
     {
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
         $currentUser = $this->resolveCurrentUser($request);
-        $cart = $this->cartService->resolve($currentUser, is_string($guestToken) ? $guestToken : null);
-        $cart = $this->cartService->removeItem($cart, $variantId);
+        $cartPayload = $this->removeCartItemHandler->handle(
+            new RemoveCartItemCommand($currentUser, is_string($guestToken) ? $guestToken : null, $variantId)
+        );
 
-        return ApiResponse::data($this->cartService->payload($cart));
+        return ApiResponse::data($cartPayload);
     }
 
     /**
