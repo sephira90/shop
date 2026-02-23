@@ -1957,3 +1957,28 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.4` completed (frontend page orchestration cleanup):
+  - вынесен checkout page business-flow в composable view-model:
+    - `resources/js/composables/checkout/useCheckoutPageViewModel.ts`;
+    - browser side-effect `localStorage` инъецируется через adapter:
+      - `resources/js/composables/checkout/checkoutPageEffects.ts`;
+    - `resources/js/pages/CheckoutPage.vue` оставлен orchestration-only (`initialize` + bindings);
+  - вынесен auth page business-flow в composable view-model:
+    - `resources/js/composables/auth/useAuthPageViewModel.ts`;
+    - browser side-effect `localStorage` инъецируется через adapter:
+      - `resources/js/composables/auth/authPageEffects.ts`;
+    - `resources/js/pages/AuthPage.vue` оставлен orchestration-only (route/router wiring + bindings);
+  - добавлены composable-level regression tests:
+    - `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`;
+    - `resources/js/tests/composables/use-auth-page-view-model.spec.ts`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.4` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

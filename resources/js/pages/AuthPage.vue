@@ -30,7 +30,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import AppCard from "@/components/ui/layout/AppCard.vue";
@@ -40,86 +39,26 @@ import AuthHeroCard from "@/components/auth/AuthHeroCard.vue";
 import AuthLoginForm from "@/components/auth/AuthLoginForm.vue";
 import AuthModeSwitcher from "@/components/auth/AuthModeSwitcher.vue";
 import AuthRegisterForm from "@/components/auth/AuthRegisterForm.vue";
-import { useApiError } from "@/composables/useApiError";
-import { useAuthStore } from "@/stores/auth";
+import { createBrowserAuthGuestTokenStorage } from "@/composables/auth/authPageEffects";
+import { useAuthPageViewModel } from "@/composables/auth/useAuthPageViewModel";
 
-type AuthMode = "login" | "register";
-
-const authStore = useAuthStore();
-const { parseApiError } = useApiError();
 const route = useRoute();
 const router = useRouter();
-const mode = ref<AuthMode>("login");
-const errorMessage = ref("");
-const isSubmitting = ref(false);
-const isLoginMode = computed<boolean>(() => mode.value === "login");
-const loginForm = reactive({
-    email: "",
-    password: "",
+
+const {
+    isLoginMode,
+    errorMessage,
+    isSubmitting,
+    loginForm,
+    registerForm,
+    toggleMode,
+    submitLogin,
+    submitRegister,
+} = useAuthPageViewModel({
+    routeRedirectQuery: route.query.redirect,
+    replaceRoute: async (path) => {
+        await router.replace(path);
+    },
+    guestTokenStorage: createBrowserAuthGuestTokenStorage(),
 });
-const registerForm = reactive({
-    first_name: "",
-    last_name: "",
-    email: "",
-    password: "",
-    password_confirmation: "",
-});
-
-const resolveRedirectPath = (): string => {
-    const redirect = route.query.redirect;
-
-    if (typeof redirect === "string" && redirect.startsWith("/")) {
-        return redirect;
-    }
-
-    if (authStore.canAccessAdmin) {
-        return "/admin";
-    }
-
-    if (authStore.canAccessAccount) {
-        return "/account/profile";
-    }
-
-    return "/";
-};
-
-const toggleMode = (): void => {
-    mode.value = isLoginMode.value ? "register" : "login";
-    errorMessage.value = "";
-};
-
-const submitLogin = async (): Promise<void> => {
-    isSubmitting.value = true;
-    errorMessage.value = "";
-
-    try {
-        const guestToken = localStorage.getItem("shop_guest_token") ?? undefined;
-        await authStore.login({
-            email: loginForm.email,
-            password: loginForm.password,
-            guest_token: guestToken,
-        });
-        await authStore.ensureUserLoaded();
-        await router.replace(resolveRedirectPath());
-    } catch (error: unknown) {
-        errorMessage.value = parseApiError(error, "Authentication failed.");
-    } finally {
-        isSubmitting.value = false;
-    }
-};
-
-const submitRegister = async (): Promise<void> => {
-    isSubmitting.value = true;
-    errorMessage.value = "";
-
-    try {
-        await authStore.register(registerForm);
-        await authStore.ensureUserLoaded();
-        await router.replace(resolveRedirectPath());
-    } catch (error: unknown) {
-        errorMessage.value = parseApiError(error, "Authentication failed.");
-    } finally {
-        isSubmitting.value = false;
-    }
-};
 </script>

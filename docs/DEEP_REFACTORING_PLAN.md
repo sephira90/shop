@@ -139,13 +139,17 @@ Status:
 
 #### P1.4 Page orchestration cleanup (frontend)
 
-- [ ] Вынести checkout/auth page business-flow в composables view-model слоя.
-- [ ] Инъектировать browser side effects через adapters.
-- [ ] Оставить `pages/*` только orchestration.
+- [x] Вынести checkout/auth page business-flow в composables view-model слоя.
+- [x] Инъектировать browser side effects через adapters.
+- [x] Оставить `pages/*` только orchestration.
 
 Definition of Done:
 
 - Нет тяжелой доменной логики в page-компонентах.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ---
 
