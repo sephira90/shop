@@ -201,12 +201,16 @@ Status:
 
 #### P2.3 Performance and ops budgets
 
-- [ ] Добавить budget checks для checkout/cart/admin list flows.
-- [ ] Включить regression checks в CI/quality pipeline.
+- [x] Добавить budget checks для checkout/cart/admin list flows.
+- [x] Включить regression checks в CI/quality pipeline.
 
 Definition of Done:
 
 - Деградации производительности выявляются автоматически до merge.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ## 4) Порядок выполнения
 

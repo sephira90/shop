@@ -2065,3 +2065,34 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P2.3` completed (performance and ops budgets):
+  - `app:performance-smoke` расширен budget-checks для критичных flow:
+    - `cart_show`;
+    - `checkout_place_order` (transaction rollback mode, чтобы не накапливать данные и не выжигать inventory);
+    - `admin_products_list`;
+    - сохранены существующие `catalog_list_cold/warm` и `admin_orders_summary`;
+  - добавлены новые пороги и централизованная budget-routing логика:
+    - `--max-cart-ms/--max-cart-queries`;
+    - `--max-checkout-ms/--max-checkout-queries`;
+    - `--max-admin-products-ms/--max-admin-products-queries`;
+  - `tests/Feature/PerformanceSmokeTest.php` расширен regression-бюджетами:
+    - `test_cart_show_query_path_stays_within_budget`;
+    - `test_checkout_place_order_query_path_stays_within_budget`;
+    - `test_admin_products_list_query_path_stays_within_budget`;
+  - regression checks включены в CI/quality pipeline автоматически:
+    - через `php artisan test` (новые performance feature tests);
+    - через существующий CI smoke-step `php artisan app:performance-smoke` (теперь с расширенным набором budget checks);
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P2.3` отмечен как completed;
+  - выполнены target checks:
+    - `php artisan test --filter=PerformanceSmokeTest`
+    - `php artisan app:performance-smoke`
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.
