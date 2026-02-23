@@ -5,9 +5,10 @@ import {
     formatMoney,
     formatOrderAddress,
     type OrderAddressLike,
-    orderStatusClass as resolveOrderStatusClass,
-    paymentStatusClass as resolvePaymentStatusClass,
-    shipmentStatusClass as resolveShipmentStatusClass,
+    orderStatusTone as resolveOrderStatusTone,
+    paymentStatusTone as resolvePaymentStatusTone,
+    shipmentStatusTone as resolveShipmentStatusTone,
+    type StatusTone,
 } from "@/utils/order-presentation";
 
 import { useAdminOrdersMutations } from "./useAdminOrdersMutations";
@@ -39,9 +40,9 @@ export const useAdminOrdersViewModel = (options: UseAdminOrdersOptions = {}) => 
 
     const formatPrice = (value: number, currency = "USD"): string => formatMoney(value, currency);
     const formatAddress = (address: OrderAddressLike | null): string => formatOrderAddress(address);
-    const orderStatusClass = (status: string): string => resolveOrderStatusClass(status);
-    const paymentStatusClass = (status: string): string => resolvePaymentStatusClass(status);
-    const shipmentStatusClass = (status: string): string => resolveShipmentStatusClass(status);
+    const orderStatusTone = (status: string): StatusTone => resolveOrderStatusTone(status);
+    const paymentStatusTone = (status: string): StatusTone => resolvePaymentStatusTone(status);
+    const shipmentStatusTone = (status: string): StatusTone => resolveShipmentStatusTone(status);
 
     return {
         notice,
@@ -49,8 +50,8 @@ export const useAdminOrdersViewModel = (options: UseAdminOrdersOptions = {}) => 
         ...mutations,
         formatPrice,
         formatAddress,
-        orderStatusClass,
-        paymentStatusClass,
-        shipmentStatusClass,
+        orderStatusTone,
+        paymentStatusTone,
+        shipmentStatusTone,
     };
 };

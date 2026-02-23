@@ -7,6 +7,44 @@ export interface OrderAddressLike {
     postcode?: string;
 }
 
+export type StatusTone = "neutral" | "good" | "warn" | "info" | "bad" | "role";
+export type BadgeTone = "active" | "inactive";
+
+const statusToneClassMap: Record<StatusTone, string> = {
+    neutral: "status-chip--neutral",
+    good: "status-chip--good",
+    warn: "status-chip--warn",
+    info: "status-chip--info",
+    bad: "status-chip--bad",
+    role: "status-chip--role",
+};
+
+const orderStatusToneMap: Record<string, StatusTone> = {
+    pending: "warn",
+    paid: "good",
+    processing: "info",
+    shipped: "info",
+    completed: "good",
+    cancelled: "bad",
+    refunded: "neutral",
+};
+
+const paymentStatusToneMap: Record<string, StatusTone> = {
+    pending: "warn",
+    authorized: "info",
+    captured: "good",
+    failed: "bad",
+    refunded: "neutral",
+};
+
+const shipmentStatusToneMap: Record<string, StatusTone> = {
+    pending: "warn",
+    packed: "info",
+    shipped: "info",
+    delivered: "good",
+    returned: "bad",
+};
+
 export const formatMoney = (value: number, currency = "USD", locale = "en-US"): string => {
     return new Intl.NumberFormat(locale, {
         style: "currency",
@@ -32,40 +70,38 @@ export const formatOrderDate = (value: string | null, fallback = "Unknown date")
     return formatDateTime(value, { fallback });
 };
 
+export const statusToneClass = (tone: StatusTone): string => {
+    return statusToneClassMap[tone];
+};
+
+export const orderStatusTone = (status: string): StatusTone => {
+    return orderStatusToneMap[status] ?? "neutral";
+};
+
+export const paymentStatusTone = (status: string): StatusTone => {
+    return paymentStatusToneMap[status] ?? "neutral";
+};
+
+export const shipmentStatusTone = (status: string): StatusTone => {
+    return shipmentStatusToneMap[status] ?? "neutral";
+};
+
+export const verificationStatusTone = (isEmailVerified: boolean): StatusTone => {
+    return isEmailVerified ? "good" : "warn";
+};
+
+export const productStatusBadgeTone = (status: string): BadgeTone => {
+    return status === "active" ? "active" : "inactive";
+};
+
 export const orderStatusClass = (status: string): string => {
-    return (
-        {
-            pending: "status-chip--warn",
-            paid: "status-chip--good",
-            processing: "status-chip--info",
-            shipped: "status-chip--info",
-            completed: "status-chip--good",
-            cancelled: "status-chip--bad",
-            refunded: "status-chip--neutral",
-        }[status] ?? "status-chip--neutral"
-    );
+    return statusToneClass(orderStatusTone(status));
 };
 
 export const paymentStatusClass = (status: string): string => {
-    return (
-        {
-            pending: "status-chip--warn",
-            authorized: "status-chip--info",
-            captured: "status-chip--good",
-            failed: "status-chip--bad",
-            refunded: "status-chip--neutral",
-        }[status] ?? "status-chip--neutral"
-    );
+    return statusToneClass(paymentStatusTone(status));
 };
 
 export const shipmentStatusClass = (status: string): string => {
-    return (
-        {
-            pending: "status-chip--warn",
-            packed: "status-chip--info",
-            shipped: "status-chip--info",
-            delivered: "status-chip--good",
-            returned: "status-chip--bad",
-        }[status] ?? "status-chip--neutral"
-    );
+    return statusToneClass(shipmentStatusTone(status));
 };

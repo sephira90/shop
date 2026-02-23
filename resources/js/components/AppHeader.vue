@@ -28,14 +28,9 @@
                     }}</span>
                     <span>{{ theme === "dark" ? "Dark" : "Light" }}</span>
                 </button>
-                <button
-                    v-if="authStore.isAuthenticated"
-                    class="btn btn-muted"
-                    type="button"
-                    @click="logout"
-                >
+                <AppButton v-if="authStore.isAuthenticated" variant="muted" @click="logout">
                     Logout
-                </button>
+                </AppButton>
             </div>
         </div>
     </header>
@@ -44,6 +39,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
+import AppButton from "@/components/ui/AppButton.vue";
 import { useAuthStore } from "@/stores/auth";
 
 type Theme = "light" | "dark";

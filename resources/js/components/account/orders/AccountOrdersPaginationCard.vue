@@ -1,0 +1,27 @@
+<template>
+    <AppPaginationBar
+        :page="page"
+        :meta="meta"
+        :is-loading="isLoading"
+        total-label="Total orders"
+        wrap-in-card
+        @load-prev="$emit('loadPrev')"
+        @load-next="$emit('loadNext')"
+    />
+</template>
+
+<script setup lang="ts">
+import AppPaginationBar from "@/components/ui/AppPaginationBar.vue";
+import type { PaginationMeta } from "@/types/pagination";
+
+defineProps<{
+    page: number;
+    isLoading: boolean;
+    meta: PaginationMeta;
+}>();
+
+defineEmits<{
+    (event: "loadPrev"): void;
+    (event: "loadNext"): void;
+}>();
+</script>

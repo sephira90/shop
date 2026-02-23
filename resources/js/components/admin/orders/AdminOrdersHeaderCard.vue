@@ -1,0 +1,28 @@
+<template>
+    <AppStackBetween>
+        <div>
+            <AppSectionTitle tag="h1">Admin orders</AppSectionTitle>
+            <AppMutedText
+                >Monitor order lifecycle and update statuses from one workspace.</AppMutedText
+            >
+        </div>
+        <AppButton variant="muted" type="button" :disabled="isLoading" @click="$emit('refresh')">
+            {{ isLoading ? "Refreshing..." : "Refresh list" }}
+        </AppButton>
+    </AppStackBetween>
+</template>
+
+<script setup lang="ts">
+import AppButton from "@/components/ui/AppButton.vue";
+import AppMutedText from "@/components/ui/AppMutedText.vue";
+import AppSectionTitle from "@/components/ui/AppSectionTitle.vue";
+import AppStackBetween from "@/components/ui/AppStackBetween.vue";
+
+defineProps<{
+    isLoading: boolean;
+}>();
+
+defineEmits<{
+    (event: "refresh"): void;
+}>();
+</script>

@@ -4,6 +4,11 @@ import {
     formatMoney,
     formatOrderAddress,
     formatOrderDate,
+    orderStatusTone,
+    paymentStatusTone,
+    productStatusBadgeTone,
+    shipmentStatusTone,
+    verificationStatusTone,
     orderStatusClass,
     paymentStatusClass,
     shipmentStatusClass,
@@ -31,7 +36,18 @@ describe("order presentation utils", () => {
         expect(formatOrderDate("invalid-date", "N/A")).toBe("N/A");
     });
 
-    it("maps order statuses to status chips", () => {
+    it("maps order statuses to semantic tones", () => {
+        expect(orderStatusTone("paid")).toBe("good");
+        expect(paymentStatusTone("failed")).toBe("bad");
+        expect(shipmentStatusTone("packed")).toBe("info");
+        expect(orderStatusTone("random")).toBe("neutral");
+        expect(verificationStatusTone(true)).toBe("good");
+        expect(verificationStatusTone(false)).toBe("warn");
+        expect(productStatusBadgeTone("active")).toBe("active");
+        expect(productStatusBadgeTone("draft")).toBe("inactive");
+    });
+
+    it("keeps compatibility class mappers", () => {
         expect(orderStatusClass("paid")).toBe("status-chip--good");
         expect(paymentStatusClass("failed")).toBe("status-chip--bad");
         expect(shipmentStatusClass("packed")).toBe("status-chip--info");

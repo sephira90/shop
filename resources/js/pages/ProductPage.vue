@@ -1,47 +1,31 @@
 <template>
-    <section v-if="isLoading" class="card empty-state">
-        <p>Loading product...</p>
-    </section>
+    <AppEmptyState v-if="isLoading" tag="section" in-card message="Loading product..." />
 
-    <section v-else-if="product" class="grid grid-2">
-        <article class="card">
-            <h1 class="section-title">{{ product.name }}</h1>
-            <p class="muted">{{ product.description }}</p>
-        </article>
+    <AppGridTwoColumns v-else-if="product" tag="section">
+        <ProductInfoCard :product="product" />
 
-        <aside class="card">
-            <h2 class="section-title">Purchase</h2>
-            <p class="product-card__price">
-                {{ formatPrice(selectedVariant?.price) }} {{ selectedVariant?.currency ?? "USD" }}
-            </p>
-            <div class="grid">
-                <select v-model.number="selectedVariantId">
-                    <option
-                        v-for="variant in product.variants"
-                        :key="variant.id"
-                        :value="variant.id"
-                    >
-                        {{ variant.name }} - {{ formatPrice(variant.price) }} {{ variant.currency }}
-                    </option>
-                </select>
-                <button
-                    class="btn btn-primary"
-                    type="button"
-                    :disabled="!selectedVariantId"
-                    @click="addToCart"
-                >
-                    Add to cart
-                </button>
-            </div>
-        </aside>
-    </section>
+        <ProductPurchaseCard
+            v-model:selected-variant-id="selectedVariantId"
+            :product="product"
+            :selected-variant="selectedVariant"
+            :format-price="formatPrice"
+            @add-to-cart="addToCart"
+        />
+    </AppGridTwoColumns>
 
-    <section v-else class="card empty-state">
-        <p>{{ loadError || "Product is unavailable right now." }}</p>
-    </section>
+    <AppEmptyState
+        v-else
+        tag="section"
+        in-card
+        :message="loadError || 'Product is unavailable right now.'"
+    />
 </template>
 
 <script setup lang="ts">
+import ProductInfoCard from "@/components/product/ProductInfoCard.vue";
+import ProductPurchaseCard from "@/components/product/ProductPurchaseCard.vue";
+import AppEmptyState from "@/components/ui/AppEmptyState.vue";
+import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
 import { useCatalogProduct } from "@/composables/useCatalogProduct";
 import { useCartStore } from "@/stores/cart";
 const cartStore = useCartStore();

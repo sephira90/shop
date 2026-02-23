@@ -1,192 +1,68 @@
 <template>
     <section class="grid">
-        <nav class="account-tabs" aria-label="Account navigation">
-            <RouterLink to="/account/profile" class="account-tab">Profile</RouterLink>
-            <RouterLink to="/account/orders" class="account-tab">Orders</RouterLink>
-        </nav>
+        <AccountTabsNav />
 
-        <div class="card">
-            <div class="stack stack--between">
-                <div>
-                    <h1 class="section-title">My orders</h1>
-                    <p class="muted">
-                        Track statuses, payment and shipment updates for your purchases.
-                    </p>
-                </div>
-                <button
-                    class="btn btn-muted"
-                    type="button"
-                    :disabled="isLoading"
-                    @click="loadOrders(page)"
-                >
-                    {{ isLoading ? "Refreshing..." : "Refresh" }}
-                </button>
-            </div>
+        <AppCard>
+            <AccountOrdersHeaderCard :is-loading="isLoading" @refresh="loadOrders(page)" />
 
-            <div class="grid grid-4 actions--top">
-                <article class="metric-card metric-card--soft">
-                    <span class="metric-card__label">Loaded orders</span>
-                    <strong class="metric-card__value">{{ orders.length }}</strong>
-                </article>
-                <article class="metric-card metric-card--soft">
-                    <span class="metric-card__label">Paid</span>
-                    <strong class="metric-card__value">{{ paidCount }}</strong>
-                </article>
-                <article class="metric-card metric-card--soft">
-                    <span class="metric-card__label">In shipment</span>
-                    <strong class="metric-card__value">{{ shipmentActiveCount }}</strong>
-                </article>
-                <article class="metric-card metric-card--soft">
-                    <span class="metric-card__label">Loaded value</span>
-                    <strong class="metric-card__value">{{ formatPrice(loadedTotal) }}</strong>
-                </article>
-            </div>
+            <AccountOrdersMetricsRow
+                :loaded-orders="orders.length"
+                :paid-count="paidCount"
+                :shipment-active-count="shipmentActiveCount"
+                :loaded-total-label="formatPrice(loadedTotal)"
+            />
 
-            <div class="actions actions--top">
-                <input
-                    v-model="searchQuery"
-                    placeholder="Search by order number or email"
-                    :disabled="isLoading"
-                    @keyup.enter="applyFilters"
-                />
-                <select v-model="statusFilter" :disabled="isLoading" @change="applyFilters">
-                    <option value="all">All statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="paid">Paid</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="refunded">Refunded</option>
-                </select>
-            </div>
+            <AccountOrdersFiltersBar
+                v-model:search-query="searchQuery"
+                v-model:status-filter="statusFilter"
+                :is-loading="isLoading"
+                @apply="applyFilters"
+            />
 
-            <p v-if="loadError" class="notice notice--error actions--top">{{ loadError }}</p>
-        </div>
+            <AppNotice v-if="loadError" class="actions--top" :message="loadError" />
+        </AppCard>
 
-        <div v-if="isLoading" class="card empty-state">
-            <p>Loading orders...</p>
-        </div>
+        <AppEmptyState v-if="isLoading" in-card message="Loading orders..." />
 
         <div v-else-if="filteredOrders.length" class="grid">
-            <article v-for="order in filteredOrders" :key="order.id" class="card order-card">
-                <div class="stack stack--between">
-                    <div>
-                        <h2 class="order-card__title">{{ order.order_number }}</h2>
-                        <p class="muted">{{ formatDate(order.placed_at ?? order.created_at) }}</p>
-                    </div>
-                    <div class="actions">
-                        <span class="status-chip" :class="orderStatusClass(order.status)"
-                            >Order: {{ order.status }}</span
-                        >
-                        <span class="status-chip" :class="paymentStatusClass(order.payment_status)">
-                            Payment: {{ order.payment_status }}
-                        </span>
-                        <span
-                            class="status-chip"
-                            :class="shipmentStatusClass(order.shipment_status)"
-                        >
-                            Shipment: {{ order.shipment_status }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="order-card__summary">
-                    <div>
-                        <span class="muted">Total</span>
-                        <strong>{{ formatPrice(order.total, order.currency) }}</strong>
-                    </div>
-                    <div>
-                        <span class="muted">Items</span>
-                        <strong>{{ totalItems(order) }}</strong>
-                    </div>
-                    <div>
-                        <span class="muted">Email</span>
-                        <strong>{{ order.email }}</strong>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <button class="btn btn-muted" type="button" @click="toggleDetails(order.id)">
-                        {{ isExpanded(order.id) ? "Hide details" : "Show details" }}
-                    </button>
-                </div>
-
-                <div v-if="isExpanded(order.id)" class="order-card__details">
-                    <div class="grid grid-2">
-                        <article class="order-detail-box">
-                            <h3>Billing address</h3>
-                            <p class="muted">{{ formatAddress(order.billing_address) }}</p>
-                        </article>
-                        <article class="order-detail-box">
-                            <h3>Shipping address</h3>
-                            <p class="muted">{{ formatAddress(order.shipping_address) }}</p>
-                        </article>
-                    </div>
-
-                    <div class="table-wrap">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Qty</th>
-                                    <th>Unit</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="item in order.items" :key="`${order.id}-${item.sku}`">
-                                    <td>
-                                        <strong>{{ item.name }}</strong>
-                                        <p class="muted">{{ item.sku }}</p>
-                                    </td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td>{{ formatPrice(item.unit_price, order.currency) }}</td>
-                                    <td>{{ formatPrice(item.total_price, order.currency) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </article>
+            <AccountOrderCard
+                v-for="order in filteredOrders"
+                :key="order.id"
+                :order="order"
+                :expanded="isExpanded(order.id)"
+                :total-items="totalItems"
+                :format-price="formatPrice"
+                :format-date="formatDate"
+                :format-address="formatAddress"
+                :order-status-tone="orderStatusTone"
+                :payment-status-tone="paymentStatusTone"
+                :shipment-status-tone="shipmentStatusTone"
+                @toggle-details="toggleDetails"
+            />
         </div>
 
-        <div v-else class="card empty-state">
-            <p>No orders found for current filters.</p>
-        </div>
+        <AppEmptyState v-else in-card message="No orders found for current filters." />
 
-        <div class="card">
-            <div class="stack stack--between">
-                <p class="muted">
-                    Page {{ meta.current_page }} of {{ meta.last_page }}. Total orders:
-                    {{ meta.total }}.
-                </p>
-                <div class="actions">
-                    <button
-                        class="btn btn-muted"
-                        type="button"
-                        :disabled="page <= 1 || isLoading"
-                        @click="loadOrders(page - 1)"
-                    >
-                        Previous
-                    </button>
-                    <button
-                        class="btn btn-muted"
-                        type="button"
-                        :disabled="page >= meta.last_page || isLoading"
-                        @click="loadOrders(page + 1)"
-                    >
-                        Next
-                    </button>
-                </div>
-            </div>
-        </div>
+        <AccountOrdersPaginationCard
+            :page="page"
+            :meta="meta"
+            :is-loading="isLoading"
+            @load-prev="loadOrders(page - 1)"
+            @load-next="loadOrders(page + 1)"
+        />
     </section>
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
-
+import AccountTabsNav from "@/components/account/AccountTabsNav.vue";
+import AccountOrderCard from "@/components/account/orders/AccountOrderCard.vue";
+import AccountOrdersFiltersBar from "@/components/account/orders/AccountOrdersFiltersBar.vue";
+import AccountOrdersHeaderCard from "@/components/account/orders/AccountOrdersHeaderCard.vue";
+import AccountOrdersMetricsRow from "@/components/account/orders/AccountOrdersMetricsRow.vue";
+import AccountOrdersPaginationCard from "@/components/account/orders/AccountOrdersPaginationCard.vue";
+import AppCard from "@/components/ui/AppCard.vue";
+import AppEmptyState from "@/components/ui/AppEmptyState.vue";
+import AppNotice from "@/components/ui/AppNotice.vue";
 import { useAccountOrders } from "@/composables/useAccountOrders";
 
 const {
@@ -209,8 +85,8 @@ const {
     formatPrice,
     formatDate,
     formatAddress,
-    orderStatusClass,
-    paymentStatusClass,
-    shipmentStatusClass,
+    orderStatusTone,
+    paymentStatusTone,
+    shipmentStatusTone,
 } = useAccountOrders();
 </script>

@@ -7,6 +7,10 @@ import { useAdminMutation } from "@/composables/useAdminMutation";
 import { useAdminNotice } from "@/composables/useAdminNotice";
 import { useAuthStore } from "@/stores/auth";
 import type { ProductStatus } from "@/types/admin-products";
+import {
+    productStatusBadgeTone as resolveProductStatusBadgeTone,
+    type BadgeTone,
+} from "@/utils/order-presentation";
 
 import { useAdminProductsMutations } from "./useAdminProductsMutations";
 import { useAdminProductsQuery } from "./useAdminProductsQuery";
@@ -44,14 +48,14 @@ export const useAdminProductsViewModel = (options: UseAdminProductsOptions = {})
         uiEffects,
     });
 
-    const statusBadgeClass = (status: ProductStatus): string => {
-        return `badge--${status}`;
+    const statusBadgeTone = (status: ProductStatus): BadgeTone => {
+        return resolveProductStatusBadgeTone(status);
     };
 
     return {
         notice,
         canDeleteProducts,
-        statusBadgeClass,
+        statusBadgeTone,
         ...query,
         ...mutations,
     };

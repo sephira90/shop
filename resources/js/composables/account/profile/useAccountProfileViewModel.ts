@@ -28,7 +28,7 @@ export const useAccountProfileViewModel = () => {
         profilePhone: query.profilePhone,
         profileInitial: query.profileInitial,
         verificationLabel: query.verificationLabel,
-        verificationClass: query.verificationClass,
+        verificationTone: query.verificationTone,
         roleLabels: query.roleLabels,
         resetProfileForm: mutations.resetProfileForm,
         formatPrice,

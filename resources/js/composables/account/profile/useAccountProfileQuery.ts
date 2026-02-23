@@ -2,6 +2,10 @@ import { computed, reactive } from "vue";
 
 import { getAccountOrdersSummary } from "@/api/account/orders";
 import { useAuthStore } from "@/stores/auth";
+import {
+    verificationStatusTone as resolveVerificationStatusTone,
+    type StatusTone,
+} from "@/utils/order-presentation";
 
 export const useAccountProfileQuery = () => {
     const authStore = useAuthStore();
@@ -24,8 +28,8 @@ export const useAccountProfileQuery = () => {
     const verificationLabel = computed<string>(() =>
         authStore.user?.is_email_verified ? "Email verified" : "Email pending",
     );
-    const verificationClass = computed<string>(() =>
-        authStore.user?.is_email_verified ? "status-chip--good" : "status-chip--warn",
+    const verificationTone = computed<StatusTone>(() =>
+        resolveVerificationStatusTone(Boolean(authStore.user?.is_email_verified)),
     );
     const roleLabels = computed<string[]>(() => {
         const roles = authStore.user?.roles ?? [];
@@ -74,7 +78,7 @@ export const useAccountProfileQuery = () => {
         profilePhone,
         profileInitial,
         verificationLabel,
-        verificationClass,
+        verificationTone,
         roleLabels,
         fillProfileForm,
         loadOrderMetrics,

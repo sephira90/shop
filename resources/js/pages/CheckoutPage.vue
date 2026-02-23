@@ -1,81 +1,49 @@
 <template>
-    <section class="card">
-        <h1 class="section-title">Checkout</h1>
-        <p class="muted">Fill billing and shipping details to create a new order.</p>
+    <AppCard tag="section">
+        <CheckoutHeader />
 
-        <form class="grid actions--top" @submit.prevent="submitCheckout">
-            <input v-model="form.email" type="email" placeholder="Email" required />
-            <input v-model="form.coupon_code" placeholder="Coupon code (optional)" />
+        <AppFormShell @submit="submitCheckout">
+            <CheckoutContactFields
+                v-model:email="form.email"
+                v-model:coupon-code="form.coupon_code"
+            />
 
-            <div class="grid grid-2">
-                <div class="card">
-                    <h2>Billing address</h2>
-                    <div class="grid">
-                        <input
-                            v-model="form.billing_address.line1"
-                            placeholder="Address line"
-                            required
-                        />
-                        <input v-model="form.billing_address.city" placeholder="City" required />
-                        <input
-                            v-model="form.billing_address.country"
-                            placeholder="Country (2 letters)"
-                            maxlength="2"
-                            required
-                        />
-                        <input
-                            v-model="form.billing_address.postcode"
-                            placeholder="Postcode"
-                            required
-                        />
-                    </div>
-                </div>
+            <AppGridTwoColumns>
+                <CheckoutAddressCard
+                    title="Billing address"
+                    v-model:address="form.billing_address"
+                />
+                <CheckoutAddressCard
+                    title="Shipping address"
+                    v-model:address="form.shipping_address"
+                />
+            </AppGridTwoColumns>
 
-                <div class="card">
-                    <h2>Shipping address</h2>
-                    <div class="grid">
-                        <input
-                            v-model="form.shipping_address.line1"
-                            placeholder="Address line"
-                            required
-                        />
-                        <input v-model="form.shipping_address.city" placeholder="City" required />
-                        <input
-                            v-model="form.shipping_address.country"
-                            placeholder="Country (2 letters)"
-                            maxlength="2"
-                            required
-                        />
-                        <input
-                            v-model="form.shipping_address.postcode"
-                            placeholder="Postcode"
-                            required
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
+            <AppButton variant="primary" type="submit" :disabled="isSubmitting">
                 {{ isSubmitting ? "Placing order..." : "Place order" }}
-            </button>
-        </form>
+            </AppButton>
+        </AppFormShell>
 
-        <p
+        <CheckoutResultNotice
             v-if="resultMessage"
-            :class="[
-                'notice',
-                resultMessage.startsWith('Order created') ? 'notice--success' : 'notice--error',
-            ]"
-        >
-            {{ resultMessage }}
-        </p>
-    </section>
+            :message="resultMessage"
+            :is-success="isResultSuccess"
+        />
+    </AppCard>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import { placeCheckoutOrder } from "@/api/checkout";
+import CheckoutAddressCard from "@/components/checkout/CheckoutAddressCard.vue";
+import CheckoutContactFields from "@/components/checkout/CheckoutContactFields.vue";
+import CheckoutHeader from "@/components/checkout/CheckoutHeader.vue";
+import CheckoutResultNotice from "@/components/checkout/CheckoutResultNotice.vue";
+import AppButton from "@/components/ui/AppButton.vue";
+import AppCard from "@/components/ui/AppCard.vue";
+import AppFormShell from "@/components/ui/AppFormShell.vue";
+import AppGridTwoColumns from "@/components/ui/AppGridTwoColumns.vue";
 import { useApiError } from "@/composables/useApiError";
 import { useAuthStore } from "@/stores/auth";
 import { useCartStore } from "@/stores/cart";
@@ -91,6 +59,7 @@ const authStore = useAuthStore();
 const cartStore = useCartStore();
 const { parseApiError } = useApiError();
 const form = reactive(createCheckoutFormState());
+const isResultSuccess = computed((): boolean => resultMessage.value.startsWith("Order created"));
 
 const submitCheckout = async (): Promise<void> => {
     isSubmitting.value = true;

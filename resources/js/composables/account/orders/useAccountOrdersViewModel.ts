@@ -6,9 +6,10 @@ import {
     formatMoney,
     formatOrderAddress,
     formatOrderDate,
-    orderStatusClass as resolveOrderStatusClass,
-    paymentStatusClass as resolvePaymentStatusClass,
-    shipmentStatusClass as resolveShipmentStatusClass,
+    orderStatusTone as resolveOrderStatusTone,
+    paymentStatusTone as resolvePaymentStatusTone,
+    shipmentStatusTone as resolveShipmentStatusTone,
+    type StatusTone,
 } from "@/utils/order-presentation";
 
 import { useAccountOrdersQuery } from "./useAccountOrdersQuery";
@@ -65,9 +66,9 @@ export const useAccountOrdersViewModel = (options: UseAccountOrdersOptions = {})
     const formatDate = (value: string | null): string => formatOrderDate(value, "Unknown date");
     const formatAddress = (address: AccountOrderAddress | null): string =>
         formatOrderAddress(address);
-    const orderStatusClass = (status: string): string => resolveOrderStatusClass(status);
-    const paymentStatusClass = (status: string): string => resolvePaymentStatusClass(status);
-    const shipmentStatusClass = (status: string): string => resolveShipmentStatusClass(status);
+    const orderStatusTone = (status: string): StatusTone => resolveOrderStatusTone(status);
+    const paymentStatusTone = (status: string): StatusTone => resolvePaymentStatusTone(status);
+    const shipmentStatusTone = (status: string): StatusTone => resolveShipmentStatusTone(status);
 
     return {
         orders: query.orders,
@@ -90,8 +91,8 @@ export const useAccountOrdersViewModel = (options: UseAccountOrdersOptions = {})
         formatPrice,
         formatDate,
         formatAddress,
-        orderStatusClass,
-        paymentStatusClass,
-        shipmentStatusClass,
+        orderStatusTone,
+        paymentStatusTone,
+        shipmentStatusTone,
     };
 };

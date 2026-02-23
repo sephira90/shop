@@ -1,130 +1,107 @@
 <template>
-    <div class="card">
-        <div class="stack stack--between">
+    <AppCard>
+        <AppStackBetween>
             <h2>Campaigns</h2>
-            <p class="muted">
+            <AppMutedText>
                 Page {{ meta.current_page }} of {{ meta.last_page }}. Total: {{ meta.total }}.
-            </p>
-        </div>
+            </AppMutedText>
+        </AppStackBetween>
 
-        <div class="actions actions--top">
-            <input
+        <AppActionsRow with-top-spacing>
+            <AppSearchInput
                 v-model="searchQuery"
                 placeholder="Search by campaign or code"
                 :disabled="isLoading"
             />
-            <select v-model="statusFilter" :disabled="isLoading">
+            <AppFilterSelect v-model="statusFilter" :disabled="isLoading">
                 <option value="all">All campaigns</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-            </select>
-        </div>
+            </AppFilterSelect>
+        </AppActionsRow>
 
-        <div class="table-wrap actions--top">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Value</th>
-                        <th>Status</th>
-                        <th>Coupons</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody v-if="promotions.length">
-                    <tr
-                        v-for="promotion in promotions"
-                        :key="promotion.id"
-                        :class="{ 'table-row-active': selectedPromotionId === promotion.id }"
-                    >
-                        <td>
-                            <strong>{{ promotion.name }}</strong>
-                            <p class="muted">Code: {{ promotion.code || "-" }}</p>
-                        </td>
-                        <td>{{ promotion.type }}</td>
-                        <td>{{ formatPromotionValue(promotion.type, promotion.value) }}</td>
-                        <td>
-                            <span
-                                class="status-chip"
-                                :class="
-                                    promotion.is_active
-                                        ? 'status-chip--good'
-                                        : 'status-chip--neutral'
-                                "
-                            >
-                                {{ promotion.is_active ? "active" : "inactive" }}
-                            </span>
-                        </td>
-                        <td>{{ promotion.coupons.length }}</td>
-                        <td>
-                            <div class="actions">
-                                <button
-                                    class="btn btn-muted"
-                                    type="button"
-                                    @click="$emit('select', promotion.id)"
-                                >
-                                    Coupons
-                                </button>
-                                <button
-                                    class="btn btn-muted"
-                                    type="button"
-                                    @click="$emit('edit', promotion)"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    class="btn btn-muted"
-                                    type="button"
-                                    :disabled="isDeletingPromotionId === promotion.id"
-                                    @click="$emit('remove', promotion)"
-                                >
-                                    {{
-                                        isDeletingPromotionId === promotion.id
-                                            ? "Deleting..."
-                                            : "Delete"
-                                    }}
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-                <tbody v-else>
-                    <tr>
-                        <td colspan="6">
-                            <div class="empty-state">
-                                <p>
-                                    {{ isLoading ? "Loading campaigns..." : "No campaigns found." }}
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <AppTableSection with-top-spacing>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                    <th>Status</th>
+                    <th>Coupons</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody v-if="promotions.length">
+                <tr
+                    v-for="promotion in promotions"
+                    :key="promotion.id"
+                    :class="{ 'table-row-active': selectedPromotionId === promotion.id }"
+                >
+                    <td>
+                        <strong>{{ promotion.name }}</strong>
+                        <AppMutedText>Code: {{ promotion.code || "-" }}</AppMutedText>
+                    </td>
+                    <td>{{ promotion.type }}</td>
+                    <td>{{ formatPromotionValue(promotion.type, promotion.value) }}</td>
+                    <td>
+                        <BooleanStatusChip :value="promotion.is_active" />
+                    </td>
+                    <td>{{ promotion.coupons.length }}</td>
+                    <AppTableActionsCell>
+                        <AppButton
+                            variant="muted"
+                            type="button"
+                            @click="$emit('select', promotion.id)"
+                        >
+                            Coupons
+                        </AppButton>
+                        <AppButton variant="muted" type="button" @click="$emit('edit', promotion)">
+                            Edit
+                        </AppButton>
+                        <AppButton
+                            variant="muted"
+                            type="button"
+                            :disabled="isDeletingPromotionId === promotion.id"
+                            @click="$emit('remove', promotion)"
+                        >
+                            {{ isDeletingPromotionId === promotion.id ? "Deleting..." : "Delete" }}
+                        </AppButton>
+                    </AppTableActionsCell>
+                </tr>
+            </tbody>
+            <tbody v-else>
+                <AppTableEmptyStateRow
+                    :colspan="6"
+                    :message="isLoading ? 'Loading campaigns...' : 'No campaigns found.'"
+                />
+            </tbody>
+        </AppTableSection>
 
-        <div class="actions actions--top">
-            <button
-                class="btn btn-muted"
-                type="button"
-                :disabled="page <= 1 || isLoading"
-                @click="$emit('loadPrev')"
-            >
-                Previous
-            </button>
-            <button
-                class="btn btn-muted"
-                type="button"
-                :disabled="page >= meta.last_page || isLoading"
-                @click="$emit('loadNext')"
-            >
-                Next
-            </button>
-        </div>
-    </div>
+        <AppPaginationBar
+            class="actions--top"
+            :page="page"
+            :meta="meta"
+            :is-loading="isLoading"
+            :show-summary="false"
+            @load-prev="$emit('loadPrev')"
+            @load-next="$emit('loadNext')"
+        />
+    </AppCard>
 </template>
 
 <script setup lang="ts">
+import AppActionsRow from "@/components/ui/AppActionsRow.vue";
+import AppButton from "@/components/ui/AppButton.vue";
+import AppCard from "@/components/ui/AppCard.vue";
+import AppFilterSelect from "@/components/ui/AppFilterSelect.vue";
+import AppMutedText from "@/components/ui/AppMutedText.vue";
+import AppPaginationBar from "@/components/ui/AppPaginationBar.vue";
+import AppSearchInput from "@/components/ui/AppSearchInput.vue";
+import AppStackBetween from "@/components/ui/AppStackBetween.vue";
+import AppTableSection from "@/components/ui/AppTableSection.vue";
+import AppTableActionsCell from "@/components/ui/AppTableActionsCell.vue";
+import AppTableEmptyStateRow from "@/components/ui/AppTableEmptyStateRow.vue";
+import BooleanStatusChip from "@/components/ui/BooleanStatusChip.vue";
 import type { Promotion, PromotionStatusFilter, PromotionType } from "@/types/admin-promotions";
 import type { PaginationMeta } from "@/types/pagination";
 
