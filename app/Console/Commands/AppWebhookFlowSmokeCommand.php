@@ -282,6 +282,10 @@ class AppWebhookFlowSmokeCommand extends Command
                     ->where('status', ProductStatus::ACTIVE->value)
                     ->whereNotNull('published_at');
             })
+            ->whereHas('inventory', static function ($query): void {
+                $query->whereColumn('quantity', '>', 'reserved_quantity');
+            })
+            ->orderBy('id')
             ->first();
     }
 

@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\ProductStatus;
+use App\Models\Category;
+use App\Models\Inventory;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Shipment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -48,5 +53,46 @@ class WebhookFlowSmokeCommandTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('shipments', 0);
         $this->assertDatabaseCount('payments', 0);
+    }
+
+    /**
+     * Ensure webhook smoke flow skips variants without available inventory.
+     */
+    public function test_webhook_flow_smoke_command_uses_variant_with_available_inventory(): void
+    {
+        $category = Category::query()->create([
+            'name' => 'Smoke Category',
+            'slug' => 'smoke-webhook-category',
+            'is_active' => true,
+        ]);
+
+        $product = Product::query()->create([
+            'sku' => 'SMOKE-WEBHOOK-001',
+            'name' => 'Smoke Webhook Product',
+            'slug' => 'smoke-webhook-product',
+            'status' => ProductStatus::ACTIVE->value,
+            'category_id' => $category->id,
+            'published_at' => now(),
+        ]);
+
+        $variant = ProductVariant::query()->create([
+            'product_id' => $product->id,
+            'sku' => 'SMOKE-WEBHOOK-001-V1',
+            'name' => 'Out of Stock Variant',
+            'price' => 10,
+            'currency' => 'USD',
+            'is_active' => true,
+        ]);
+
+        Inventory::query()->create([
+            'product_variant_id' => $variant->id,
+            'quantity' => 0,
+            'reserved_quantity' => 0,
+            'low_stock_threshold' => 1,
+        ]);
+
+        $this->artisan('app:webhook-flow-smoke')
+            ->assertSuccessful()
+            ->expectsOutputToContain('Webhook flow smoke checks passed.');
     }
 }

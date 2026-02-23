@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Enums\ProductStatus;
 use App\Enums\RoleName;
 use App\Models\ProductVariant;
 use App\Models\User;
@@ -275,7 +276,18 @@ class AppApiContractSmokeCommand extends Command
      */
     private function checkCheckoutPlaceOrder(): array
     {
-        $variantId = (int) (ProductVariant::query()->value('id') ?? 0);
+        $variantId = (int) (ProductVariant::query()
+            ->where('is_active', true)
+            ->whereHas('product', static function ($query): void {
+                $query
+                    ->where('status', ProductStatus::ACTIVE->value)
+                    ->whereNotNull('published_at');
+            })
+            ->whereHas('inventory', static function ($query): void {
+                $query->whereColumn('quantity', '>', 'reserved_quantity');
+            })
+            ->orderBy('id')
+            ->value('id') ?? 0);
         if ($variantId <= 0) {
             throw new DomainException('checkout place-order precondition failed: no product variant found.');
         }
