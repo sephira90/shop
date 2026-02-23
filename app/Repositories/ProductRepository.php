@@ -7,11 +7,51 @@ namespace App\Repositories;
 use App\Enums\ProductStatus;
 use App\Filters\Admin\AdminProductListFilter;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 final class ProductRepository
 {
+    /**
+     * @var list<string>
+     */
+    private const CATALOG_PRODUCT_COLUMNS = [
+        'id',
+        'sku',
+        'name',
+        'slug',
+        'short_description',
+        'description',
+        'status',
+        'is_featured',
+        'category_id',
+        'brand',
+        'weight_grams',
+        'meta_title',
+        'meta_description',
+        'published_at',
+        'created_at',
+        'updated_at',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private const CATALOG_VARIANT_COLUMNS = [
+        'id',
+        'product_id',
+        'sku',
+        'name',
+        'attributes',
+        'price',
+        'compare_at_price',
+        'currency',
+        'is_active',
+    ];
+
     /**
      * List products for admin panel with typed filters.
      *
@@ -19,28 +59,8 @@ final class ProductRepository
      */
     public function paginateForAdmin(AdminProductListFilter $filter): LengthAwarePaginator
     {
-        $query = Product::query()
-            ->with(['category', 'variants.inventory'])
-            ->latest('id');
-
-        if ($filter->search !== null) {
-            $like = '%'.$filter->search.'%';
-
-            $query->where(static function (Builder $builder) use ($like): void {
-                $builder
-                    ->where('name', 'like', $like)
-                    ->orWhere('sku', 'like', $like)
-                    ->orWhere('slug', 'like', $like);
-            });
-        }
-
-        if ($filter->status !== null) {
-            $query->where('status', $filter->status->value);
-        }
-
-        if ($filter->categoryId !== null) {
-            $query->where('category_id', $filter->categoryId);
-        }
+        $query = $this->newAdminListQuery();
+        $this->applyAdminFilters($query, $filter);
 
         return $query->paginate($filter->perPage, ['*'], 'page', $filter->page);
     }
@@ -52,48 +72,7 @@ final class ProductRepository
      */
     public function paginateCatalog(array $filters, int $perPage = 12): LengthAwarePaginator
     {
-        $query = Product::query()
-            ->select([
-                'id',
-                'sku',
-                'name',
-                'slug',
-                'short_description',
-                'description',
-                'status',
-                'is_featured',
-                'category_id',
-                'meta_title',
-                'meta_description',
-                'published_at',
-                'created_at',
-                'updated_at',
-            ])
-            ->with([
-                'category:id,name,slug',
-                'variants' => static function ($variantQuery): void {
-                    $variantQuery
-                        ->select([
-                            'id',
-                            'product_id',
-                            'sku',
-                            'name',
-                            'attributes',
-                            'price',
-                            'compare_at_price',
-                            'currency',
-                            'is_active',
-                        ])
-                        ->where('is_active', true)
-                        ->orderBy('id');
-                },
-                'variants.inventory:id,product_variant_id,quantity,reserved_quantity',
-            ])
-            ->where('status', ProductStatus::ACTIVE->value)
-            ->whereHas('variants', static function (Builder $variantQuery): void {
-                $variantQuery->where('is_active', true);
-            })
-            ->whereNotNull('published_at');
+        $query = $this->newCatalogBaseQuery();
 
         $this->applyFilters($query, $filters);
 
@@ -105,49 +84,8 @@ final class ProductRepository
      */
     public function findActiveBySlug(string $slug): ?Product
     {
-        return Product::query()
-            ->select([
-                'id',
-                'sku',
-                'name',
-                'slug',
-                'short_description',
-                'description',
-                'status',
-                'is_featured',
-                'category_id',
-                'meta_title',
-                'meta_description',
-                'published_at',
-                'created_at',
-                'updated_at',
-            ])
-            ->with([
-                'category:id,name,slug',
-                'variants' => static function ($variantQuery): void {
-                    $variantQuery
-                        ->select([
-                            'id',
-                            'product_id',
-                            'sku',
-                            'name',
-                            'attributes',
-                            'price',
-                            'compare_at_price',
-                            'currency',
-                            'is_active',
-                        ])
-                        ->where('is_active', true)
-                        ->orderBy('id');
-                },
-                'variants.inventory:id,product_variant_id,quantity,reserved_quantity',
-            ])
+        return $this->newCatalogBaseQuery()
             ->where('slug', $slug)
-            ->where('status', ProductStatus::ACTIVE->value)
-            ->whereHas('variants', static function (Builder $variantQuery): void {
-                $variantQuery->where('is_active', true);
-            })
-            ->whereNotNull('published_at')
             ->first();
     }
 
@@ -193,7 +131,7 @@ final class ProductRepository
         if (in_array($sort, ['price_asc', 'price_desc'], true)) {
             $query->withMin(
                 ['variants as variants_min_price' => static function (Builder $variantQuery): void {
-                    $variantQuery->where('is_active', true);
+                    self::applyActiveVariantFilter($variantQuery);
                 }],
                 'price',
             );
@@ -205,5 +143,104 @@ final class ProductRepository
             'name_asc' => $query->orderBy('name'),
             default => $query->orderByDesc('published_at')->orderByDesc('id'),
         };
+    }
+
+    /**
+     * Build admin list base query with eager-loaded relations.
+     *
+     * @return Builder<Product>
+     */
+    private function newAdminListQuery(): Builder
+    {
+        return Product::query()
+            ->with(['category', 'variants.inventory'])
+            ->latest('id');
+    }
+
+    /**
+     * Apply typed admin filters to product query.
+     *
+     * @param  Builder<Product>  $query
+     */
+    private function applyAdminFilters(Builder $query, AdminProductListFilter $filter): void
+    {
+        if ($filter->search !== null) {
+            $like = '%'.$filter->search.'%';
+
+            $query->where(static function (Builder $builder) use ($like): void {
+                $builder
+                    ->where('name', 'like', $like)
+                    ->orWhere('sku', 'like', $like)
+                    ->orWhere('slug', 'like', $like);
+            });
+        }
+
+        if ($filter->status !== null) {
+            $query->where('status', $filter->status->value);
+        }
+
+        if ($filter->categoryId !== null) {
+            $query->where('category_id', $filter->categoryId);
+        }
+    }
+
+    /**
+     * Build reusable catalog query-shape for list and show paths.
+     *
+     * @return Builder<Product>
+     */
+    private function newCatalogBaseQuery(): Builder
+    {
+        return Product::query()
+            ->select(self::CATALOG_PRODUCT_COLUMNS)
+            ->with($this->catalogWithRelations())
+            ->where('status', ProductStatus::ACTIVE->value)
+            ->whereHas('variants', static function (Builder $variantQuery): void {
+                self::applyActiveVariantFilter($variantQuery);
+            })
+            ->whereNotNull('published_at');
+    }
+
+    /**
+     * Resolve catalog eager-load configuration.
+     *
+     * @return array<int|string, mixed>
+     */
+    private function catalogWithRelations(): array
+    {
+        return [
+            'category:id,name,slug',
+            'variants' => static function ($variantQuery): void {
+                self::applyCatalogVariantProjection($variantQuery);
+            },
+            'variants.inventory:id,product_variant_id,quantity,reserved_quantity',
+        ];
+    }
+
+    /**
+     * Apply active variant filter.
+     *
+     * @param  Builder<Model>  $variantQuery
+     */
+    private static function applyActiveVariantFilter(Builder $variantQuery): void
+    {
+        $variantQuery->where('is_active', true);
+    }
+
+    /**
+     * Apply variant projection used by catalog list/show responses.
+     *
+     * @param  Builder<ProductVariant>|Relation<ProductVariant, Product, mixed>  $variantQuery
+     */
+    private static function applyCatalogVariantProjection(Builder|Relation $variantQuery): void
+    {
+        if ($variantQuery instanceof Relation) {
+            $variantQuery = $variantQuery->getQuery();
+        }
+
+        $variantQuery
+            ->select(self::CATALOG_VARIANT_COLUMNS)
+            ->where('is_active', true)
+            ->orderBy('id');
     }
 }

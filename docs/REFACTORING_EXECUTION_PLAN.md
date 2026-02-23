@@ -1982,3 +1982,26 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.5` completed (repository query-shape deduplication):
+  - `app/Repositories/ProductRepository.php`:
+    - устранено дублирование query-shape между catalog list/show path через единый builder:
+      - `newCatalogBaseQuery()`;
+      - `catalogWithRelations()`;
+      - `applyCatalogVariantProjection()` / `applyActiveVariantFilter()`;
+    - admin list path вынесен в отдельные reuse-helpers:
+      - `newAdminListQuery()`;
+      - `applyAdminFilters()`;
+    - projection списка/catalog show выровнен с `ProductResource` (включая `brand`, `weight_grams`) и закреплен единым source of truth (`CATALOG_PRODUCT_COLUMNS`, `CATALOG_VARIANT_COLUMNS`);
+  - добавлен регрессионный feature-тест на консистентность projection между list/show:
+    - `tests/Feature/CatalogTest.php::test_catalog_list_and_show_have_consistent_projection_shape`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.5` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

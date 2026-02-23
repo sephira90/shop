@@ -155,12 +155,16 @@ Status:
 
 #### P1.5 Repository query-shape deduplication
 
-- [ ] Унифицировать повторяющиеся select/with/filter блоки в `ProductRepository`.
-- [ ] Ввести локальные query builders/scopes для единого источника truth.
+- [x] Унифицировать повторяющиеся select/with/filter блоки в `ProductRepository`.
+- [x] Ввести локальные query builders/scopes для единого источника truth.
 
 Definition of Done:
 
 - Нет расхождений projection-конфигураций между list/show path.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ### Wave P2. Scale & Operations
 
