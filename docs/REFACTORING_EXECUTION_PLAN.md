@@ -2039,3 +2039,29 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P2.2` completed (frontend test architecture split):
+  - монолитный UI contract test разбит на доменные пакеты:
+    - удален `resources/js/tests/components/ui/ui-component-contracts.spec.ts`;
+    - добавлены:
+      - `resources/js/tests/components/ui/ui-actions-component-contracts.spec.ts`;
+      - `resources/js/tests/components/ui/ui-data-display-component-contracts.spec.ts`;
+      - `resources/js/tests/components/ui/ui-feedback-component-contracts.spec.ts`;
+      - `resources/js/tests/components/ui/ui-forms-component-contracts.spec.ts`;
+      - `resources/js/tests/components/ui/ui-layout-component-contracts.spec.ts`;
+      - `resources/js/tests/components/ui/ui-table-component-contracts.spec.ts`;
+      - `resources/js/tests/components/ui/ui-typography-component-contracts.spec.ts`;
+  - вынесен общий test-helper слой (`mount`, `RouterLinkStub`, pagination fixture):
+    - `resources/js/tests/components/ui/helpers/ui-test-helpers.ts`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P2.2` отмечен как completed;
+  - выполнен target check:
+    - `npm run test -- resources/js/tests/components/ui` (7 files / 56 tests green);
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

@@ -186,12 +186,16 @@ Status:
 
 #### P2.2 Тестовая архитектура frontend
 
-- [ ] Разбить `ui-component-contracts.spec.ts` на доменные тестовые пакеты.
-- [ ] Вынести общие mount/helpers/fixtures.
+- [x] Разбить `ui-component-contracts.spec.ts` на доменные тестовые пакеты.
+- [x] Вынести общие mount/helpers/fixtures.
 
 Definition of Done:
 
 - Меньший blast radius при падениях, ускоренный triage.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ---
 
