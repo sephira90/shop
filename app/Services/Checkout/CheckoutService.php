@@ -45,7 +45,7 @@ final class CheckoutService
         return DB::transaction(function () use ($cart, $checkoutPayload, $idempotencyKey, $hash, $scopeKey, $user): Order {
             $lockedCart = Cart::query()
                 ->whereKey($cart->id)
-                ->with(['items.variant.inventory'])
+                ->with(['items.variant.product'])
                 ->lockForUpdate()
                 ->first();
 
@@ -105,6 +105,7 @@ final class CheckoutService
 
             $subtotal = 0.0;
             $lineItems = [];
+            $requiredQuantityByVariant = [];
 
             foreach ($lockedCart->items as $item) {
                 if (! $item instanceof CartItem) {
@@ -117,10 +118,7 @@ final class CheckoutService
                     throw new DomainException('Cart contains unavailable items.');
                 }
 
-                $product = Product::query()
-                    ->select(['id', 'status', 'published_at'])
-                    ->whereKey($variant->product_id)
-                    ->first();
+                $product = $variant->product;
 
                 if (! $product instanceof Product || ! $variant->is_active
                     || (string) $product->getRawOriginal('status') !== ProductStatus::ACTIVE->value
@@ -128,26 +126,41 @@ final class CheckoutService
                     throw new DomainException('Cart contains unavailable items.');
                 }
 
-                $inventory = Inventory::query()
-                    ->where('product_variant_id', $item->product_variant_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $inventory instanceof Inventory || $inventory->availableQuantity() < $item->quantity) {
-                    throw new DomainException('Insufficient stock during checkout.');
-                }
-
-                $inventory->decrement('quantity', $item->quantity);
+                $variantId = (int) $item->product_variant_id;
+                $requiredQuantityByVariant[$variantId] = ($requiredQuantityByVariant[$variantId] ?? 0) + $item->quantity;
                 $subtotal += (float) $item->line_total;
 
                 $lineItems[] = [
-                    'product_variant_id' => $item->product_variant_id,
+                    'product_variant_id' => $variantId,
                     'sku' => $variant->sku,
                     'name' => $variant->name,
                     'quantity' => $item->quantity,
                     'unit_price' => (float) $item->unit_price,
                     'line_total' => (float) $item->line_total,
                 ];
+            }
+
+            ksort($requiredQuantityByVariant);
+
+            $inventoryByVariant = Inventory::query()
+                ->whereIn('product_variant_id', array_keys($requiredQuantityByVariant))
+                ->orderBy('product_variant_id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('product_variant_id');
+
+            foreach ($requiredQuantityByVariant as $variantId => $requiredQuantity) {
+                $inventory = $inventoryByVariant->get($variantId);
+
+                if (! $inventory instanceof Inventory || $inventory->availableQuantity() < $requiredQuantity) {
+                    throw new DomainException('Insufficient stock during checkout.');
+                }
+            }
+
+            foreach ($requiredQuantityByVariant as $variantId => $requiredQuantity) {
+                /** @var Inventory $inventory */
+                $inventory = $inventoryByVariant->get($variantId);
+                $inventory->decrement('quantity', $requiredQuantity);
             }
 
             $discountContext = $this->resolveDiscountContext($checkoutPayload, $subtotal);
@@ -173,8 +186,11 @@ final class CheckoutService
                 'placed_at' => now(),
             ]);
 
+            $timestamp = now();
+            $orderItems = [];
+
             foreach ($lineItems as $lineItem) {
-                OrderItem::query()->create([
+                $orderItems[] = [
                     'order_id' => $order->id,
                     'product_variant_id' => $lineItem['product_variant_id'],
                     'sku' => $lineItem['sku'],
@@ -182,8 +198,14 @@ final class CheckoutService
                     'quantity' => $lineItem['quantity'],
                     'unit_price' => $lineItem['unit_price'],
                     'total_price' => $lineItem['line_total'],
-                    'meta' => ['source_cart' => $lockedCart->id],
-                ]);
+                    'meta' => json_encode(['source_cart' => $lockedCart->id], JSON_THROW_ON_ERROR),
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+
+            if ($orderItems !== []) {
+                OrderItem::query()->insert($orderItems);
             }
 
             $lockedCart->update(['status' => CartStatus::CHECKED_OUT->value]);

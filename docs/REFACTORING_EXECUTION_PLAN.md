@@ -1893,3 +1893,26 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.1` completed (checkout transactional performance hardening):
+  - `app/Services/Checkout/CheckoutService.php`:
+    - cart preload переведен на `items.variant.product` для устранения per-item product query;
+    - добавлен batch inventory lock/reserve flow:
+      - агрегирование требуемых quantity по `product_variant_id`;
+      - детерминированный порядок резервирования через `ksort` (stable lock order);
+      - единая `lockForUpdate` выборка inventories по списку variant ids;
+      - валидация stock по агрегированным quantity;
+      - детерминированное списание inventory после валидации;
+    - создание `order_items` переведено на bulk insert (`OrderItem::insert`) вместо per-row `create`;
+  - `tests/Feature/CartCheckoutTest.php`:
+    - добавлен регрессионный сценарий `test_checkout_rejects_when_inventory_becomes_insufficient` для инварианта stock-check в момент checkout;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.1` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

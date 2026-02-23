@@ -165,4 +165,48 @@ class CartCheckoutTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('error.message', 'Idempotency key reused with different payload.');
     }
+
+    /**
+     * Ensure checkout rejects cart when inventory changed after add-to-cart.
+     */
+    public function test_checkout_rejects_when_inventory_becomes_insufficient(): void
+    {
+        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+
+        $variant = ProductVariant::query()->with('inventory')->firstOrFail();
+        $guestToken = 'checkout-insufficient-stock-token';
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+            'guest_token' => $guestToken,
+        ])->assertOk();
+
+        $variant->inventory?->update([
+            'quantity' => 1,
+            'reserved_quantity' => 0,
+        ]);
+
+        $this->withHeader('Idempotency-Key', 'checkout-insufficient-stock')
+            ->postJson('/api/v1/checkout/place-order', [
+                'guest_token' => $guestToken,
+                'email' => 'guest@example.com',
+                'billing_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+                'shipping_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('error.message', 'Insufficient stock during checkout.');
+
+        $this->assertSame(0, Order::query()->count());
+    }
 }

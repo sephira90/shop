@@ -90,14 +90,18 @@ Status:
 
 #### P1.1 Checkout transactional performance hardening
 
-- [ ] Укоротить transaction lock window в checkout.
-- [ ] Перейти на batch-подход к inventory lock/reserve.
-- [ ] Оптимизировать создание order items (где возможно bulk pattern).
+- [x] Укоротить transaction lock window в checkout.
+- [x] Перейти на batch-подход к inventory lock/reserve.
+- [x] Оптимизировать создание order items (где возможно bulk pattern).
 
 Definition of Done:
 
 - Снижение количества SQL round-trips и времени транзакции.
 - Сохранена корректность stock/discount/idempotency.
+
+Status:
+
+- Completed: 2026-02-23.
 
 ---
 
