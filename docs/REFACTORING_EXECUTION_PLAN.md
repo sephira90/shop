@@ -1916,3 +1916,24 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.2` completed (shipment idempotency hardening):
+  - `app/Services/Shipping/ShippingService.php`:
+    - `createShipment` переведен в transaction-safe flow с `lockForUpdate` по `orders.id`;
+    - добавлен явный idempotency guard: при наличии shipment по `order_id` возвращается существующая запись без нового provider-вызова;
+  - `app/Jobs/DispatchShipmentJob.php`:
+    - удален pre-check `with('shipments')/isNotEmpty`, дубль-защита централизована в `ShippingService::createShipment`;
+  - добавлены регрессионные тесты на retry/concurrency semantics:
+    - `tests/Feature/ShipmentDispatchIdempotencyTest.php`:
+      - `test_shipping_service_create_shipment_is_idempotent_for_same_order`;
+      - `test_dispatch_shipment_job_retry_does_not_create_duplicate_shipments`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.2` отмечен как completed;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`.

@@ -24,17 +24,13 @@ class DispatchShipmentJob implements ShouldQueue
      */
     public function handle(ShippingService $shippingService): void
     {
-        $order = Order::query()->with('shipments')->find($this->orderId);
+        $order = Order::query()->find($this->orderId);
 
         if (! $order instanceof Order) {
             return;
         }
 
         if ($order->payment_status !== PaymentStatus::CAPTURED) {
-            return;
-        }
-
-        if ($order->shipments->isNotEmpty()) {
             return;
         }
 

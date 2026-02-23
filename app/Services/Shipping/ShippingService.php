@@ -8,6 +8,8 @@ use App\Contracts\ShippingGatewayInterface;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Webhook\WebhookProcessingPipeline;
+use DomainException;
+use Illuminate\Support\Facades\DB;
 
 final readonly class ShippingService
 {
@@ -25,17 +27,38 @@ final readonly class ShippingService
      */
     public function createShipment(Order $order): Shipment
     {
-        $shippingDriver = $this->shippingDriver();
-        $result = $this->gateway->createShipment($order);
+        return DB::transaction(function () use ($order): Shipment {
+            $lockedOrder = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->first();
 
-        return Shipment::query()->create([
-            'order_id' => $order->id,
-            'provider' => $shippingDriver,
-            'tracking_number' => $result['tracking_number'],
-            'status' => $result['status']->value,
-            'cost' => $result['cost'],
-            'payload' => $result['payload'],
-        ]);
+            if (! $lockedOrder instanceof Order) {
+                throw new DomainException('Order not found for shipment dispatch.');
+            }
+
+            $existingShipment = Shipment::query()
+                ->where('order_id', $lockedOrder->id)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingShipment instanceof Shipment) {
+                return $existingShipment;
+            }
+
+            $shippingDriver = $this->shippingDriver();
+            $result = $this->gateway->createShipment($lockedOrder);
+
+            return Shipment::query()->create([
+                'order_id' => $lockedOrder->id,
+                'provider' => $shippingDriver,
+                'tracking_number' => $result['tracking_number'],
+                'status' => $result['status']->value,
+                'cost' => $result['cost'],
+                'payload' => $result['payload'],
+            ]);
+        });
     }
 
     /**
