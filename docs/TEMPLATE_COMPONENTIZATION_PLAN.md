@@ -548,6 +548,22 @@ resources/js/components/
   - расширено contract-покрытие:
     - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`
     - `resources/js/tests/components/orders/order-items-table-component-contracts.spec.ts`.
+- `Wave 4.26 UI folder normalization`: выполнено:
+  - плоский слой `resources/js/components/ui/*.vue` разложен по смысловым подпапкам:
+    - `actions/`
+    - `forms/`
+    - `layout/`
+    - `feedback/`
+    - `data-display/`
+    - `table/`
+    - `typography/`;
+  - обновлены импорты на новый путь-namespace по всему frontend-коду:
+    - `resources/js/components/**/*.vue`
+    - `resources/js/pages/**/*.vue`
+    - `resources/js/tests/components/**/*.spec.ts`;
+  - добавлена документация структуры:
+    - `resources/js/components/ui/README.md`;
+  - behavior/UI-контракты сохранены, изменения ограничены структурой и import-paths.
 
 ## Wave 2 (P1): Account templates
 

@@ -1724,6 +1724,32 @@
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
   - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.25 status).
+- `2026-02-23` — `Template Componentization` Wave 4.26 batch (UI folder normalization) выполнен:
+  - `resources/js/components/ui` разложен на семантические подпапки:
+    - `actions`, `forms`, `layout`, `feedback`, `data-display`, `table`, `typography`;
+  - обновлены import-paths на новый namespace по frontend-коду:
+    - `resources/js/components/**/*.vue`
+    - `resources/js/pages/**/*.vue`
+    - `resources/js/tests/components/**/*.spec.ts`;
+  - добавлен `resources/js/components/ui/README.md` с правилами размещения shared UI;
+  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `C:\composer\composer.bat run lint`
+    - `C:\composer\composer.bat run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+    - `php artisan app:observability-alert-check`
+    - `php artisan app:oncall-drill-smoke`;
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.26 status).
 
 ## Следующий batch
 
