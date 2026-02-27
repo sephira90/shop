@@ -21,6 +21,8 @@ const apiClientMock = apiClient as unknown as {
 const buildCartPayload = (quantity: number) => ({
     id: "cart-1",
     guest_token: null,
+    currency: "USD",
+    status: "active",
     items: [
         {
             product_variant_id: 101,
@@ -76,7 +78,6 @@ describe("cart store", () => {
         expect(apiClientMock.post).toHaveBeenCalledWith("/cart/items", {
             product_variant_id: 101,
             quantity: 3,
-            guest_token: null,
         });
         expect(cartStore.cart?.items[0]?.quantity).toBe(3);
     });
@@ -97,7 +98,6 @@ describe("cart store", () => {
         expect(apiClientMock.post).toHaveBeenCalledWith("/cart/items", {
             product_variant_id: 101,
             quantity: 2,
-            guest_token: null,
         });
         expect(cartStore.cart?.items[0]?.quantity).toBe(2);
     });

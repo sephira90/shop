@@ -1,3 +1,4 @@
+import type { PromotionCouponWireDto, PromotionWireDto } from "@/contracts/api/v1/admin-promotions";
 import type {
     Coupon,
     CouponCreatePayload,
@@ -7,54 +8,39 @@ import type {
     PromotionType,
 } from "@/types/admin-promotions";
 
-import {
-    asArray,
-    asRecord,
-    toBoolean,
-    toInteger,
-    toNullableInteger,
-    toNullableString,
-    toNumber,
-    toString,
-} from "@/mappers/common";
-
-const mapPromotionType = (value: unknown): PromotionType => {
-    return toString(value).toLowerCase() === "fixed" ? "fixed" : "percent";
+const mapPromotionType = (value: PromotionWireDto["type"]): PromotionType => {
+    return value === "fixed" ? "fixed" : "percent";
 };
 
-export const mapCouponFromApi = (value: unknown): Coupon => {
-    const record = asRecord(value);
-
+export const mapCouponFromApi = (value: PromotionCouponWireDto): Coupon => {
     return {
-        id: toInteger(record.id),
-        code: toString(record.code),
-        is_active: toBoolean(record.is_active, true),
-        max_redemptions: toNullableInteger(record.max_redemptions),
-        redeemed_count: toInteger(record.redeemed_count),
-        expires_at: toNullableString(record.expires_at),
+        id: value.id,
+        code: value.code,
+        is_active: value.is_active,
+        max_redemptions: value.max_redemptions,
+        redeemed_count: value.redeemed_count,
+        expires_at: value.expires_at,
     };
 };
 
-export const mapPromotionFromApi = (value: unknown): Promotion => {
-    const record = asRecord(value);
-
+export const mapPromotionFromApi = (value: PromotionWireDto): Promotion => {
     return {
-        id: toInteger(record.id),
-        name: toString(record.name),
-        code: toNullableString(record.code),
-        type: mapPromotionType(record.type),
-        value: toNumber(record.value),
-        is_active: toBoolean(record.is_active, true),
-        usage_limit: toNullableInteger(record.usage_limit),
-        usage_count: toInteger(record.usage_count),
-        starts_at: toNullableString(record.starts_at),
-        ends_at: toNullableString(record.ends_at),
-        coupons: asArray(record.coupons).map((coupon) => mapCouponFromApi(coupon)),
+        id: value.id,
+        name: value.name,
+        code: value.code,
+        type: mapPromotionType(value.type),
+        value: value.value,
+        is_active: value.is_active,
+        usage_limit: value.usage_limit,
+        usage_count: value.usage_count,
+        starts_at: value.starts_at,
+        ends_at: value.ends_at,
+        coupons: value.coupons.map((coupon) => mapCouponFromApi(coupon)),
     };
 };
 
-export const mapPromotionListFromApi = (value: unknown): Promotion[] => {
-    return asArray(value).map((item) => mapPromotionFromApi(item));
+export const mapPromotionListFromApi = (value: PromotionWireDto[]): Promotion[] => {
+    return value.map((item) => mapPromotionFromApi(item));
 };
 
 export const toPromotionMutationDto = (

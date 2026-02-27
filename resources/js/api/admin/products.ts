@@ -1,5 +1,6 @@
 import { apiClient } from "@/api/client";
 import { extractData, normalizeListResponse } from "@/api/response";
+import { assertAdminProductWireDto } from "@/contracts/api/v1/assertions/admin-products";
 import {
     mapAdminProductFromApi,
     mapAdminProductListFromApi,
@@ -25,10 +26,12 @@ export const listAdminProducts = async (
         signal: options?.signal,
     });
 
-    const response = normalizeListResponse<unknown>(data);
+    const response = normalizeListResponse(data);
 
     return {
-        data: mapAdminProductListFromApi(response.data),
+        data: mapAdminProductListFromApi(
+            response.data.map((item) => assertAdminProductWireDto(item)),
+        ),
         meta: response.meta,
     };
 };
@@ -37,9 +40,13 @@ export const createAdminProduct = async (
     payload: ProductMutationPayload,
 ): Promise<AdminProduct | null> => {
     const { data } = await apiClient.post("/admin/products", toProductMutationDto(payload));
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapAdminProductFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapAdminProductFromApi(assertAdminProductWireDto(response));
 };
 
 export const updateAdminProduct = async (
@@ -50,9 +57,13 @@ export const updateAdminProduct = async (
         `/admin/products/${productId}`,
         toProductMutationDto(payload),
     );
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapAdminProductFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapAdminProductFromApi(assertAdminProductWireDto(response));
 };
 
 export const deleteAdminProduct = async (productId: number): Promise<void> => {

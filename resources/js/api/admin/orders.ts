@@ -1,6 +1,10 @@
 import { apiClient } from "@/api/client";
 import { extractData, normalizeListResponse } from "@/api/response";
 import {
+    assertAdminOrderDetailWireDto,
+    assertAdminOrderSummaryWireDto,
+} from "@/contracts/api/v1/assertions/admin-orders";
+import {
     mapAdminOrderDetailFromApi,
     mapAdminOrderListFromApi,
     toOrderStatusUpdateDto,
@@ -25,10 +29,12 @@ export const listAdminOrders = async (
         signal: options?.signal,
     });
 
-    const response = normalizeListResponse<unknown>(data);
+    const response = normalizeListResponse(data);
 
     return {
-        data: mapAdminOrderListFromApi(response.data),
+        data: mapAdminOrderListFromApi(
+            response.data.map((item) => assertAdminOrderSummaryWireDto(item)),
+        ),
         meta: response.meta,
     };
 };
@@ -41,14 +47,22 @@ export const updateAdminOrderStatus = async (
         `/admin/orders/${orderId}/status`,
         toOrderStatusUpdateDto(payload),
     );
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapAdminOrderDetailFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapAdminOrderDetailFromApi(assertAdminOrderDetailWireDto(response));
 };
 
 export const getAdminOrderDetail = async (orderId: string): Promise<AdminOrderDetail | null> => {
     const { data } = await apiClient.get(`/admin/orders/${orderId}`);
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapAdminOrderDetailFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapAdminOrderDetailFromApi(assertAdminOrderDetailWireDto(response));
 };

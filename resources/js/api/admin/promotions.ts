@@ -1,6 +1,10 @@
 import { apiClient } from "@/api/client";
 import { extractData, normalizeListResponse } from "@/api/response";
 import {
+    assertPromotionCouponWireDto,
+    assertPromotionWireDto,
+} from "@/contracts/api/v1/assertions/admin-promotions";
+import {
     mapCouponFromApi,
     mapPromotionFromApi,
     mapPromotionListFromApi,
@@ -31,10 +35,10 @@ export const listPromotions = async (
         signal: options?.signal,
     });
 
-    const response = normalizeListResponse<unknown>(data);
+    const response = normalizeListResponse(data);
 
     return {
-        data: mapPromotionListFromApi(response.data),
+        data: mapPromotionListFromApi(response.data.map((item) => assertPromotionWireDto(item))),
         meta: response.meta,
     };
 };
@@ -43,9 +47,13 @@ export const createPromotion = async (
     payload: PromotionMutationPayload,
 ): Promise<Promotion | null> => {
     const { data } = await apiClient.post("/admin/promotions", toPromotionMutationDto(payload));
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapPromotionFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapPromotionFromApi(assertPromotionWireDto(response));
 };
 
 export const updatePromotion = async (
@@ -56,9 +64,13 @@ export const updatePromotion = async (
         `/admin/promotions/${promotionId}`,
         toPromotionMutationDto(payload),
     );
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapPromotionFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapPromotionFromApi(assertPromotionWireDto(response));
 };
 
 export const deletePromotion = async (promotionId: number): Promise<void> => {
@@ -73,9 +85,13 @@ export const createPromotionCoupon = async (
         `/admin/promotions/${promotionId}/coupons`,
         toCouponCreateDto(payload),
     );
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapCouponFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapCouponFromApi(assertPromotionCouponWireDto(response));
 };
 
 export const updateCoupon = async (
@@ -86,7 +102,11 @@ export const updateCoupon = async (
         `/admin/coupons/${couponId}`,
         toCouponUpdateDto(payload),
     );
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapCouponFromApi(response) : null;
+    if (response === null) {
+        return null;
+    }
+
+    return mapCouponFromApi(assertPromotionCouponWireDto(response));
 };

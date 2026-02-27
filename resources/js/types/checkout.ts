@@ -35,7 +35,7 @@ export interface CheckoutPaymentResult {
 }
 
 export interface CheckoutOrderResult {
-    id: number;
+    id: string;
     order_number: string;
     payment: CheckoutPaymentResult;
 }

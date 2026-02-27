@@ -1,4 +1,8 @@
 import type { ListResponse } from "@/api/response";
+import type {
+    AdminProductMutationRequestDto,
+    AdminProductVariantMutationRequestDto,
+} from "@/contracts/api/v1/admin-products";
 
 export type ProductStatus = "draft" | "active" | "archived";
 
@@ -72,18 +76,18 @@ export interface ProductVariantForm {
 }
 
 export interface ProductMutationPayload {
-    sku: string;
-    name: string;
-    slug: string | null;
-    short_description: string | null;
-    description: string | null;
+    sku: AdminProductMutationRequestDto["sku"];
+    name: AdminProductMutationRequestDto["name"];
+    slug: AdminProductMutationRequestDto["slug"];
+    short_description: AdminProductMutationRequestDto["short_description"];
+    description: AdminProductMutationRequestDto["description"];
     status: ProductStatus;
-    is_featured: boolean;
-    category_id: number | null;
-    brand: string | null;
-    weight_grams: number | null;
-    meta_title: string | null;
-    meta_description: string | null;
-    published_at: string | null;
-    variants?: Array<Record<string, unknown>>;
+    is_featured: AdminProductMutationRequestDto["is_featured"];
+    category_id: AdminProductMutationRequestDto["category_id"];
+    brand: AdminProductMutationRequestDto["brand"];
+    weight_grams: AdminProductMutationRequestDto["weight_grams"];
+    meta_title: AdminProductMutationRequestDto["meta_title"];
+    meta_description: AdminProductMutationRequestDto["meta_description"];
+    published_at: AdminProductMutationRequestDto["published_at"];
+    variants?: AdminProductVariantMutationRequestDto[];
 }

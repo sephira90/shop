@@ -1,4 +1,10 @@
 import type {
+    AdminOrderAddressWireDto,
+    AdminOrderDetailWireDto,
+    AdminOrderItemWireDto,
+    AdminOrderSummaryWireDto,
+} from "@/contracts/api/v1/admin-orders";
+import type {
     AddressPayload,
     AdminOrderDetail,
     AdminOrderSummary,
@@ -6,14 +12,15 @@ import type {
     OrderStatusUpdatePayload,
 } from "@/types/admin-orders";
 
-import { asArray, asRecord, toNumber, toNullableString, toString } from "@/mappers/common";
+const mapAddress = (value: AdminOrderAddressWireDto | null): AddressPayload | null => {
+    if (value === null) {
+        return null;
+    }
 
-const mapAddress = (value: unknown): AddressPayload | null => {
-    const record = asRecord(value);
-    const line1 = toString(record.line1).trim();
-    const city = toString(record.city).trim();
-    const country = toString(record.country).trim();
-    const postcode = toString(record.postcode).trim();
+    const line1 = (value.line1 ?? "").trim();
+    const city = (value.city ?? "").trim();
+    const country = (value.country ?? "").trim();
+    const postcode = (value.postcode ?? "").trim();
 
     if (line1 === "" && city === "" && country === "" && postcode === "") {
         return null;
@@ -37,50 +44,47 @@ const mapAddress = (value: unknown): AddressPayload | null => {
     return address;
 };
 
-const mapOrderItem = (value: unknown): OrderItem => {
-    const record = asRecord(value);
-
+const mapOrderItem = (value: AdminOrderItemWireDto): OrderItem => {
     return {
-        sku: toString(record.sku),
-        name: toString(record.name),
-        quantity: toNumber(record.quantity),
-        unit_price: toNumber(record.unit_price),
-        total_price: toNumber(record.total_price),
+        sku: value.sku,
+        name: value.name,
+        quantity: value.quantity,
+        unit_price: value.unit_price,
+        total_price: value.total_price,
     };
 };
 
-export const mapAdminOrderSummaryFromApi = (value: unknown): AdminOrderSummary => {
-    const record = asRecord(value);
-
+export const mapAdminOrderSummaryFromApi = (value: AdminOrderSummaryWireDto): AdminOrderSummary => {
     return {
-        id: toString(record.id),
-        order_number: toString(record.order_number),
-        email: toString(record.email),
-        status: toString(record.status),
-        payment_status: toString(record.payment_status),
-        shipment_status: toString(record.shipment_status),
-        currency: toString(record.currency, "USD"),
-        total: toNumber(record.total),
-        placed_at: toNullableString(record.placed_at),
-        created_at: toNullableString(record.created_at),
+        id: value.id,
+        order_number: value.order_number,
+        email: value.email,
+        status: value.status,
+        payment_status: value.payment_status,
+        shipment_status: value.shipment_status,
+        currency: value.currency,
+        total: value.total,
+        placed_at: value.placed_at,
+        created_at: value.created_at,
     };
 };
 
-export const mapAdminOrderDetailFromApi = (value: unknown): AdminOrderDetail => {
-    const record = asRecord(value);
-    const summary = mapAdminOrderSummaryFromApi(record);
+export const mapAdminOrderDetailFromApi = (value: AdminOrderDetailWireDto): AdminOrderDetail => {
+    const summary = mapAdminOrderSummaryFromApi(value);
 
     return {
         ...summary,
-        subtotal: toNumber(record.subtotal),
-        billing_address: mapAddress(record.billing_address),
-        shipping_address: mapAddress(record.shipping_address),
-        items: asArray(record.items).map((item) => mapOrderItem(item)),
+        subtotal: value.subtotal,
+        billing_address: mapAddress(value.billing_address),
+        shipping_address: mapAddress(value.shipping_address),
+        items: value.items.map((item) => mapOrderItem(item)),
     };
 };
 
-export const mapAdminOrderListFromApi = (value: unknown): AdminOrderSummary[] => {
-    return asArray(value).map((item) => mapAdminOrderSummaryFromApi(item));
+export const mapAdminOrderListFromApi = (
+    value: AdminOrderSummaryWireDto[],
+): AdminOrderSummary[] => {
+    return value.map((item) => mapAdminOrderSummaryFromApi(item));
 };
 
 export const toOrderStatusUpdateDto = (

@@ -37,7 +37,7 @@ describe("checkout api", () => {
         apiClientMock.post.mockResolvedValueOnce({
             data: {
                 data: {
-                    id: 11,
+                    id: "ord-11",
                     order_number: "ORD-1001",
                     payment: {
                         payment_id: 41,
@@ -59,7 +59,7 @@ describe("checkout api", () => {
             },
         });
         expect(result).toEqual({
-            id: 11,
+            id: "ord-11",
             order_number: "ORD-1001",
             payment: {
                 payment_id: 41,
@@ -94,7 +94,7 @@ describe("checkout api", () => {
         apiClientMock.post.mockResolvedValueOnce({
             data: {
                 data: {
-                    id: 13,
+                    id: "ord-13",
                     order_number: "ORD-1003",
                     payment: {
                         payment_id: 0,

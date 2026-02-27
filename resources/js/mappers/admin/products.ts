@@ -1,4 +1,8 @@
 import type {
+    AdminProductMutationRequestDto,
+    AdminProductWireDto,
+} from "@/contracts/api/v1/admin-products";
+import type {
     AdminProduct,
     AdminProductCategory,
     ProductMutationPayload,
@@ -7,115 +11,118 @@ import type {
     ProductVariantInventory,
 } from "@/types/admin-products";
 
-import {
-    asArray,
-    asRecord,
-    toBoolean,
-    toInteger,
-    toNullableInteger,
-    toNullableString,
-    toNumber,
-    toString,
-} from "@/mappers/common";
-
-const mapProductStatus = (value: unknown): ProductStatus => {
-    const normalized = toString(value).toLowerCase();
-
-    if (normalized === "active" || normalized === "archived") {
-        return normalized;
+const mapProductStatus = (value: AdminProductWireDto["status"]): ProductStatus => {
+    if (value === "active" || value === "archived") {
+        return value;
     }
 
     return "draft";
 };
 
-const mapProductCategory = (value: unknown): AdminProductCategory | null => {
-    const record = asRecord(value);
-    const id = toInteger(record.id);
-
-    if (id <= 0) {
+const mapProductCategory = (
+    value: AdminProductWireDto["category"],
+): AdminProductCategory | null => {
+    if (value === null || value.id <= 0) {
         return null;
     }
 
     return {
-        id,
-        name: toString(record.name),
-        slug: toString(record.slug),
+        id: value.id,
+        name: value.name,
+        slug: value.slug,
     };
 };
 
-const mapVariantInventory = (value: unknown): ProductVariantInventory | null => {
-    const record = asRecord(value);
-
-    if (Object.keys(record).length === 0) {
+const mapVariantInventory = (
+    value: AdminProductWireDto["variants"][number]["inventory"],
+): ProductVariantInventory | null => {
+    if (value === null) {
         return null;
     }
 
     return {
-        quantity: toNullableInteger(record.quantity),
-        reserved_quantity: toNullableInteger(record.reserved_quantity),
-        low_stock_threshold: toNullableInteger(record.low_stock_threshold),
+        quantity: value.quantity,
+        reserved_quantity: value.reserved_quantity,
     };
 };
 
-const mapVariantAttributes = (value: unknown): Record<string, unknown> | null => {
-    const record = asRecord(value);
-
-    if (Object.keys(record).length === 0) {
+const mapVariantAttributes = (
+    value: AdminProductWireDto["variants"][number]["attributes"],
+): ProductVariant["attributes"] => {
+    if (value === null || Object.keys(value).length === 0) {
         return null;
     }
 
-    return record;
+    return value;
 };
 
-const mapProductVariant = (value: unknown): ProductVariant => {
-    const record = asRecord(value);
-
+const mapProductVariant = (value: AdminProductWireDto["variants"][number]): ProductVariant => {
     return {
-        id: toInteger(record.id),
-        sku: toString(record.sku),
-        name: toString(record.name),
-        attributes: mapVariantAttributes(record.attributes),
-        price: toNumber(record.price),
-        compare_at_price:
-            record.compare_at_price === null || record.compare_at_price === undefined
-                ? null
-                : toNumber(record.compare_at_price),
-        currency: toString(record.currency, "USD"),
-        is_active: toBoolean(record.is_active, true),
-        inventory: mapVariantInventory(record.inventory),
+        id: value.id,
+        sku: value.sku,
+        name: value.name,
+        attributes: mapVariantAttributes(value.attributes),
+        price: value.price,
+        compare_at_price: value.compare_at_price,
+        currency: value.currency,
+        is_active: value.is_active,
+        inventory: mapVariantInventory(value.inventory),
     };
 };
 
-export const mapAdminProductFromApi = (value: unknown): AdminProduct => {
-    const record = asRecord(value);
-    const meta = asRecord(record.meta);
-
+export const mapAdminProductFromApi = (value: AdminProductWireDto): AdminProduct => {
     return {
-        id: toInteger(record.id),
-        sku: toString(record.sku),
-        name: toString(record.name),
-        slug: toString(record.slug),
-        short_description: toNullableString(record.short_description),
-        description: toNullableString(record.description),
-        status: mapProductStatus(record.status),
-        is_featured: toBoolean(record.is_featured),
-        brand: toNullableString(record.brand),
-        weight_grams: toNullableInteger(record.weight_grams),
-        category: mapProductCategory(record.category),
+        id: value.id,
+        sku: value.sku,
+        name: value.name,
+        slug: value.slug,
+        short_description: value.short_description,
+        description: value.description,
+        status: mapProductStatus(value.status),
+        is_featured: value.is_featured,
+        brand: value.brand,
+        weight_grams: value.weight_grams,
+        category: mapProductCategory(value.category),
         meta: {
-            title: toNullableString(meta.title),
-            description: toNullableString(meta.description),
+            title: value.meta.title,
+            description: value.meta.description,
         },
-        variants: asArray(record.variants).map((variant) => mapProductVariant(variant)),
-        published_at: toNullableString(record.published_at),
+        variants: value.variants.map((variant) => mapProductVariant(variant)),
+        published_at: value.published_at,
     };
 };
 
-export const mapAdminProductListFromApi = (value: unknown): AdminProduct[] => {
-    return asArray(value).map((item) => mapAdminProductFromApi(item));
+export const mapAdminProductListFromApi = (value: AdminProductWireDto[]): AdminProduct[] => {
+    return value.map((item) => mapAdminProductFromApi(item));
 };
 
-export const toProductMutationDto = (payload: ProductMutationPayload): ProductMutationPayload => {
+const normalizeVariantMutation = (
+    variant: NonNullable<ProductMutationPayload["variants"]>[number],
+): NonNullable<AdminProductMutationRequestDto["variants"]>[number] => {
+    const quantity = Math.max(0, Math.trunc(variant.inventory.quantity));
+    const reservedQuantity = Math.max(0, Math.trunc(variant.inventory.reserved_quantity));
+    const lowStockThreshold = Math.max(0, Math.trunc(variant.inventory.low_stock_threshold));
+
+    return {
+        ...(variant.id !== undefined ? { id: variant.id } : {}),
+        sku: variant.sku.trim(),
+        name: variant.name.trim(),
+        attributes: variant.attributes,
+        price: variant.price,
+        compare_at_price: variant.compare_at_price,
+        currency: variant.currency.trim().toUpperCase(),
+        is_active: variant.is_active,
+        inventory: {
+            quantity,
+            reserved_quantity: Math.min(reservedQuantity, quantity),
+            low_stock_threshold: lowStockThreshold,
+        },
+    };
+};
+
+export const toProductMutationDto = (
+    payload: ProductMutationPayload,
+): AdminProductMutationRequestDto => {
     return {
         sku: payload.sku.trim(),
         name: payload.name.trim(),
@@ -130,6 +137,6 @@ export const toProductMutationDto = (payload: ProductMutationPayload): ProductMu
         meta_title: payload.meta_title,
         meta_description: payload.meta_description,
         published_at: payload.published_at,
-        variants: payload.variants,
+        variants: payload.variants?.map((variant) => normalizeVariantMutation(variant)),
     };
 };

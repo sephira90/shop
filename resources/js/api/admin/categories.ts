@@ -1,5 +1,6 @@
 import { apiClient } from "@/api/client";
 import { normalizeListResponse } from "@/api/response";
+import { assertAdminCategoryWireDto } from "@/contracts/api/v1/assertions/admin-categories";
 import { mapAdminCategoryListFromApi, toCategoryMutationDto } from "@/mappers/admin/categories";
 import type {
     AdminCategoryListParams,
@@ -20,10 +21,12 @@ export const listAdminCategories = async (
         signal: options?.signal,
     });
 
-    const response = normalizeListResponse<unknown>(data);
+    const response = normalizeListResponse(data);
 
     return {
-        data: mapAdminCategoryListFromApi(response.data),
+        data: mapAdminCategoryListFromApi(
+            response.data.map((item) => assertAdminCategoryWireDto(item)),
+        ),
         meta: response.meta,
     };
 };

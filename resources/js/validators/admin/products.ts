@@ -1,3 +1,4 @@
+import type { AdminProductVariantMutationRequestDto } from "@/contracts/api/v1/admin-products";
 import type {
     AdminProduct,
     ProductMutationPayload,
@@ -22,9 +23,23 @@ export interface ProductFormState {
     variants: ProductVariantForm[];
 }
 
-const parseVariantAttributes = (value: unknown, index: number): Record<string, unknown> => {
+const parseInventoryNumber = (value: unknown, fallback: number): number => {
+    const trimmed = String(value ?? "").trim();
+
+    if (trimmed === "") {
+        return fallback;
+    }
+
+    const numericValue = Number(trimmed);
+
+    return Number.isInteger(numericValue) ? numericValue : Number.NaN;
+};
+
+type ProductVariantAttributes = AdminProductVariantMutationRequestDto["attributes"];
+
+const parseVariantAttributes = (value: unknown, index: number): ProductVariantAttributes => {
     if (value && typeof value === "object" && !Array.isArray(value)) {
-        return value as Record<string, unknown>;
+        return value as ProductVariantAttributes;
     }
 
     const trimmed = String(value ?? "").trim();
@@ -45,22 +60,12 @@ const parseVariantAttributes = (value: unknown, index: number): Record<string, u
         throw new Error(`Variant #${index + 1}: attributes must be a JSON object.`);
     }
 
-    return parsed as Record<string, unknown>;
+    return parsed as ProductVariantAttributes;
 };
 
-const parseInventoryNumber = (value: unknown, fallback: number): number => {
-    const trimmed = String(value ?? "").trim();
-
-    if (trimmed === "") {
-        return fallback;
-    }
-
-    const numericValue = Number(trimmed);
-
-    return Number.isInteger(numericValue) ? numericValue : Number.NaN;
-};
-
-const buildVariantsPayload = (variants: ProductVariantForm[]): Array<Record<string, unknown>> => {
+const buildVariantsPayload = (
+    variants: ProductVariantForm[],
+): AdminProductVariantMutationRequestDto[] => {
     if (variants.length === 0) {
         throw new Error("At least one variant is required.");
     }
@@ -125,7 +130,7 @@ const buildVariantsPayload = (variants: ProductVariantForm[]): Array<Record<stri
         }
 
         const safeReservedQuantity = Math.min(reservedQuantity, quantity);
-        const payload: Record<string, unknown> = {
+        const payload: AdminProductVariantMutationRequestDto = {
             sku,
             name,
             attributes: parseVariantAttributes(variant.attributes_json, index),

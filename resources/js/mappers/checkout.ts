@@ -1,12 +1,12 @@
+import type { CheckoutOrderWireDto } from "@/contracts/api/v1/checkout";
 import type { CheckoutOrderResult, CheckoutPaymentResult } from "@/types/checkout";
 
-import { asRecord, toNumber, toString } from "@/mappers/common";
-
-const mapCheckoutPaymentFromApi = (value: unknown): CheckoutPaymentResult | null => {
-    const record = asRecord(value);
-    const paymentId = toNumber(record.payment_id);
-    const transactionId = toString(record.transaction_id).trim();
-    const status = toString(record.status).trim();
+const mapCheckoutPaymentFromApi = (
+    value: CheckoutOrderWireDto["payment"],
+): CheckoutPaymentResult | null => {
+    const paymentId = value.payment_id;
+    const transactionId = value.transaction_id.trim();
+    const status = (value.status ?? "").trim();
 
     if (paymentId <= 0 || transactionId === "" || status === "") {
         return null;
@@ -16,17 +16,18 @@ const mapCheckoutPaymentFromApi = (value: unknown): CheckoutPaymentResult | null
         payment_id: paymentId,
         transaction_id: transactionId,
         status,
-        payload: asRecord(record.payload),
+        payload: value.payload,
     };
 };
 
-export const mapCheckoutOrderFromApi = (value: unknown): CheckoutOrderResult | null => {
-    const record = asRecord(value);
-    const orderId = toNumber(record.id);
-    const orderNumber = toString(record.order_number).trim();
-    const payment = mapCheckoutPaymentFromApi(record.payment);
+export const mapCheckoutOrderFromApi = (
+    value: CheckoutOrderWireDto,
+): CheckoutOrderResult | null => {
+    const orderId = value.id.trim();
+    const orderNumber = value.order_number.trim();
+    const payment = mapCheckoutPaymentFromApi(value.payment);
 
-    if (orderId <= 0 || orderNumber === "" || payment === null) {
+    if (orderId === "" || orderNumber === "" || payment === null) {
         return null;
     }
 

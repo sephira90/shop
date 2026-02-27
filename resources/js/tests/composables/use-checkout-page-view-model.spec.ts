@@ -48,7 +48,7 @@ describe("useCheckoutPageViewModel", () => {
         authStore.token = "";
         cartStore.fetchCart = vi.fn(async () => {}) as typeof cartStore.fetchCart;
         placeCheckoutOrderMock.mockResolvedValue({
-            id: 11,
+            id: "ord-11",
             order_number: "ORD-11",
             payment: {
                 payment_id: 91,
@@ -157,6 +157,8 @@ describe("useCheckoutPageViewModel", () => {
         cartStore.cart = {
             id: "cart-1",
             guest_token: "guest-token-2",
+            currency: "USD",
+            status: "active",
             items: [],
             summary: {
                 subtotal: 0,

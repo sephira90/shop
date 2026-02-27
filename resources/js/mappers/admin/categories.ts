@@ -1,51 +1,37 @@
+import type { AdminCategoryWireDto } from "@/contracts/api/v1/admin-categories";
 import type { CategoryMutationPayload, AdminCategory } from "@/types/admin-categories";
 
-import {
-    asArray,
-    asRecord,
-    toBoolean,
-    toInteger,
-    toNullableInteger,
-    toNullableString,
-    toString,
-} from "@/mappers/common";
-
-const mapCategoryParent = (value: unknown): AdminCategory["parent"] => {
-    const record = asRecord(value);
-    const id = toInteger(record.id);
-
-    if (id <= 0) {
+const mapCategoryParent = (value: AdminCategoryWireDto["parent"]): AdminCategory["parent"] => {
+    if (value === null) {
         return null;
     }
 
     return {
-        id,
-        name: toString(record.name),
-        slug: toString(record.slug),
+        id: value.id,
+        name: value.name,
+        slug: value.slug,
     };
 };
 
-export const mapAdminCategoryFromApi = (value: unknown): AdminCategory => {
-    const record = asRecord(value);
-
+export const mapAdminCategoryFromApi = (value: AdminCategoryWireDto): AdminCategory => {
     return {
-        id: toInteger(record.id),
-        parent_id: toNullableInteger(record.parent_id),
-        name: toString(record.name),
-        slug: toString(record.slug),
-        description: toNullableString(record.description),
-        meta_title: toNullableString(record.meta_title),
-        meta_description: toNullableString(record.meta_description),
-        is_active: toBoolean(record.is_active, true),
-        sort_order: toInteger(record.sort_order),
-        parent: mapCategoryParent(record.parent),
-        children_count: toInteger(record.children_count),
-        products_count: toInteger(record.products_count),
+        id: value.id,
+        parent_id: value.parent_id,
+        name: value.name,
+        slug: value.slug,
+        description: value.description,
+        meta_title: value.meta_title,
+        meta_description: value.meta_description,
+        is_active: value.is_active,
+        sort_order: value.sort_order,
+        parent: mapCategoryParent(value.parent),
+        children_count: value.children_count,
+        products_count: value.products_count,
     };
 };
 
-export const mapAdminCategoryListFromApi = (value: unknown): AdminCategory[] => {
-    return asArray(value).map((item) => mapAdminCategoryFromApi(item));
+export const mapAdminCategoryListFromApi = (value: AdminCategoryWireDto[]): AdminCategory[] => {
+    return value.map((item) => mapAdminCategoryFromApi(item));
 };
 
 export const toCategoryMutationDto = (

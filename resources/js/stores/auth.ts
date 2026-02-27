@@ -1,40 +1,15 @@
 import { defineStore } from "pinia";
 
+import { getAuthProfile, loginAuth, registerAuth, updateAuthProfile } from "@/api/auth";
 import { apiClient } from "@/api/client";
-import { extractData } from "@/api/response";
-
-export interface AuthUser {
-    id: number;
-    first_name?: string | null;
-    last_name?: string | null;
-    name: string;
-    email: string;
-    roles: string[];
-    phone?: string | null;
-    is_email_verified?: boolean;
-}
+import type {
+    AuthLoginPayload,
+    AuthRegisterPayload,
+    AuthUpdateProfilePayload,
+    AuthUser,
+} from "@/types/auth";
 
 type RoleName = "customer" | "manager" | "admin";
-
-interface LoginPayload {
-    email: string;
-    password: string;
-    guest_token?: string;
-}
-
-interface RegisterPayload {
-    first_name: string;
-    last_name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-}
-
-interface UpdateProfilePayload {
-    first_name: string;
-    last_name: string;
-    phone: string | null;
-}
 
 export const useAuthStore = defineStore("auth", {
     state: () => ({
@@ -62,25 +37,15 @@ export const useAuthStore = defineStore("auth", {
         hasRole(role: RoleName): boolean {
             return this.user?.roles.includes(role) ?? false;
         },
-        async login(payload: LoginPayload): Promise<void> {
-            const { data } = await apiClient.post("/auth/login", payload);
-            const response = extractData<{ token: string; user: AuthUser }>(data);
-
-            if (!response) {
-                throw new Error("Invalid login response payload.");
-            }
+        async login(payload: AuthLoginPayload): Promise<void> {
+            const response = await loginAuth(payload);
 
             this.token = response.token;
             this.user = response.user;
             localStorage.setItem("shop_api_token", this.token);
         },
-        async register(payload: RegisterPayload): Promise<void> {
-            const { data } = await apiClient.post("/auth/register", payload);
-            const response = extractData<{ token: string; user: AuthUser }>(data);
-
-            if (!response) {
-                throw new Error("Invalid register response payload.");
-            }
+        async register(payload: AuthRegisterPayload): Promise<void> {
+            const response = await registerAuth(payload);
 
             this.token = response.token;
             this.user = response.user;
@@ -91,14 +56,7 @@ export const useAuthStore = defineStore("auth", {
                 return;
             }
 
-            const { data } = await apiClient.get("/auth/me");
-            const response = extractData<AuthUser>(data);
-
-            if (!response) {
-                throw new Error("Invalid profile response payload.");
-            }
-
-            this.user = response;
+            this.user = await getAuthProfile();
         },
         async ensureUserLoaded(): Promise<void> {
             if (!this.token || this.user) {
@@ -107,15 +65,8 @@ export const useAuthStore = defineStore("auth", {
 
             await this.fetchMe();
         },
-        async updateProfile(payload: UpdateProfilePayload): Promise<void> {
-            const { data } = await apiClient.patch("/auth/profile", payload);
-            const response = extractData<AuthUser>(data);
-
-            if (!response) {
-                throw new Error("Invalid profile update response payload.");
-            }
-
-            this.user = response;
+        async updateProfile(payload: AuthUpdateProfilePayload): Promise<void> {
+            this.user = await updateAuthProfile(payload);
         },
         async logout(): Promise<void> {
             if (this.token) {
