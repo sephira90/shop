@@ -1,6 +1,9 @@
 import { extractData, normalizeListResponse } from "@/api/response";
 import { apiClient } from "@/api/client";
-import { asRecord, toInteger, toNumber } from "@/mappers/common";
+import {
+    assertAccountOrdersSummaryWireDto,
+    assertAccountOrderWireDtoList,
+} from "@/contracts/api/v1/assertions/account-orders";
 import { mapAccountOrderListFromApi } from "@/mappers/account/orders";
 import type {
     AccountOrderListParams,
@@ -14,22 +17,22 @@ export const listAccountOrders = async (
     const { data } = await apiClient.get("/orders/me", {
         params,
     });
-    const response = normalizeListResponse<unknown>(data);
+    const response = normalizeListResponse(data);
 
     return {
-        data: mapAccountOrderListFromApi(response.data),
+        data: mapAccountOrderListFromApi(assertAccountOrderWireDtoList(response.data)),
         meta: response.meta,
     };
 };
 
 export const getAccountOrdersSummary = async (): Promise<AccountOrdersSummary> => {
     const { data } = await apiClient.get("/orders/me/summary");
-    const payload = asRecord(extractData<unknown>(data));
+    const payload = assertAccountOrdersSummaryWireDto(extractData(data));
 
     return {
-        total_orders: toInteger(payload.total_orders, 0),
-        paid_orders: toInteger(payload.paid_orders, 0),
-        in_delivery_orders: toInteger(payload.in_delivery_orders, 0),
-        total_spent: toNumber(payload.total_spent, 0),
+        total_orders: payload.total_orders,
+        paid_orders: payload.paid_orders,
+        in_delivery_orders: payload.in_delivery_orders,
+        total_spent: payload.total_spent,
     };
 };

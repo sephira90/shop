@@ -1,41 +1,31 @@
+import type {
+    CatalogProductVariantWireDto,
+    CatalogProductWireDto,
+} from "@/contracts/api/v1/catalog";
 import type { CatalogProduct, CatalogProductVariant } from "@/types/catalog";
 
-import {
-    asArray,
-    asRecord,
-    toBoolean,
-    toInteger,
-    toNullableString,
-    toNumber,
-    toString,
-} from "@/mappers/common";
-
-const mapCatalogVariantFromApi = (value: unknown): CatalogProductVariant => {
-    const record = asRecord(value);
-
+const mapCatalogVariantFromWire = (value: CatalogProductVariantWireDto): CatalogProductVariant => {
     return {
-        id: toInteger(record.id),
-        sku: toString(record.sku),
-        name: toString(record.name),
-        price: toNumber(record.price),
-        currency: toString(record.currency, "USD"),
-        is_active: toBoolean(record.is_active, true),
+        id: value.id,
+        sku: value.sku,
+        name: value.name,
+        price: value.price,
+        currency: value.currency,
+        is_active: value.is_active,
     };
 };
 
-export const mapCatalogProductFromApi = (value: unknown): CatalogProduct => {
-    const record = asRecord(value);
-
+export const mapCatalogProductFromApi = (value: CatalogProductWireDto): CatalogProduct => {
     return {
-        id: toInteger(record.id),
-        name: toString(record.name),
-        slug: toString(record.slug),
-        short_description: toNullableString(record.short_description),
-        description: toNullableString(record.description),
-        variants: asArray(record.variants).map((variant) => mapCatalogVariantFromApi(variant)),
+        id: value.id,
+        name: value.name,
+        slug: value.slug,
+        short_description: value.short_description,
+        description: value.description,
+        variants: value.variants.map((variant) => mapCatalogVariantFromWire(variant)),
     };
 };
 
-export const mapCatalogProductListFromApi = (value: unknown): CatalogProduct[] => {
-    return asArray(value).map((item) => mapCatalogProductFromApi(item));
+export const mapCatalogProductListFromApi = (value: CatalogProductWireDto[]): CatalogProduct[] => {
+    return value.map((item) => mapCatalogProductFromApi(item));
 };

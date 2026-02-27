@@ -1,5 +1,9 @@
 import { apiClient } from "@/api/client";
 import { extractData, normalizeListResponse } from "@/api/response";
+import {
+    assertCatalogProductWireDto,
+    assertCatalogProductWireDtoList,
+} from "@/contracts/api/v1/assertions/catalog";
 import { mapCatalogProductFromApi, mapCatalogProductListFromApi } from "@/mappers/catalog";
 import type {
     CatalogProduct,
@@ -13,17 +17,17 @@ export const listCatalogProducts = async (
     const { data } = await apiClient.get("/catalog/products", {
         params,
     });
-    const response = normalizeListResponse<unknown>(data);
+    const response = normalizeListResponse(data);
 
     return {
-        data: mapCatalogProductListFromApi(response.data),
+        data: mapCatalogProductListFromApi(assertCatalogProductWireDtoList(response.data)),
         meta: response.meta,
     };
 };
 
 export const getCatalogProductBySlug = async (slug: string): Promise<CatalogProduct | null> => {
     const { data } = await apiClient.get(`/catalog/products/${slug}`);
-    const response = extractData<unknown>(data);
+    const response = extractData(data);
 
-    return response ? mapCatalogProductFromApi(response) : null;
+    return response ? mapCatalogProductFromApi(assertCatalogProductWireDto(response)) : null;
 };
