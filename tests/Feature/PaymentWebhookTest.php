@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Models\WebhookReceipt;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +18,20 @@ use Tests\TestCase;
 class PaymentWebhookTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Ensure webhook without signature header is rejected.
+     */
+    public function test_payment_webhook_requires_signature_header(): void
+    {
+        $this->postJson('/api/v1/webhooks/payment', [
+            'event_id' => 'evt-missing-signature',
+            'transaction_id' => 'tx-missing-signature',
+            'status' => 'paid',
+        ])
+            ->assertBadRequest()
+            ->assertJsonPath('error.message', 'Missing X-Signature header.');
+    }
 
     /**
      * Ensure payment webhook marks order as paid.
@@ -74,6 +89,45 @@ class PaymentWebhookTest extends TestCase
         $order = Order::query()->findOrFail($orderId);
         $this->assertSame('paid', (string) $order->getRawOriginal('status'));
         $this->assertSame('captured', (string) $order->getRawOriginal('payment_status'));
+    }
+
+    /**
+     * Ensure replay of same event payload is idempotent.
+     */
+    public function test_payment_webhook_replay_with_same_event_id_is_idempotent(): void
+    {
+        [$order, $payment] = $this->createPaidOrderWithPayment('payment-replay-order-key');
+
+        $eventId = 'evt-payment-replay';
+        $payload = [
+            'event_id' => $eventId,
+            'transaction_id' => $payment->transaction_id,
+            'status' => 'paid',
+        ];
+
+        $this->withHeader('X-Signature', hash('sha256', $eventId))
+            ->postJson('/api/v1/webhooks/payment', $payload)
+            ->assertAccepted();
+
+        $this->withHeader('X-Signature', hash('sha256', $eventId))
+            ->postJson('/api/v1/webhooks/payment', $payload)
+            ->assertAccepted();
+
+        $order = $order->fresh();
+        $payment = $payment->fresh();
+
+        $this->assertInstanceOf(Order::class, $order);
+        $this->assertInstanceOf(Payment::class, $payment);
+        $this->assertSame('paid', (string) $order->getRawOriginal('status'));
+        $this->assertSame('captured', (string) $order->getRawOriginal('payment_status'));
+        $this->assertSame('captured', (string) $payment->getRawOriginal('status'));
+        $this->assertSame(
+            1,
+            WebhookReceipt::query()
+                ->where('provider', (string) config('payment.driver', 'fake-payment'))
+                ->where('event_id', $eventId)
+                ->count()
+        );
     }
 
     /**
@@ -231,5 +285,56 @@ class PaymentWebhookTest extends TestCase
             ->postJson('/api/v1/webhooks/payment', $secondPayload)
             ->assertUnprocessable()
             ->assertJsonPath('error.message', 'Webhook payload hash mismatch.');
+    }
+
+    /**
+     * Create paid order and payment for webhook tests.
+     *
+     * @return array{Order, Payment}
+     */
+    private function createPaidOrderWithPayment(string $idempotencyKey): array
+    {
+        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        Sanctum::actingAs($user);
+
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertOk();
+
+        $orderResponse = $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson('/api/v1/checkout/place-order', [
+                'email' => $user->email,
+                'billing_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+                'shipping_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+            ])
+            ->assertCreated();
+
+        $orderId = $orderResponse->json('data.id');
+
+        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
+            ->assertOk();
+
+        $order = Order::query()->findOrFail($orderId);
+        $payment = Payment::query()
+            ->whereHas('order', static fn ($query) => $query->where('id', $orderId))
+            ->firstOrFail();
+
+        return [$order, $payment];
     }
 }

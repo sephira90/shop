@@ -4,33 +4,42 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Application\Auth\AuthApplicationException;
+use App\Application\Auth\Commands\ForgotAuthPasswordCommand;
+use App\Application\Auth\Commands\ForgotAuthPasswordHandler;
+use App\Application\Auth\Commands\ResetAuthPasswordCommand;
+use App\Application\Auth\Commands\ResetAuthPasswordHandler;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
-use App\Models\User;
 use App\Support\Api\ApiResponse;
-use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
 
 class PasswordController extends Controller
 {
+    /**
+     * Create controller instance.
+     */
+    public function __construct(
+        private readonly ForgotAuthPasswordHandler $forgotAuthPasswordHandler,
+        private readonly ResetAuthPasswordHandler $resetAuthPasswordHandler,
+    ) {}
+
     /**
      * Send password reset link.
      */
     public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
-        $status = Password::sendResetLink($request->validated());
-
-        if ($status !== Password::RESET_LINK_SENT) {
-            return ApiResponse::error(__($status), Response::HTTP_UNPROCESSABLE_ENTITY);
+        try {
+            $message = $this->forgotAuthPasswordHandler->handle(
+                new ForgotAuthPasswordCommand($request->toDto())
+            );
+        } catch (AuthApplicationException $exception) {
+            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
         }
 
         return ApiResponse::data([
-            'message' => __($status),
+            'message' => $message,
         ]);
     }
 
@@ -39,24 +48,16 @@ class PasswordController extends Controller
      */
     public function reset(ResetPasswordRequest $request): JsonResponse
     {
-        $status = Password::reset(
-            $request->validated(),
-            static function (User $user, string $password): void {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                    'remember_token' => Str::random(60),
-                ])->save();
-
-                event(new PasswordReset($user));
-            },
-        );
-
-        if ($status !== Password::PASSWORD_RESET) {
-            return ApiResponse::error(__($status), Response::HTTP_UNPROCESSABLE_ENTITY);
+        try {
+            $message = $this->resetAuthPasswordHandler->handle(
+                new ResetAuthPasswordCommand($request->toDto())
+            );
+        } catch (AuthApplicationException $exception) {
+            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
         }
 
         return ApiResponse::data([
-            'message' => __($status),
+            'message' => $message,
         ]);
     }
 }

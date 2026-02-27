@@ -9,11 +9,13 @@ use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Models\Order;
 use App\Models\Shipment;
+use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Shipping\Dto\ShippingWebhookPayloadDto;
+use App\Services\Webhook\Dto\WebhookIngressMetadataDto;
+use App\Services\Webhook\WebhookIngressException;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Services\Webhook\WebhookProcessorAdapterInterface;
 use App\Support\Data\JsonPayload;
-use DomainException;
 
 final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterInterface
 {
@@ -22,6 +24,8 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
      */
     public function __construct(
         private ShippingGatewayInterface $gateway,
+        private ShipmentStatusTransitionPolicy $shipmentStatusTransitionPolicy,
+        private OrderStatusTransitionPolicy $orderStatusTransitionPolicy,
     ) {}
 
     /**
@@ -40,30 +44,23 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
         return 'shipping';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function invalidSignatureMessage(): string
-    {
-        return 'Invalid shipping webhook signature.';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function verifySignature(JsonPayload $payload, string $signature): bool
+    public function prevalidateIngress(JsonPayload $payload, string $signature): WebhookIngressMetadataDto
     {
         $webhookPayload = $this->parsePayload($payload);
 
-        return $this->gateway->verifyWebhookSignature($webhookPayload->rawPayload->toArray(), $signature);
-    }
+        if (! $this->gateway->verifyWebhookSignature($webhookPayload->rawPayload->toArray(), $signature)) {
+            throw WebhookIngressException::invalidSignature('Invalid shipping webhook signature.');
+        }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function extractEventId(JsonPayload $payload): string
-    {
-        return $this->parsePayload($payload)->eventId;
+        if ($webhookPayload->eventId === '') {
+            throw WebhookIngressException::missingEventId();
+        }
+
+        if ($webhookPayload->trackingNumber === '') {
+            throw WebhookIngressException::missingShippingTrackingNumber();
+        }
+
+        return new WebhookIngressMetadataDto($webhookPayload->eventId);
     }
 
     /**
@@ -72,10 +69,6 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
     public function processTransition(JsonPayload $payload): WebhookProcessingOutcome
     {
         $webhookPayload = $this->parsePayload($payload);
-
-        if ($webhookPayload->trackingNumber === '') {
-            throw new DomainException('Tracking number is required.');
-        }
 
         $status = $this->gateway->resolveWebhookStatus($webhookPayload->rawPayload->toArray());
 
@@ -86,11 +79,11 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
             ->first();
 
         if (! $shipment instanceof Shipment) {
-            throw new DomainException('Shipment not found for tracking number.');
+            throw WebhookIngressException::shipmentNotFound();
         }
 
         $currentStatus = ShipmentStatus::from((string) $shipment->getRawOriginal('status'));
-        if (! $this->shouldApplyShipmentStatusTransition($currentStatus, $status)) {
+        if (! $this->shipmentStatusTransitionPolicy->canTransition($currentStatus, $status)) {
             return WebhookProcessingOutcome::DUPLICATE;
         }
 
@@ -107,10 +100,7 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
         if ($order instanceof Order) {
             $currentOrderStatus = OrderStatus::from((string) $order->getRawOriginal('status'));
 
-            $newStatus = $currentOrderStatus;
-            if ($status === ShipmentStatus::DELIVERED && $currentOrderStatus !== OrderStatus::CANCELLED) {
-                $newStatus = OrderStatus::COMPLETED;
-            }
+            $newStatus = $this->orderStatusTransitionPolicy->resolveByShipmentStatus($currentOrderStatus, $status);
 
             $order->update([
                 'shipment_status' => $status->value,
@@ -131,36 +121,5 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
             eventId: $this->gateway->extractEventId($payload->toArray()),
             trackingNumber: $this->gateway->extractTrackingNumber($payload->toArray()),
         );
-    }
-
-    /**
-     * Validate shipment status transition.
-     */
-    private function shouldApplyShipmentStatusTransition(ShipmentStatus $from, ShipmentStatus $to): bool
-    {
-        return match ($from) {
-            ShipmentStatus::PENDING => in_array($to, [
-                ShipmentStatus::PENDING,
-                ShipmentStatus::PACKED,
-                ShipmentStatus::SHIPPED,
-                ShipmentStatus::DELIVERED,
-            ], true),
-            ShipmentStatus::PACKED => in_array($to, [
-                ShipmentStatus::PACKED,
-                ShipmentStatus::SHIPPED,
-                ShipmentStatus::DELIVERED,
-                ShipmentStatus::RETURNED,
-            ], true),
-            ShipmentStatus::SHIPPED => in_array($to, [
-                ShipmentStatus::SHIPPED,
-                ShipmentStatus::DELIVERED,
-                ShipmentStatus::RETURNED,
-            ], true),
-            ShipmentStatus::DELIVERED => in_array($to, [
-                ShipmentStatus::DELIVERED,
-                ShipmentStatus::RETURNED,
-            ], true),
-            ShipmentStatus::RETURNED => $to === ShipmentStatus::RETURNED,
-        };
     }
 }

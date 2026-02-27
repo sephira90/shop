@@ -89,6 +89,7 @@ final readonly class PaymentService
         string $signature,
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',
+        ?string $prevalidatedEventId = null,
     ): void {
         $this->webhookProcessingPipeline->process(
             $this->paymentWebhookAdapter,
@@ -96,6 +97,7 @@ final readonly class PaymentService
             $signature,
             $receivedAtIso8601,
             $source,
+            $prevalidatedEventId,
         );
     }
 

@@ -4,16 +4,28 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Application\Auth\AuthApplicationException;
+use App\Application\Auth\Commands\ResendAuthVerificationCommand;
+use App\Application\Auth\Commands\ResendAuthVerificationHandler;
+use App\Application\Auth\Commands\VerifyAuthEmailCommand;
+use App\Application\Auth\Commands\VerifyAuthEmailHandler;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Api\ApiResponse;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class VerificationController extends Controller
 {
+    /**
+     * Create controller instance.
+     */
+    public function __construct(
+        private readonly VerifyAuthEmailHandler $verifyAuthEmailHandler,
+        private readonly ResendAuthVerificationHandler $resendAuthVerificationHandler,
+    ) {}
+
     /**
      * Mark user email as verified.
      */
@@ -23,27 +35,16 @@ class VerificationController extends Controller
             return ApiResponse::error('Invalid verification link.', Response::HTTP_FORBIDDEN);
         }
 
-        $user = User::query()->find($id);
-        if (! $user instanceof User) {
-            return ApiResponse::error('User not found.', Response::HTTP_NOT_FOUND);
-        }
-
-        if (! hash_equals($hash, sha1($user->getEmailForVerification()))) {
-            return ApiResponse::error('Invalid verification hash.', Response::HTTP_FORBIDDEN);
-        }
-
-        if ($user->hasVerifiedEmail()) {
-            return ApiResponse::data([
-                'message' => 'Email already verified.',
-            ]);
-        }
-
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
+        try {
+            $message = $this->verifyAuthEmailHandler->handle(
+                new VerifyAuthEmailCommand($id, $hash)
+            );
+        } catch (AuthApplicationException $exception) {
+            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
         }
 
         return ApiResponse::data([
-            'message' => 'Email verified successfully.',
+            'message' => $message,
         ]);
     }
 
@@ -57,16 +58,12 @@ class VerificationController extends Controller
             return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
         }
 
-        if ($user->hasVerifiedEmail()) {
-            return ApiResponse::data([
-                'message' => 'Email already verified.',
-            ]);
-        }
-
-        $user->sendEmailVerificationNotification();
+        $message = $this->resendAuthVerificationHandler->handle(
+            new ResendAuthVerificationCommand($user)
+        );
 
         return ApiResponse::data([
-            'message' => 'Verification email has been sent.',
+            'message' => $message,
         ]);
     }
 }

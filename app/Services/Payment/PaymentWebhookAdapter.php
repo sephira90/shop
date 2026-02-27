@@ -5,17 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\Contracts\PaymentGatewayInterface;
-use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Jobs\DispatchShipmentJob;
 use App\Jobs\SendOrderConfirmationJob;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Payment\Dto\PaymentWebhookPayloadDto;
+use App\Services\Webhook\Dto\WebhookIngressMetadataDto;
+use App\Services\Webhook\WebhookIngressException;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Services\Webhook\WebhookProcessorAdapterInterface;
 use App\Support\Data\JsonPayload;
-use DomainException;
 
 final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInterface
 {
@@ -24,6 +25,8 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
      */
     public function __construct(
         private PaymentGatewayInterface $gateway,
+        private PaymentStatusTransitionPolicy $paymentStatusTransitionPolicy,
+        private OrderStatusTransitionPolicy $orderStatusTransitionPolicy,
     ) {}
 
     /**
@@ -42,38 +45,23 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
         return 'payment';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function invalidSignatureMessage(): string
-    {
-        return 'Invalid webhook signature.';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function verifySignature(JsonPayload $payload, string $signature): bool
+    public function prevalidateIngress(JsonPayload $payload, string $signature): WebhookIngressMetadataDto
     {
         $webhookPayload = $this->parsePayload($payload);
 
-        return $this->gateway->verifyWebhookSignature($webhookPayload->rawPayload->toArray(), $signature);
-    }
+        if (! $this->gateway->verifyWebhookSignature($webhookPayload->rawPayload->toArray(), $signature)) {
+            throw WebhookIngressException::invalidSignature('Invalid webhook signature.');
+        }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function extractEventId(JsonPayload $payload): string
-    {
-        return $this->parsePayload($payload)->eventId;
-    }
+        if ($webhookPayload->eventId === '') {
+            throw WebhookIngressException::missingEventId();
+        }
 
-    /**
-     * Resolve payment transaction id from payload.
-     */
-    public function extractTransactionId(JsonPayload $payload): string
-    {
-        return $this->parsePayload($payload)->transactionId;
+        if ($webhookPayload->transactionId === '') {
+            throw WebhookIngressException::missingPaymentTransactionId();
+        }
+
+        return new WebhookIngressMetadataDto($webhookPayload->eventId);
     }
 
     /**
@@ -82,10 +70,6 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
     public function processTransition(JsonPayload $payload): WebhookProcessingOutcome
     {
         $webhookPayload = $this->parsePayload($payload);
-
-        if ($webhookPayload->transactionId === '') {
-            throw new DomainException('Payment transaction id is required.');
-        }
 
         $paymentStatus = $this->gateway->resolveWebhookStatus($webhookPayload->rawPayload->toArray());
 
@@ -96,12 +80,12 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
             ->first();
 
         if (! $payment instanceof Payment) {
-            throw new DomainException('Payment transaction not found.');
+            throw WebhookIngressException::paymentNotFound();
         }
 
         $previousPaymentStatus = PaymentStatus::from((string) $payment->getRawOriginal('status'));
 
-        if (! $this->shouldApplyPaymentStatusTransition($previousPaymentStatus, $paymentStatus)) {
+        if (! $this->paymentStatusTransitionPolicy->canTransition($previousPaymentStatus, $paymentStatus)) {
             return WebhookProcessingOutcome::DUPLICATE;
         }
 
@@ -113,10 +97,10 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
 
         $order = $payment->order;
         if (! $order instanceof Order) {
-            throw new DomainException('Payment order not found.');
+            throw WebhookIngressException::paymentOrderNotFound();
         }
 
-        $orderStatus = $this->resolveOrderStatus($order->status, $paymentStatus);
+        $orderStatus = $this->orderStatusTransitionPolicy->resolveByPaymentStatus($order->status, $paymentStatus);
 
         $order->update([
             'payment_status' => $paymentStatus->value,
@@ -141,47 +125,5 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
             eventId: $this->gateway->extractEventId($payload->toArray()),
             transactionId: $this->gateway->extractTransactionId($payload->toArray()),
         );
-    }
-
-    /**
-     * Resolve order status transition by payment status event.
-     */
-    private function resolveOrderStatus(OrderStatus|string $currentStatus, PaymentStatus $paymentStatus): OrderStatus
-    {
-        $status = $currentStatus instanceof OrderStatus
-            ? $currentStatus
-            : OrderStatus::from($currentStatus);
-
-        return match ($paymentStatus) {
-            PaymentStatus::CAPTURED => $status === OrderStatus::PENDING ? OrderStatus::PAID : $status,
-            PaymentStatus::FAILED => $status === OrderStatus::PENDING ? OrderStatus::CANCELLED : $status,
-            PaymentStatus::REFUNDED => OrderStatus::REFUNDED,
-            default => $status,
-        };
-    }
-
-    /**
-     * Validate allowed payment status transition.
-     */
-    private function shouldApplyPaymentStatusTransition(PaymentStatus $from, PaymentStatus $to): bool
-    {
-        return match ($from) {
-            PaymentStatus::PENDING => in_array($to, [
-                PaymentStatus::PENDING,
-                PaymentStatus::AUTHORIZED,
-                PaymentStatus::CAPTURED,
-                PaymentStatus::FAILED,
-            ], true),
-            PaymentStatus::AUTHORIZED => in_array($to, [
-                PaymentStatus::AUTHORIZED,
-                PaymentStatus::CAPTURED,
-                PaymentStatus::FAILED,
-            ], true),
-            PaymentStatus::CAPTURED => in_array($to, [
-                PaymentStatus::CAPTURED,
-                PaymentStatus::REFUNDED,
-            ], true),
-            PaymentStatus::FAILED, PaymentStatus::REFUNDED => $to === $from,
-        };
     }
 }

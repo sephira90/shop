@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Auth;
 
+use App\Application\Auth\Dto\ResetAuthPasswordInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ResetPasswordRequest extends FormRequest
@@ -28,5 +29,16 @@ class ResetPasswordRequest extends FormRequest
             'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:8', 'max:128', 'confirmed'],
         ];
+    }
+
+    /**
+     * Build typed DTO for reset-password flow.
+     */
+    public function toDto(): ResetAuthPasswordInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return ResetAuthPasswordInputDto::fromValidated($validated);
     }
 }

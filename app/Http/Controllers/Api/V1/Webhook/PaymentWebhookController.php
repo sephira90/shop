@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Webhook;
 
+use App\Application\Webhook\Commands\EnqueuePaymentWebhookCommand;
+use App\Application\Webhook\Commands\EnqueuePaymentWebhookHandler;
 use App\Http\Controllers\Controller;
-use App\Jobs\ProcessPaymentWebhookJob;
-use App\Services\Payment\PaymentWebhookAdapter;
+use App\Services\Webhook\WebhookIngressException;
 use App\Support\Api\ApiResponse;
 use App\Support\Data\JsonPayload;
 use DomainException;
@@ -19,7 +20,7 @@ class PaymentWebhookController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly PaymentWebhookAdapter $paymentWebhookAdapter) {}
+    public function __construct(private readonly EnqueuePaymentWebhookHandler $enqueuePaymentWebhookHandler) {}
 
     /**
      * Queue payment webhook processing.
@@ -32,24 +33,16 @@ class PaymentWebhookController extends Controller
             return ApiResponse::error('Missing X-Signature header.', Response::HTTP_BAD_REQUEST);
         }
 
-        $payload = JsonPayload::fromArray($request->all());
-        if (! $this->paymentWebhookAdapter->verifySignature($payload, $signature)) {
-            return ApiResponse::error(
-                $this->paymentWebhookAdapter->invalidSignatureMessage(),
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        }
-
-        if ($this->paymentWebhookAdapter->extractEventId($payload) === '') {
-            return ApiResponse::error('Webhook event id is required.', Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        if ($this->paymentWebhookAdapter->extractTransactionId($payload) === '') {
-            return ApiResponse::error('Payment transaction id is required.', Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
         try {
-            ProcessPaymentWebhookJob::dispatch($payload->toArray(), $signature, now()->toIso8601String());
+            $this->enqueuePaymentWebhookHandler->handle(
+                new EnqueuePaymentWebhookCommand(
+                    payload: JsonPayload::fromArray($request->all()),
+                    signature: $signature,
+                    receivedAtIso8601: now()->toIso8601String(),
+                ),
+            );
+        } catch (WebhookIngressException $exception) {
+            return ApiResponse::error($exception->getMessage(), $exception->statusCode());
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }

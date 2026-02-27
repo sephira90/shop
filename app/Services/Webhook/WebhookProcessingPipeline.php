@@ -8,7 +8,6 @@ use App\Models\WebhookReceipt;
 use App\Support\Data\JsonPayload;
 use App\Support\Observability\ObservabilityService;
 use Carbon\CarbonImmutable;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 
 final readonly class WebhookProcessingPipeline
@@ -29,19 +28,21 @@ final readonly class WebhookProcessingPipeline
         string $signature,
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',
+        ?string $prevalidatedEventId = null,
     ): void {
         $startedAt = hrtime(true);
         $eventId = 'unknown';
         $outcome = WebhookProcessingOutcome::REJECTED;
 
         try {
-            if (! $adapter->verifySignature($payload, $signature)) {
-                throw new DomainException($adapter->invalidSignatureMessage());
+            if ($prevalidatedEventId !== null) {
+                $eventId = trim($prevalidatedEventId);
+            } else {
+                $eventId = $adapter->prevalidateIngress($payload, $signature)->eventId;
             }
 
-            $eventId = $adapter->extractEventId($payload);
             if ($eventId === '') {
-                throw new DomainException('Webhook event id is required.');
+                throw WebhookIngressException::missingEventId();
             }
 
             $payloadHash = hash('sha256', json_encode($payload->toArray(), JSON_THROW_ON_ERROR));
@@ -61,7 +62,7 @@ final readonly class WebhookProcessingPipeline
                     ->firstOrFail();
 
                 if ($receipt->payload_hash !== $payloadHash) {
-                    throw new DomainException('Webhook payload hash mismatch.');
+                    throw WebhookIngressException::payloadHashMismatch();
                 }
 
                 if ($receipt->processed_at !== null) {
@@ -72,7 +73,7 @@ final readonly class WebhookProcessingPipeline
 
                 $outcome = $adapter->processTransition($payload);
                 if ($outcome === WebhookProcessingOutcome::REJECTED) {
-                    throw new DomainException('Webhook adapter rejected processing transition.');
+                    throw WebhookIngressException::rejectedTransition();
                 }
 
                 $receipt->update(['processed_at' => now()]);

@@ -15,6 +15,7 @@ use App\Support\Smoke\ApiContract\Scenarios\CartApiContractScenario;
 use App\Support\Smoke\ApiContract\Scenarios\CatalogApiContractScenario;
 use App\Support\Smoke\ApiContract\Scenarios\CheckoutApiContractScenario;
 use App\Support\Smoke\ApiContract\Scenarios\PaymentWebhookApiContractScenario;
+use App\Support\Smoke\ApiContract\Scenarios\ShippingWebhookApiContractScenario;
 use App\Support\Smoke\SmokeCheckResult;
 use App\Support\Smoke\SmokePersistenceGuard;
 use Database\Seeders\CatalogSeeder;
@@ -52,6 +53,7 @@ class AppApiContractSmokeCommand extends Command
         private readonly CheckoutApiContractScenario $checkoutScenario,
         private readonly AdminProductsApiContractScenario $adminProductsScenario,
         private readonly PaymentWebhookApiContractScenario $paymentWebhookScenario,
+        private readonly ShippingWebhookApiContractScenario $shippingWebhookScenario,
     ) {
         parent::__construct();
     }
@@ -168,6 +170,7 @@ class AppApiContractSmokeCommand extends Command
             $this->checkoutScenario,
             $this->adminProductsScenario,
             $this->paymentWebhookScenario,
+            $this->shippingWebhookScenario,
         ];
     }
 }

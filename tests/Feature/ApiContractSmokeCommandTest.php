@@ -21,6 +21,7 @@ class ApiContractSmokeCommandTest extends TestCase
     public function test_api_contract_smoke_command_passes(): void
     {
         $this->artisan('app:api-contract-smoke')
+            ->expectsOutputToContain('shipping_webhook_missing_signature')
             ->assertSuccessful()
             ->expectsOutputToContain('API contract smoke checks passed.');
     }

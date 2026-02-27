@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Webhook;
 
+use App\Services\Webhook\Dto\WebhookIngressMetadataDto;
 use App\Support\Data\JsonPayload;
 
 interface WebhookProcessorAdapterInterface
@@ -18,20 +19,7 @@ interface WebhookProcessorAdapterInterface
      */
     public function observabilityProvider(): string;
 
-    /**
-     * Resolve signature validation error message.
-     */
-    public function invalidSignatureMessage(): string;
-
-    /**
-     * Verify webhook signature.
-     */
-    public function verifySignature(JsonPayload $payload, string $signature): bool;
-
-    /**
-     * Resolve webhook event id.
-     */
-    public function extractEventId(JsonPayload $payload): string;
+    public function prevalidateIngress(JsonPayload $payload, string $signature): WebhookIngressMetadataDto;
 
     /**
      * Apply provider-specific transition.

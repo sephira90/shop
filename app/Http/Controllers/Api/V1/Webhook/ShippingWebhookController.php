@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Webhook;
 
+use App\Application\Webhook\Commands\EnqueueShippingWebhookCommand;
+use App\Application\Webhook\Commands\EnqueueShippingWebhookHandler;
 use App\Http\Controllers\Controller;
-use App\Services\Shipping\ShippingService;
+use App\Services\Webhook\WebhookIngressException;
 use App\Support\Api\ApiResponse;
 use App\Support\Data\JsonPayload;
 use DomainException;
@@ -18,7 +20,7 @@ class ShippingWebhookController extends Controller
     /**
      * Create controller instance.
      */
-    public function __construct(private readonly ShippingService $shippingService) {}
+    public function __construct(private readonly EnqueueShippingWebhookHandler $enqueueShippingWebhookHandler) {}
 
     /**
      * Process shipping webhook payload.
@@ -32,11 +34,15 @@ class ShippingWebhookController extends Controller
         }
 
         try {
-            $this->shippingService->processWebhook(
-                JsonPayload::fromArray($request->all()),
-                $signature,
-                now()->toIso8601String(),
+            $this->enqueueShippingWebhookHandler->handle(
+                new EnqueueShippingWebhookCommand(
+                    payload: JsonPayload::fromArray($request->all()),
+                    signature: $signature,
+                    receivedAtIso8601: now()->toIso8601String(),
+                ),
             );
+        } catch (WebhookIngressException $exception) {
+            return ApiResponse::error($exception->getMessage(), $exception->statusCode());
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }

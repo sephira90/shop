@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Services\Payment\PaymentService;
+use App\Services\Shipping\ShippingService;
 use App\Support\Data\JsonPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class ProcessPaymentWebhookJob implements ShouldQueue
+class ProcessShippingWebhookJob implements ShouldQueue
 {
     use Queueable;
 
@@ -28,9 +28,9 @@ class ProcessPaymentWebhookJob implements ShouldQueue
     /**
      * Execute queued job.
      */
-    public function handle(PaymentService $paymentService): void
+    public function handle(ShippingService $shippingService): void
     {
-        $paymentService->processWebhook(
+        $shippingService->processWebhook(
             JsonPayload::fromArray($this->payload),
             $this->signature,
             $this->receivedAtIso8601,
