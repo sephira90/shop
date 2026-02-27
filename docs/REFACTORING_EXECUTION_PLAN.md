@@ -2096,3 +2096,383 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
+- `2026-02-24` — `DTO Program` Waves `0/1` completed (foundation + auth pilot):
+  - добавлена архитектурная стратегия DTO:
+    - `docs/adr/ADR-0002-dto-strategy.md`;
+    - `docs/adr/README.md` обновлен;
+    - baseline метрики зафиксированы в `docs/DTO_BASELINE_METRICS.md`;
+  - добавлены DTO guardrails:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php`;
+    - `tests/Unit/Architecture/ApplicationDtoBoundaryTest.php`;
+    - `tests/Unit/Architecture/ServiceDtoBoundaryTest.php`;
+    - `tests/Unit/Architecture/FrontendApiDtoContractPlanTest.md`;
+    - `resources/js/tests/api/dto-boundary.spec.ts`;
+  - выполнен auth DTO pilot (backend):
+    - добавлены DTO:
+      - `app/Application/Auth/Dto/RegisterAuthInputDto.php`;
+      - `app/Application/Auth/Dto/LoginAuthInputDto.php`;
+      - `app/Application/Auth/Dto/UpdateAuthProfileInputDto.php`;
+      - `app/Application/Auth/Dto/AuthUserDto.php`;
+      - `app/Application/Auth/Dto/AuthTokenResultDto.php`;
+    - добавлен mapper:
+      - `app/Application/Auth/Support/AuthUserDtoMapper.php`;
+    - auth requests переведены на `toDto()`:
+      - `app/Http/Requests/Auth/RegisterRequest.php`;
+      - `app/Http/Requests/Auth/LoginRequest.php`;
+      - `app/Http/Requests/Auth/UpdateProfileRequest.php`;
+    - auth commands/handlers/controller переведены на typed DTO flow:
+      - `app/Application/Auth/Commands/LoginAuthUserCommand.php`;
+      - `app/Application/Auth/Commands/RegisterAuthUserCommand.php`;
+      - `app/Application/Auth/Commands/UpdateAuthProfileCommand.php`;
+      - `app/Application/Auth/Commands/LoginAuthUserHandler.php`;
+      - `app/Application/Auth/Commands/RegisterAuthUserHandler.php`;
+      - `app/Application/Auth/Commands/UpdateAuthProfileHandler.php`;
+      - `app/Application/Auth/Queries/GetAuthProfileHandler.php`;
+      - `app/Http/Controllers/Api/V1/Auth/AuthController.php`;
+  - выполнен auth DTO pilot (frontend):
+    - добавлены typed contracts/assertions/mappers:
+      - `resources/js/contracts/api/v1/auth.ts`;
+      - `resources/js/contracts/api/v1/assertions/auth.ts`;
+      - `resources/js/mappers/auth.ts`;
+      - `resources/js/types/auth.ts`;
+      - `resources/js/api/auth.ts`;
+    - `resources/js/stores/auth.ts` переведен на typed auth API pipeline;
+    - добавлен контрактный тест:
+      - `resources/js/tests/api/auth-contract.spec.ts`;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен разделом `DTO Program (Incremental)` с закрытыми Wave 0/1;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `composer run lint`
+    - `composer run analyse`
+    - `php artisan test`
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan optimize:clear`
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-25` — `DTO Program` Wave `2` completed (admin categories/orders/promotions):
+  - backend DTO слой добавлен:
+    - `app/Application/Admin/Categories/Dto/CreateAdminCategoryInputDto.php`
+    - `app/Application/Admin/Categories/Dto/UpdateAdminCategoryInputDto.php`
+    - `app/Application/Admin/Orders/Dto/UpdateAdminOrderStatusInputDto.php`
+    - `app/Application/Admin/Promotions/Dto/CreateAdminPromotionInputDto.php`
+    - `app/Application/Admin/Promotions/Dto/UpdateAdminPromotionInputDto.php`
+    - `app/Application/Admin/Promotions/Dto/CreateAdminPromotionCouponInputDto.php`
+    - `app/Application/Admin/Promotions/Dto/UpdateAdminPromotionCouponInputDto.php`;
+  - admin mutation requests переведены на typed `toDto()`:
+    - `CategoryStoreRequest`, `CategoryUpdateRequest`, `OrderStatusUpdateRequest`,
+    - `PromotionStoreRequest`, `PromotionUpdateRequest`, `CouponStoreRequest`, `CouponUpdateRequest`;
+  - admin application/service слой переведен на typed DTO signatures:
+    - commands/handlers: categories/orders/promotions mutation flow;
+    - services: `AdminCategoryService`, `AdminOrderService`, `AdminPromotionService`, `PromotionCouponSyncService`;
+  - frontend admin API pipeline переведен на typed wire contracts + runtime assertions:
+    - contracts: `resources/js/contracts/api/v1/admin-categories.ts`, `resources/js/contracts/api/v1/admin-orders.ts`, `resources/js/contracts/api/v1/admin-promotions.ts`;
+    - assertions: `resources/js/contracts/api/v1/assertions/admin-categories.ts`, `resources/js/contracts/api/v1/assertions/admin-orders.ts`, `resources/js/contracts/api/v1/assertions/admin-promotions.ts`;
+    - mappers/api modules: `resources/js/mappers/admin/*`, `resources/js/api/admin/*`;
+    - добавлен contract test: `resources/js/tests/api/admin-contract.spec.ts`;
+  - обновлен DTO allowlist baseline:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (admin categories/orders/promotions array-contracts removed from allowlist);
+  - выполнены target проверки:
+    - `php artisan test --filter=AdminCategoryCrudTest`
+    - `php artisan test --filter=AdminPromotionCouponFlowTest`
+    - `php artisan test --filter=AdminPromotionValidationTest`
+    - `php artisan test --filter=AdminOrderSummaryContractTest`
+    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test --filter=ApplicationDtoBoundaryTest`
+    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test --filter=ServiceDtoBoundaryTest`
+    - `npm run test -- resources/js/tests/api/admin-contract.spec.ts resources/js/tests/api/auth-contract.spec.ts resources/js/tests/api/dto-boundary.spec.ts`;
+  - выполнен post-change quality gate в строгой последовательности, green:
+    - `composer run lint`
+    - `composer run analyse`
+    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения)
+    - `npm run lint`
+    - `npm run lint:ox`
+    - `npm run format:ox:check`
+    - `npm run type-check`
+    - `npm run test`
+    - `npm run build`
+    - `php artisan optimize:clear`
+    - `php artisan route:list --path=api/v1/admin/promotions`;
+  - дополнительные smoke-checks:
+    - `php artisan app:healthcheck`
+    - `php artisan app:performance-smoke`
+    - `php artisan app:webhook-flow-smoke`
+    - `php artisan app:api-contract-smoke`
+    - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`.
+- `2026-02-27` — `DTO Program` Wave `3` completed (admin products DTO):
+  - backend typed DTO flow для admin products mutation-пути:
+    - добавлены DTO:
+      - `app/Application/Admin/Products/Dto/CreateAdminProductInputDto.php`;
+      - `app/Application/Admin/Products/Dto/UpdateAdminProductInputDto.php`;
+      - `app/Application/Admin/Products/Dto/AdminProductVariantInputDto.php`;
+      - `app/Application/Admin/Products/Dto/AdminProductVariantInventoryInputDto.php`;
+    - `ProductStoreRequest` и `ProductUpdateRequest` переведены на `toDto()`;
+    - `CreateAdminProductCommand`/`UpdateAdminProductCommand` и handlers переведены на typed input DTO;
+    - `AdminCatalogService` переписан на typed signatures без array payload contracts;
+  - frontend typed product contract pipeline:
+    - добавлены contracts/assertions:
+      - `resources/js/contracts/api/v1/admin-products.ts`;
+      - `resources/js/contracts/api/v1/assertions/admin-products.ts`;
+    - обновлены `resources/js/api/admin/products.ts`, `resources/js/mappers/admin/products.ts`, `resources/js/types/admin-products.ts`, `resources/js/validators/admin/products.ts`;
+    - `resources/js/tests/api/admin-contract.spec.ts` расширен product contract assertions;
+  - обновлены архитектурные guardrails:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (удалены products array payload/service allowlist entries, baseline снижен);
+    - `docs/DTO_IMPLEMENTATION_PLAN.md`: Wave 3 отмечен completed;
+  - выполнены проверки в последовательности, green:
+    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp .\\vendor\\bin\\pint --test` (эквивалент `composer run lint` в этом окружении);
+    - `composer run analyse`;
+    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test` (с `DB_DATABASE=:memory:`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `DTO Program` Wave `4` completed (cart + checkout DTO):
+  - backend cart/checkout DTO слой добавлен:
+    - `app/Application/Cart/Dto/CartUpsertItemInputDto.php`;
+    - `app/Application/Cart/Dto/RemoveCartItemInputDto.php`;
+    - `app/Application/Cart/Dto/CartItemResultDto.php`;
+    - `app/Application/Cart/Dto/CartSummaryResultDto.php`;
+    - `app/Application/Cart/Dto/CartResultDto.php`;
+    - `app/Application/Checkout/Dto/CheckoutAddressInputDto.php`;
+    - `app/Application/Checkout/Dto/CheckoutPlaceOrderInputDto.php`;
+    - `app/Application/Checkout/Dto/CheckoutPaymentResultDto.php`;
+    - `app/Application/Checkout/Dto/CheckoutPlaceOrderResultDto.php`;
+  - transport/application/service слой переведен на typed DTO contracts:
+    - requests: `UpsertCartItemRequest`, `PlaceOrderRequest` переведены на `toDto()`;
+    - cart flow: `UpsertCartItemCommand`, `RemoveCartItemCommand` и handlers + `GetCurrentCartHandler` возвращают `CartResultDto`;
+    - `CartService::payload()` заменен на `CartService::toResultDto(...)`;
+    - checkout flow: `PlaceCheckoutOrderCommand` хранит `CheckoutPlaceOrderInputDto`;
+    - `PlaceCheckoutOrderHandler` возвращает `CheckoutPlaceOrderResultDto`;
+    - `CheckoutService::placeOrder(...)` переведен на typed input DTO;
+    - `CartController` и `CheckoutController` используют typed DTO на входе/выходе;
+  - smoke integration path синхронизирован с новым typed checkout contract:
+    - `app/Console/Commands/AppPerformanceSmokeCommand.php`;
+    - `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`;
+  - frontend cart/checkout typed pipeline выполнен:
+    - contracts/assertions:
+      - `resources/js/contracts/api/v1/cart.ts`;
+      - `resources/js/contracts/api/v1/checkout.ts`;
+      - `resources/js/contracts/api/v1/assertions/cart.ts`;
+      - `resources/js/contracts/api/v1/assertions/checkout.ts`;
+    - typed mapper/API/store:
+      - `resources/js/mappers/cart.ts`, `resources/js/mappers/checkout.ts`;
+      - `resources/js/api/cart.ts`, `resources/js/api/checkout.ts`;
+      - `resources/js/stores/cart.ts`;
+      - `resources/js/types/cart.ts`, `resources/js/types/checkout.ts`;
+    - добавлен контрактный тест: `resources/js/tests/api/cart-checkout-contract.spec.ts`;
+  - обновлены архитектурные guardrails:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (baseline снижен, cart/checkout array contracts удалены из allowlist);
+    - `docs/DTO_IMPLEMENTATION_PLAN.md`: Wave 4 отмечен completed;
+  - выполнены проверки в строгой последовательности, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check` (после `npm run format:ox` для исправления трех файлов);
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan app:healthcheck`;
+    - `php artisan app:performance-smoke`;
+    - `php artisan app:webhook-flow-smoke`;
+    - `php artisan app:api-contract-smoke`;
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `DTO Program` Wave `5` started: `Catalog` sub-wave completed (typed filter DTO):
+  - catalog read-path переведен с array filters на typed DTO contracts:
+    - добавлен `app/Application/Catalog/Dto/CatalogProductListFilterDto.php`;
+    - `PaginateCatalogProductsQuery` переведен с `array $filters` на `CatalogProductListFilterDto`;
+    - `PaginateCatalogProductsHandler` вызывает `CatalogService::list($query->filter, ...)`;
+    - `CatalogService::list(...)` принимает typed DTO и использует `toCachePayload()` для deterministic cache-key;
+    - `ProductRepository::paginateCatalog(...)` и `applyFilters(...)` переведены на typed DTO;
+    - `CatalogController@index` строит filter через `CatalogProductListFilterDto::fromValidated(...)`;
+  - observability/smoke orchestration выровнен под новый contract:
+    - `app/Console/Commands/AppPerformanceSmokeCommand.php` использует typed catalog filter DTO;
+  - архитектурные guardrails усилены:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php`:
+      - `BASELINE_APPLICATION_ARRAY_PAYLOAD_COUNT` снижен до `0`;
+      - `PaginateCatalogProductsQuery` удален из payload allowlist;
+      - `CatalogService` удален из service array payload allowlist;
+  - `docs/DTO_IMPLEMENTATION_PLAN.md` обновлен: Wave 5 отмечен как in-progress с закрытым catalog sub-wave;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: добавлен статус Wave 5 (in progress);
+  - выполнены проверки в строгой последовательности, green:
+    - `composer run lint`;
+    - `composer run analyse` (после фикса `AppPerformanceSmokeCommand` для typed filter DTO);
+    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan app:healthcheck`;
+    - `php artisan app:performance-smoke`;
+    - `php artisan app:webhook-flow-smoke`;
+    - `php artisan app:api-contract-smoke`;
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `DTO Program` Wave `5` progress: `Payment/Shipping` result DTO sub-wave completed:
+  - integration DTO добавлены:
+    - `app/Services/Payment/Dto/PaymentCreationResultDto.php`;
+    - `app/Services/Shipping/Dto/ShipmentCreationResultDto.php`;
+  - gateway contracts переведены на typed return DTO:
+    - `app/Contracts/PaymentGatewayInterface.php`:
+      - `createPayment(...): PaymentCreationResultDto`;
+    - `app/Contracts/ShippingGatewayInterface.php`:
+      - `createShipment(...): ShipmentCreationResultDto`;
+  - fake gateway implementations синхронизированы с новыми контрактами:
+    - `app/Infrastructure/Payments/FakePaymentGateway.php`;
+    - `app/Infrastructure/Shipping/FakeShippingGateway.php`;
+  - сервисы мигрированы с array-shape на typed DTO fields:
+    - `app/Services/Payment/PaymentService.php`;
+    - `app/Services/Shipping/ShippingService.php`;
+  - тестовые стабы и архитектурный allowlist обновлены:
+    - `tests/Unit/GatewayDriverBindingTest.php`;
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (добавлены service-level DTO classes, так как test-scan охватывает `app/Services/**` и фиксирует `array` constructor params).
+  - `docs/DTO_IMPLEMENTATION_PLAN.md` обновлен: Payment/Shipping в Wave 5 отмечен completed;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: Payment/Shipping result DTO migration отмечен completed;
+  - выполнены проверки в строгой последовательности, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan app:healthcheck`;
+    - `php artisan app:performance-smoke`;
+    - `php artisan app:webhook-flow-smoke`;
+    - `php artisan app:api-contract-smoke`;
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `DTO Program` Wave `5` completed: `Webhook typed payload adapters` sub-wave:
+  - integration webhook DTO добавлены:
+    - `app/Services/Payment/Dto/PaymentWebhookPayloadDto.php`;
+    - `app/Services/Shipping/Dto/ShippingWebhookPayloadDto.php`;
+  - adapter internals переведены на typed parse-step:
+    - `app/Services/Payment/PaymentWebhookAdapter.php`;
+    - `app/Services/Shipping/ShippingWebhookAdapter.php`;
+  - pipeline контракт сохранен универсальным без breaking changes:
+    - `WebhookProcessorAdapterInterface` и `WebhookProcessingPipeline` продолжают работать с transport array payload, но adapter logic больше не опирается напрямую на raw array;
+  - архитектурный allowlist обновлен под новые service-level DTO:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (добавлены webhook payload DTO classes);
+  - `docs/DTO_IMPLEMENTATION_PLAN.md` обновлен: Wave 5 отмечен completed;
+  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: Wave 5 отмечен completed;
+  - выполнены проверки в строгой последовательности, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan app:healthcheck`;
+    - `php artisan app:performance-smoke`;
+    - `php artisan app:webhook-flow-smoke`;
+    - `php artisan app:api-contract-smoke`;
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `DTO Program` Wave `6` progress: `catalog + account/orders frontend typed contract hardening` completed:
+  - добавлены frontend wire DTO contracts:
+    - `resources/js/contracts/api/v1/catalog.ts`;
+    - `resources/js/contracts/api/v1/account-orders.ts`;
+  - добавлены runtime assertion guards:
+    - `resources/js/contracts/api/v1/assertions/catalog.ts`;
+    - `resources/js/contracts/api/v1/assertions/account-orders.ts`;
+  - API modules переведены на typed parse pipeline без `unknown` в domain-слое:
+    - `resources/js/api/catalog.ts`;
+    - `resources/js/api/account/orders.ts`;
+  - mappers переведены на typed wire DTO input:
+    - `resources/js/mappers/catalog.ts`;
+    - `resources/js/mappers/account/orders.ts`;
+    - `resources/js/mappers/common.ts` очищен (legacy `unknown` parser helpers removed from mapper layer);
+  - добавлены TS contract tests:
+    - `resources/js/tests/api/catalog-account-contract.spec.ts`;
+  - документация обновлена:
+    - `docs/DTO_IMPLEMENTATION_PLAN.md` (Wave 6 frontend-пункты отмечены completed; strict backend allowlist removal pending);
+  - выполнены проверки в строгой последовательности, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check` (initial fail, fixed by `npm run format:ox`, re-run green);
+    - `npm run type-check`;
+    - `npm run test` (executed outside sandbox due local `spawn EPERM` restriction);
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `DTO Program` Wave `6` completed: `backend strict guardrails` (allowlist cleanup + typed service payload contracts):
+  - application layer strict boundary finalized:
+    - added `app/Application/Checkout/Dto/MyOrdersSummaryResultDto.php`;
+    - `app/Application/Checkout/Queries/GetMyOrdersSummaryHandler.php` migrated from `handle(): array` to typed result DTO;
+    - `app/Http/Controllers/Api/V1/CheckoutController.php` uses DTO transport mapping via `toArray()`;
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` updated:
+      - `BASELINE_APPLICATION_HANDLE_ARRAY_RETURN_COUNT=0`;
+      - `applicationHandleArrayReturnClasses()` is empty.
+  - service layer array payload contracts removed:
+    - added shared payload value object `app/Support/Data/JsonPayload.php`;
+    - result/webhook DTOs migrated to typed payload object:
+      - `app/Services/Payment/Dto/PaymentCreationResultDto.php`;
+      - `app/Services/Shipping/Dto/ShipmentCreationResultDto.php`;
+      - `app/Services/Payment/Dto/PaymentWebhookPayloadDto.php`;
+      - `app/Services/Shipping/Dto/ShippingWebhookPayloadDto.php`;
+    - webhook processing contracts migrated from raw arrays to typed payload object:
+      - `app/Services/Webhook/WebhookProcessorAdapterInterface.php`;
+      - `app/Services/Webhook/WebhookProcessingPipeline.php`;
+      - `app/Services/Payment/PaymentWebhookAdapter.php`;
+      - `app/Services/Shipping/ShippingWebhookAdapter.php`;
+      - `app/Services/Payment/PaymentService.php`;
+      - `app/Services/Shipping/ShippingService.php`;
+    - transport entrypoints adapted:
+      - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
+      - `app/Http/Controllers/Api/V1/Webhook/ShippingWebhookController.php`;
+      - `app/Jobs/ProcessPaymentWebhookJob.php`;
+      - `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`;
+    - fake gateway/test fixtures synchronized:
+      - `app/Infrastructure/Payments/FakePaymentGateway.php`;
+      - `app/Infrastructure/Shipping/FakeShippingGateway.php`;
+      - `tests/Unit/GatewayDriverBindingTest.php`;
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` updated:
+      - `serviceArrayPayloadClasses()` is empty.
+  - frontend strict unknown baseline tightened:
+    - `resources/js/tests/api/dto-boundary.spec.ts`: baseline lowered to `5`;
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php`: `BASELINE_FRONTEND_UNKNOWN_USAGE_COUNT=5`.
+  - planning docs updated:
+    - `docs/DTO_IMPLEMENTATION_PLAN.md` (Wave 6 marked completed).
+  - выполнены проверки в строгой последовательности, green:
+    - `composer run lint` (after auto-fix via `php -d sys_temp_dir=... .\vendor\bin\pint ...`);
+    - `composer run analyse`;
+    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test` (executed outside sandbox due local `spawn EPERM` restriction);
+    - `npm run build`;
+    - `php artisan app:healthcheck`;
+    - `php artisan app:performance-smoke`;
+    - `php artisan app:webhook-flow-smoke`;
+    - `php artisan app:api-contract-smoke`;
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.

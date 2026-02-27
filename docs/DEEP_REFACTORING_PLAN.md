@@ -249,3 +249,218 @@ Status:
 - Architecture tests покрывают весь API слой.
 - Quality gate зеленый.
 - План выполнения (`REFACTORING_EXECUTION_PLAN`) актуализирован по всем блокам.
+
+## 8) DTO Program (Incremental)
+
+### DTO Wave 0. Foundation and guardrails
+
+- [x] ADR strategy: `docs/adr/ADR-0002-dto-strategy.md`
+- [x] Architecture allowlist: `tests/Support/Architecture/ArrayPayloadAllowlist.php`
+- [x] Architecture tests:
+  - `tests/Unit/Architecture/ApplicationDtoBoundaryTest.php`
+  - `tests/Unit/Architecture/ServiceDtoBoundaryTest.php`
+- [x] Frontend DTO baseline checks:
+  - `resources/js/tests/api/dto-boundary.spec.ts`
+  - `tests/Unit/Architecture/FrontendApiDtoContractPlanTest.md`
+- [x] Baseline metrics: `docs/DTO_BASELINE_METRICS.md`
+
+Status:
+
+- Completed: 2026-02-24.
+
+---
+
+### DTO Wave 2. Admin categories/orders/promotions
+
+- [x] Backend DTOs:
+  - `CreateAdminCategoryInputDto`
+  - `UpdateAdminCategoryInputDto`
+  - `UpdateAdminOrderStatusInputDto`
+  - `CreateAdminPromotionInputDto`
+  - `UpdateAdminPromotionInputDto`
+  - `CreateAdminPromotionCouponInputDto`
+  - `UpdateAdminPromotionCouponInputDto`
+- [x] Admin requests expose `toDto()`:
+  - `CategoryStoreRequest`
+  - `CategoryUpdateRequest`
+  - `OrderStatusUpdateRequest`
+  - `PromotionStoreRequest`
+  - `PromotionUpdateRequest`
+  - `CouponStoreRequest`
+  - `CouponUpdateRequest`
+- [x] Application/service migration:
+  - admin categories/orders/promotions commands and handlers now carry typed DTOs;
+  - `AdminCategoryService`, `AdminOrderService`, `AdminPromotionService`, `PromotionCouponSyncService` switched to typed DTO signatures.
+- [x] Frontend admin typed contract pipeline:
+  - `resources/js/contracts/api/v1/admin-categories.ts`
+  - `resources/js/contracts/api/v1/admin-orders.ts`
+  - `resources/js/contracts/api/v1/admin-promotions.ts`
+  - `resources/js/contracts/api/v1/assertions/admin-categories.ts`
+  - `resources/js/contracts/api/v1/assertions/admin-orders.ts`
+  - `resources/js/contracts/api/v1/assertions/admin-promotions.ts`
+  - `resources/js/mappers/admin/categories.ts`
+  - `resources/js/mappers/admin/orders.ts`
+  - `resources/js/mappers/admin/promotions.ts`
+  - `resources/js/api/admin/categories.ts`
+  - `resources/js/api/admin/orders.ts`
+  - `resources/js/api/admin/promotions.ts`
+- [x] Added frontend admin DTO contract tests:
+  - `resources/js/tests/api/admin-contract.spec.ts`
+
+Status:
+
+- Completed: 2026-02-25.
+
+---
+
+### DTO Wave 1. Auth pilot
+
+- [x] Backend auth DTOs:
+  - `RegisterAuthInputDto`
+  - `LoginAuthInputDto`
+  - `UpdateAuthProfileInputDto`
+  - `AuthUserDto`
+  - `AuthTokenResultDto`
+- [x] Auth requests now expose `toDto()`:
+  - `RegisterRequest`
+  - `LoginRequest`
+  - `UpdateProfileRequest`
+- [x] Auth application layer migrated from payload arrays to DTO contracts.
+- [x] Auth controller returns DTO transport payload via `toArray()`.
+- [x] Frontend auth typed contract pipeline:
+  - `resources/js/contracts/api/v1/auth.ts`
+  - `resources/js/contracts/api/v1/assertions/auth.ts`
+  - `resources/js/mappers/auth.ts`
+  - `resources/js/api/auth.ts`
+  - `resources/js/stores/auth.ts`
+- [x] Added frontend auth DTO contract tests:
+  - `resources/js/tests/api/auth-contract.spec.ts`
+
+Status:
+
+- Completed: 2026-02-24.
+
+---
+
+### DTO Wave 3. Admin products DTO
+
+- [x] Backend nested DTOs:
+  - `CreateAdminProductInputDto`
+  - `UpdateAdminProductInputDto`
+  - `AdminProductVariantInputDto`
+  - `AdminProductVariantInventoryInputDto`
+- [x] `ProductStoreRequest` / `ProductUpdateRequest` expose `toDto()`.
+- [x] Application/service migration:
+  - `CreateAdminProductCommand` and `UpdateAdminProductCommand` store typed DTOs;
+  - `CreateAdminProductHandler` and `UpdateAdminProductHandler` consume typed DTOs;
+  - `AdminCatalogService` switched from array payload contracts to typed DTO signatures.
+- [x] Frontend typed product contract pipeline:
+  - `resources/js/contracts/api/v1/admin-products.ts`
+  - `resources/js/contracts/api/v1/assertions/admin-products.ts`
+  - `resources/js/mappers/admin/products.ts`
+  - `resources/js/api/admin/products.ts`
+  - `resources/js/types/admin-products.ts`
+  - `resources/js/validators/admin/products.ts`
+- [x] DTO contract tests updated:
+  - `resources/js/tests/api/admin-contract.spec.ts`
+  - `resources/js/tests/validators/admin/products-validator.spec.ts`
+
+Status:
+
+- Completed: 2026-02-27.
+
+---
+
+### DTO Wave 4. Cart + Checkout DTO
+
+- [x] Backend DTOs:
+  - `CartUpsertItemInputDto`
+  - `RemoveCartItemInputDto`
+  - `CartItemResultDto`
+  - `CartSummaryResultDto`
+  - `CartResultDto`
+  - `CheckoutAddressInputDto`
+  - `CheckoutPlaceOrderInputDto`
+  - `CheckoutPaymentResultDto`
+  - `CheckoutPlaceOrderResultDto`
+- [x] Cart and checkout transport flow migrated to typed DTO:
+  - `UpsertCartItemRequest` and `PlaceOrderRequest` expose `toDto()`;
+  - cart handlers return `CartResultDto`;
+  - `CartService::toResultDto(...)` replaces array payload transport;
+  - `PlaceCheckoutOrderCommand` stores `CheckoutPlaceOrderInputDto`;
+  - `PlaceCheckoutOrderHandler` returns `CheckoutPlaceOrderResultDto`;
+  - `CheckoutService::placeOrder(...)` receives `CheckoutPlaceOrderInputDto`;
+  - `CartController` and `CheckoutController` return DTO transport via `toArray()`.
+- [x] Frontend typed cart/checkout contracts:
+  - `resources/js/contracts/api/v1/cart.ts`
+  - `resources/js/contracts/api/v1/checkout.ts`
+  - `resources/js/contracts/api/v1/assertions/cart.ts`
+  - `resources/js/contracts/api/v1/assertions/checkout.ts`
+  - `resources/js/mappers/cart.ts`
+  - `resources/js/mappers/checkout.ts`
+  - `resources/js/api/cart.ts`
+  - `resources/js/api/checkout.ts`
+  - `resources/js/stores/cart.ts`
+  - `resources/js/types/cart.ts`
+  - `resources/js/types/checkout.ts`
+- [x] DTO contract tests added/updated:
+  - `resources/js/tests/api/cart-checkout-contract.spec.ts`
+  - `resources/js/tests/api/checkout-api.spec.ts`
+  - `resources/js/tests/cart-store.spec.ts`
+  - `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`
+
+Status:
+
+- Completed: 2026-02-27.
+
+---
+
+### DTO Wave 5. Catalog + Integration DTO
+
+- [x] Catalog filter migration:
+  - `PaginateCatalogProductsQuery` переведен на `CatalogProductListFilterDto`;
+  - `CatalogService::list(...)` принимает typed `CatalogProductListFilterDto`;
+  - `ProductRepository::paginateCatalog(...)` и filter application переведены на typed DTO;
+  - `CatalogController` строит query через `CatalogProductListFilterDto::fromValidated(...)`.
+- [x] DTO guardrails tightened for catalog:
+  - `tests/Support/Architecture/ArrayPayloadAllowlist.php` обновлен:
+    - `BASELINE_APPLICATION_ARRAY_PAYLOAD_COUNT` снижен до `0`;
+    - `CatalogService` удален из service array payload allowlist.
+- [x] Payment/Shipping result DTO migration:
+  - добавлены `PaymentCreationResultDto` и `ShipmentCreationResultDto`;
+  - `PaymentGatewayInterface::createPayment(...)` и `ShippingGatewayInterface::createShipment(...)` возвращают typed DTO;
+  - `FakePaymentGateway`, `FakeShippingGateway` и `GatewayDriverBindingTest` переведены на typed result DTO;
+  - `PaymentService` и `ShippingService` используют DTO поля вместо array shape.
+- [x] Webhook typed payload adapters:
+  - добавлены `PaymentWebhookPayloadDto` и `ShippingWebhookPayloadDto`;
+  - `PaymentWebhookAdapter` и `ShippingWebhookAdapter` добавляют typed parse-step перед transition logic;
+  - `WebhookProcessingPipeline` остается универсальным (adapter contract без breaking changes).
+
+Status:
+
+- Completed: 2026-02-27.
+
+---
+
+### DTO Wave 6. Frontend DTO completion + hard enforcement
+
+- [x] Frontend typed parse/assertion coverage completed for remaining public domains:
+  - `catalog` contracts/assertions and API wiring;
+  - `account/orders` contracts/assertions and API wiring.
+- [x] Mapper layer migrated to typed wire DTO inputs (no domain `unknown` in `resources/js/mappers/*`).
+- [x] Contract tests expanded:
+  - `resources/js/tests/api/catalog-account-contract.spec.ts`.
+- [x] Unknown usage hard-enforced in domain API/mapper layers:
+  - baseline in `resources/js/tests/api/dto-boundary.spec.ts` reduced to `5`;
+  - `unknown` retained only in response transport parser and assertion modules.
+- [x] Backend strict guardrails finalized:
+  - `public array $payload|$filters` in `app/Application` = `0`;
+  - `handle(): array` in application handlers = `0`;
+  - `tests/Support/Architecture/ArrayPayloadAllowlist.php` application/service allowlists cleaned.
+- [x] Service webhook/integration contracts migrated from raw array params to typed payload object:
+  - shared `JsonPayload` value object introduced;
+  - webhook pipeline/adapters/services use typed payload boundary instead of raw array params.
+
+Status:
+
+- Completed: 2026-02-27.
