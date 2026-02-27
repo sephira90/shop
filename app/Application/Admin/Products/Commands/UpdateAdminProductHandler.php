@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Products\Commands;
 
-use App\Models\Product;
+use App\Application\Admin\Products\Dto\AdminProductResultDto;
 use App\Services\Admin\AdminCatalogService;
 
 final class UpdateAdminProductHandler
@@ -19,8 +19,10 @@ final class UpdateAdminProductHandler
     /**
      * Execute admin product update command.
      */
-    public function handle(UpdateAdminProductCommand $command): Product
+    public function handle(UpdateAdminProductCommand $command): AdminProductResultDto
     {
-        return $this->adminCatalogService->updateProduct($command->product, $command->input);
+        $product = $this->adminCatalogService->updateProduct($command->product, $command->input);
+
+        return AdminProductResultDto::fromProduct($product);
     }
 }

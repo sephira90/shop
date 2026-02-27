@@ -42,7 +42,7 @@ class ProductResource extends JsonResource
                 'id' => $variant->id,
                 'sku' => $variant->sku,
                 'name' => $variant->name,
-                'attributes' => $variant->attributes,
+                'attributes' => self::normalizeVariantAttributes($variant->attributes),
                 'price' => (float) $variant->price,
                 'compare_at_price' => $variant->compare_at_price !== null ? (float) $variant->compare_at_price : null,
                 'currency' => $variant->currency,
@@ -57,5 +57,31 @@ class ProductResource extends JsonResource
             'created_at' => $this->created_at?->toAtomString(),
             'updated_at' => $this->updated_at?->toAtomString(),
         ];
+    }
+
+    /**
+     * Normalize variant attributes to API contract object|null boundary.
+     *
+     * @return array<string, mixed>|object|null
+     */
+    private static function normalizeVariantAttributes(mixed $attributes): array|object|null
+    {
+        if ($attributes === null) {
+            return null;
+        }
+
+        if (! is_array($attributes)) {
+            return null;
+        }
+
+        if ($attributes === []) {
+            return (object) [];
+        }
+
+        if (array_is_list($attributes)) {
+            return null;
+        }
+
+        return $attributes;
     }
 }

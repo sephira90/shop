@@ -18,7 +18,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProductIndexRequest;
 use App\Http\Requests\Admin\ProductStoreRequest;
 use App\Http\Requests\Admin\ProductUpdateRequest;
-use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -47,7 +46,7 @@ class ProductController extends Controller
             new PaginateAdminProductsQuery($request->filter())
         );
 
-        return ApiResponse::paginated(ProductResource::collection($products->items()), $products);
+        return ApiResponse::paginatedWithMeta($products->itemsToArray(), $products->metaToArray());
     }
 
     /**
@@ -61,7 +60,7 @@ class ProductController extends Controller
             new CreateAdminProductCommand($request->toDto())
         );
 
-        return ApiResponse::data(ProductResource::make($product), 201);
+        return ApiResponse::data($product->toArray(), 201);
     }
 
     /**
@@ -73,7 +72,7 @@ class ProductController extends Controller
 
         $detail = $this->getAdminProductDetailHandler->handle(new GetAdminProductDetailQuery($product));
 
-        return ApiResponse::data(ProductResource::make($detail));
+        return ApiResponse::data($detail->toArray());
     }
 
     /**
@@ -87,7 +86,7 @@ class ProductController extends Controller
             new UpdateAdminProductCommand($product, $request->toDto())
         );
 
-        return ApiResponse::data(ProductResource::make($product));
+        return ApiResponse::data($product->toArray());
     }
 
     /**

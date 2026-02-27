@@ -1,5 +1,7 @@
 # Architecture Refactor Plan
 
+> Historical plan (archived). Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## Goal
 
 Построить масштабируемую, предсказуемую и безопасную архитектуру monolith-first для backend (Laravel) и frontend (Vue/TS), сохранив текущий продуктовый флоу и API-контракты в контролируемом режиме.

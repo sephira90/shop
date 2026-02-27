@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Products\Queries;
 
-use App\Models\Product;
+use App\Application\Admin\Products\Dto\AdminProductPaginatedResultDto;
 use App\Repositories\ProductRepository;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class PaginateAdminProductsHandler
 {
@@ -19,11 +18,11 @@ final class PaginateAdminProductsHandler
 
     /**
      * Execute admin products list query.
-     *
-     * @return LengthAwarePaginator<int, Product>
      */
-    public function handle(PaginateAdminProductsQuery $query): LengthAwarePaginator
+    public function handle(PaginateAdminProductsQuery $query): AdminProductPaginatedResultDto
     {
-        return $this->productRepository->paginateForAdmin($query->filter);
+        $paginator = $this->productRepository->paginateForAdmin($query->filter);
+
+        return AdminProductPaginatedResultDto::fromPaginator($paginator);
     }
 }

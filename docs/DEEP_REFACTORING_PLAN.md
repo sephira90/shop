@@ -1,5 +1,7 @@
 # Deep Refactoring Plan
 
+> Historical plan (archived). Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## 1) Цель
 
 Довести проект до архитектурно устойчивого состояния для масштабирования, где:

@@ -45,7 +45,7 @@ class CategoryController extends Controller
             new PaginateAdminCategoriesQuery($request->filter())
         );
 
-        return ApiResponse::paginated($categories->items(), $categories);
+        return ApiResponse::paginatedWithMeta($categories->itemsToArray(), $categories->metaToArray());
     }
 
     /**
@@ -59,7 +59,7 @@ class CategoryController extends Controller
             new CreateAdminCategoryCommand($request->toDto())
         );
 
-        return ApiResponse::data($category, 201);
+        return ApiResponse::data($category->toArray(), 201);
     }
 
     /**
@@ -73,7 +73,7 @@ class CategoryController extends Controller
             new GetAdminCategoryDetailQuery($category)
         );
 
-        return ApiResponse::data($detail);
+        return ApiResponse::data($detail->toArray());
     }
 
     /**
@@ -87,7 +87,7 @@ class CategoryController extends Controller
             new UpdateAdminCategoryCommand($category, $request->toDto())
         );
 
-        return ApiResponse::data($updated);
+        return ApiResponse::data($updated->toArray());
     }
 
     /**

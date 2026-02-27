@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Commands;
 
-use App\Models\Payment;
+use App\Application\Checkout\Dto\CheckoutPaymentResultDto;
 use App\Services\Payment\PaymentService;
 
 final class InitiateCheckoutPaymentHandler
@@ -19,8 +19,10 @@ final class InitiateCheckoutPaymentHandler
     /**
      * Execute checkout payment initiate command.
      */
-    public function handle(InitiateCheckoutPaymentCommand $command): Payment
+    public function handle(InitiateCheckoutPaymentCommand $command): CheckoutPaymentResultDto
     {
-        return $this->paymentService->initiate($command->order, $command->idempotencyKey);
+        return CheckoutPaymentResultDto::fromPayment(
+            $this->paymentService->initiate($command->order, $command->idempotencyKey),
+        );
     }
 }

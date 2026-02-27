@@ -188,4 +188,38 @@ class AdminProductVariantsTest extends TestCase
             'price' => '999.99',
         ]);
     }
+
+    /**
+     * Ensure API emits object attributes shape for variants without explicit attributes.
+     */
+    public function test_product_variant_without_attributes_is_returned_as_empty_object(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/v1/admin/products', [
+            'sku' => 'PHONE-003',
+            'name' => 'Phone 3',
+            'status' => 'draft',
+            'variants' => [
+                [
+                    'sku' => 'PHONE-003-BASE',
+                    'name' => 'Base',
+                    'price' => 599.99,
+                    'currency' => 'USD',
+                    'is_active' => true,
+                    'inventory' => [
+                        'quantity' => 10,
+                        'reserved_quantity' => 1,
+                        'low_stock_threshold' => 2,
+                    ],
+                ],
+            ],
+        ])->assertCreated();
+
+        $this->assertStringContainsString('"attributes":{}', (string) $response->getContent());
+    }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Categories\Commands;
 
-use App\Models\Category;
+use App\Application\Admin\Categories\Dto\AdminCategoryResultDto;
 use App\Services\Admin\AdminCategoryService;
 
 final class UpdateAdminCategoryHandler
@@ -19,8 +19,10 @@ final class UpdateAdminCategoryHandler
     /**
      * Execute admin category update command.
      */
-    public function handle(UpdateAdminCategoryCommand $command): Category
+    public function handle(UpdateAdminCategoryCommand $command): AdminCategoryResultDto
     {
-        return $this->adminCategoryService->update($command->category, $command->input);
+        $category = $this->adminCategoryService->update($command->category, $command->input);
+
+        return AdminCategoryResultDto::fromCategory($category);
     }
 }

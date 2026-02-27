@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Categories\Commands;
 
-use App\Models\Category;
+use App\Application\Admin\Categories\Dto\AdminCategoryResultDto;
 use App\Services\Admin\AdminCategoryService;
 
 final class CreateAdminCategoryHandler
@@ -19,8 +19,10 @@ final class CreateAdminCategoryHandler
     /**
      * Execute admin category create command.
      */
-    public function handle(CreateAdminCategoryCommand $command): Category
+    public function handle(CreateAdminCategoryCommand $command): AdminCategoryResultDto
     {
-        return $this->adminCategoryService->create($command->input);
+        $category = $this->adminCategoryService->create($command->input);
+
+        return AdminCategoryResultDto::fromCategory($category);
     }
 }

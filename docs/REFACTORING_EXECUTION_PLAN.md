@@ -1,5 +1,7 @@
 # Refactoring Execution Plan
 
+> Operational execution log only. Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## Цель
 
 Собрать устойчивую, масштабируемую и предсказуемую архитектуру (backend + frontend), сохранив текущий продуктовый функционал и API-контракты.
@@ -2474,5 +2476,593 @@
     - `php artisan app:api-contract-smoke`;
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` execution started (`Wave 1` batch: webhook transport purity):
+  - active architecture plan persisted:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md`;
+  - webhook ingestion moved to application-layer handlers:
+    - `app/Application/Webhook/Commands/EnqueuePaymentWebhookCommand.php`;
+    - `app/Application/Webhook/Commands/EnqueuePaymentWebhookHandler.php`;
+    - `app/Application/Webhook/Commands/EnqueueShippingWebhookCommand.php`;
+    - `app/Application/Webhook/Commands/EnqueueShippingWebhookHandler.php`;
+  - shipping webhook async ingestion parity implemented:
+    - `app/Jobs/ProcessShippingWebhookJob.php`;
+  - webhook controllers simplified to transport-only orchestration over application handlers:
+    - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
+    - `app/Http/Controllers/Api/V1/Webhook/ShippingWebhookController.php`;
+  - shipping webhook adapter exposes explicit tracking-number extraction boundary for application handler validation:
+    - `app/Services/Shipping/ShippingWebhookAdapter.php` (`extractTrackingNumber(JsonPayload $payload): string`);
+  - public API controller architecture guardrail expanded to include webhook controllers:
+    - `tests/Unit/Architecture/PublicApiControllerArchitectureTest.php`;
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 1` batch: auth password + email verification application handlers):
+  - auth password/verification application layer added:
+    - `app/Application/Auth/Dto/ForgotAuthPasswordInputDto.php`;
+    - `app/Application/Auth/Dto/ResetAuthPasswordInputDto.php`;
+    - `app/Application/Auth/Commands/ForgotAuthPasswordCommand.php`;
+    - `app/Application/Auth/Commands/ForgotAuthPasswordHandler.php`;
+    - `app/Application/Auth/Commands/ResetAuthPasswordCommand.php`;
+    - `app/Application/Auth/Commands/ResetAuthPasswordHandler.php`;
+    - `app/Application/Auth/Commands/VerifyAuthEmailCommand.php`;
+    - `app/Application/Auth/Commands/VerifyAuthEmailHandler.php`;
+    - `app/Application/Auth/Commands/ResendAuthVerificationCommand.php`;
+    - `app/Application/Auth/Commands/ResendAuthVerificationHandler.php`;
+  - transport requests/controllers migrated to typed orchestration:
+    - `app/Http/Requests/Auth/ForgotPasswordRequest.php` (`toDto()` -> `ForgotAuthPasswordInputDto`);
+    - `app/Http/Requests/Auth/ResetPasswordRequest.php` (`toDto()` -> `ResetAuthPasswordInputDto`);
+    - `app/Http/Controllers/Api/V1/Auth/PasswordController.php`;
+    - `app/Http/Controllers/Api/V1/Auth/VerificationController.php`;
+  - public API controller architecture guardrail expanded:
+    - `tests/Unit/Architecture/PublicApiControllerArchitectureTest.php` (auth password/verification controllers added to enforced list);
+  - feature coverage expanded:
+    - `tests/Feature/PasswordResetFlowTest.php`;
+    - `tests/Feature/EmailVerificationTest.php`;
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 1` batch: full API V1 controller guardrail coverage):
+  - `PublicApiControllerArchitectureTest` migrated to automatic controller discovery under `app/Http/Controllers/Api/V1/**`:
+    - manual allowlist removed;
+    - new helper `discoverApiV1ControllerClasses()` resolves all controller classes and fails on autoload mismatch;
+    - architecture assertions now enforce handler-only DI for every API V1 controller file by default.
+  - updated file:
+    - `tests/Unit/Architecture/PublicApiControllerArchitectureTest.php`;
+  - targeted architecture checks:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/AdminControllerArchitectureTest.php tests/Unit/Architecture/PublicApiControllerArchitectureTest.php`.
+  - checks executed in strict sequence, green:
+    - `composer run lint` (initial fail on style issue; fixed via `php -d sys_temp_dir=... .\vendor\bin\pint tests/Unit/Architecture/PublicApiControllerArchitectureTest.php`, then re-run green);
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 2` batch: api-contract smoke webhook parity):
+  - shipping webhook API contract scenario added for parity with payment:
+    - `app/Support/Smoke/ApiContract/Scenarios/ShippingWebhookApiContractScenario.php`;
+    - validates `/api/v1/webhooks/shipping` missing-signature behavior (`400` + error envelope);
+    - emits `shipping_webhook_missing_signature` smoke result row.
+  - `app:api-contract-smoke` scenario pipeline extended:
+    - `app/Console/Commands/AppApiContractSmokeCommand.php` now injects and runs `ShippingWebhookApiContractScenario`.
+  - feature smoke command contract test extended:
+    - `tests/Feature/ApiContractSmokeCommandTest.php` now asserts shipping webhook check is present in command output.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/ApiContractSmokeCommandTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 2` batch: webhook parity feature tests):
+  - payment webhook feature coverage expanded:
+    - added `missing signature` contract case;
+    - added `duplicate replay` idempotency case (same `event_id` + same payload -> dedupe via single `webhook_receipts` record);
+    - helper setup extracted for paid-order/payment fixture reuse:
+      - `tests/Feature/PaymentWebhookTest.php`.
+  - shipping webhook feature coverage expanded:
+    - added `missing signature` contract case;
+    - added `duplicate replay` idempotency case (same `event_id` + same payload -> dedupe via single `webhook_receipts` record);
+    - retained existing non-regression + payload hash mismatch coverage:
+      - `tests/Feature/ShippingWebhookTest.php`.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/PaymentWebhookTest.php tests/Feature/ShippingWebhookTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` governance formalization:
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` explicitly закреплен как active architecture execution source-of-truth (`Execution Authority` section).
+  - historical plans marked as archival references (not active execution authority):
+    - `docs/ARCHITECTURE_REFACTOR_PLAN.md`;
+    - `docs/DEEP_REFACTORING_PLAN.md`;
+    - `docs/DTO_IMPLEMENTATION_PLAN.md`;
+    - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md`.
+  - `docs/REFACTORING_EXECUTION_PLAN.md` explicitly marked as operational execution log only.
+  - checks:
+    - docs-only governance update; runtime quality gate commands were not executed.
+- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 2` batch: webhook ingress prevalidation + centralized error mapping):
+  - unified webhook ingress prevalidation introduced to remove duplicated parse/verify logic across enqueue handlers and pipeline:
+    - added ingress metadata DTO:
+      - `app/Services/Webhook/Dto/WebhookIngressMetadataDto.php`;
+    - `WebhookProcessorAdapterInterface` updated to single prevalidation boundary:
+      - `app/Services/Webhook/WebhookProcessorAdapterInterface.php`;
+    - payment/shipping adapters migrated to `prevalidateIngress(...)`:
+      - `app/Services/Payment/PaymentWebhookAdapter.php`;
+      - `app/Services/Shipping/ShippingWebhookAdapter.php`;
+    - enqueue handlers now prevalidate once and dispatch job with prevalidated `eventId`:
+      - `app/Application/Webhook/Commands/EnqueuePaymentWebhookHandler.php`;
+      - `app/Application/Webhook/Commands/EnqueueShippingWebhookHandler.php`;
+    - jobs and services now propagate prevalidated `eventId` into pipeline:
+      - `app/Jobs/ProcessPaymentWebhookJob.php`;
+      - `app/Jobs/ProcessShippingWebhookJob.php`;
+      - `app/Services/Payment/PaymentService.php`;
+      - `app/Services/Shipping/ShippingService.php`;
+    - pipeline accepts optional prevalidated event id and skips redundant signature/event parsing when provided:
+      - `app/Services/Webhook/WebhookProcessingPipeline.php`.
+  - centralized webhook error taxonomy + transport mapping:
+    - added typed error code enum:
+      - `app/Services/Webhook/WebhookIngressErrorCode.php`;
+    - added typed ingress exception with status mapping:
+      - `app/Services/Webhook/WebhookIngressException.php`;
+    - webhook controllers switched to explicit `WebhookIngressException` handling:
+      - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
+      - `app/Http/Controllers/Api/V1/Webhook/ShippingWebhookController.php`.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/PaymentWebhookTest.php tests/Feature/ShippingWebhookTest.php tests/Feature/ApiContractSmokeCommandTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint` (initial fail on style issues in webhook controllers; fixed via `php -d sys_temp_dir=... .\vendor\bin\pint app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php app/Http/Controllers/Api/V1/Webhook/ShippingWebhookController.php`, then re-run green);
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 3` batch: dead-code removal guardrail):
+  - legacy artifacts neutralized:
+    - physically removed legacy files:
+      - `app/Application/Auth/Support/AuthUserPayloadBuilder.php`;
+      - `app/Application/Checkout/Commands/PlaceCheckoutOrderResult.php`;
+    - local existence rechecked after delete (`Test-Path` -> `False` for both paths).
+  - added architecture guardrail test:
+    - `tests/Unit/Architecture/LegacyPayloadArtifactGuardrailTest.php` asserts legacy classes are not autoloadable.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/LegacyPayloadArtifactGuardrailTest.php tests/Feature/AuthFlowTest.php tests/Feature/GuestCheckoutTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 3` batch: enum-based admin order status input contract):
+  - `UpdateAdminOrderStatusInputDto` migrated from nullable strings to enum fields:
+    - `status: ?OrderStatus`;
+    - `paymentStatus: ?PaymentStatus`;
+    - `shipmentStatus: ?ShipmentStatus`;
+    - normalization now resolves enums via `tryFrom(...)` and preserves null for empty/invalid values.
+  - admin order status update boundary aligned with enum contract:
+    - `app/Http/Requests/Admin/OrderStatusUpdateRequest.php` moved to `Rule::enum(...)` validation for all three status fields;
+    - `app/Services/Admin/AdminOrderService.php` now resolves current model statuses to enums, applies explicit cancelled transition check with `OrderStatus::CANCELLED`, and writes scalar values via enum-backed `->value`.
+  - added unit coverage:
+    - `tests/Unit/UpdateAdminOrderStatusInputDtoTest.php` validates enum mapping and null normalization behavior.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/UpdateAdminOrderStatusInputDtoTest.php tests/Feature/PhaseOneHardeningTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 3` batch: `app/Filters/*` -> application `*FilterDto` migration):
+  - legacy filter contracts migrated from `app/Filters/*` into application-layer DTOs:
+    - `app/Application/Admin/Categories/Dto/AdminCategoryListFilterDto.php`;
+    - `app/Application/Admin/Orders/Dto/AdminOrderListFilterDto.php`;
+    - `app/Application/Admin/Products/Dto/AdminProductListFilterDto.php`;
+    - `app/Application/Admin/Promotions/Dto/AdminPromotionListFilterDto.php`;
+    - `app/Application/Checkout/Dto/AccountOrderListFilterDto.php`.
+  - all consumers switched to new DTO contracts:
+    - requests:
+      - `app/Http/Requests/Admin/CategoryIndexRequest.php`;
+      - `app/Http/Requests/Admin/OrderIndexRequest.php`;
+      - `app/Http/Requests/Admin/ProductIndexRequest.php`;
+      - `app/Http/Requests/Admin/PromotionIndexRequest.php`;
+      - `app/Http/Requests/Account/AccountOrderIndexRequest.php`;
+    - application queries:
+      - `app/Application/Admin/Categories/Queries/PaginateAdminCategoriesQuery.php`;
+      - `app/Application/Admin/Orders/Queries/PaginateAdminOrdersQuery.php`;
+      - `app/Application/Admin/Products/Queries/PaginateAdminProductsQuery.php`;
+      - `app/Application/Admin/Promotions/Queries/PaginateAdminPromotionsQuery.php`;
+      - `app/Application/Checkout/Queries/PaginateMyOrdersQuery.php`;
+    - repositories and command consumers:
+      - `app/Repositories/CategoryRepository.php`;
+      - `app/Repositories/OrderRepository.php`;
+      - `app/Repositories/ProductRepository.php`;
+      - `app/Repositories/PromotionRepository.php`;
+      - `app/Console/Commands/AppPerformanceSmokeCommand.php`.
+  - added architecture guardrail:
+    - `tests/Unit/Architecture/LegacyFilterArtifactGuardrailTest.php` asserts no PHP artifacts remain under legacy `app/Filters` namespace directory.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/LegacyFilterArtifactGuardrailTest.php tests/Feature/AdminListFilteringTest.php tests/Feature/AccountOrdersApiTest.php tests/Feature/PerformanceSmokeTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse` (initial fail on guardrail assertion style; fixed, then re-run green);
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 3` batch: scalar-safe `toArray()` transport boundaries):
+  - scalar transport boundary aligned for gateway result DTOs:
+    - `app/Services/Payment/Dto/PaymentCreationResultDto.php`:
+      - `toArray()['status']` changed from enum object to scalar enum value (`$this->status->value`);
+      - return contract updated to `status:string`.
+    - `app/Services/Shipping/Dto/ShipmentCreationResultDto.php`:
+      - `toArray()['status']` changed from enum object to scalar enum value (`$this->status->value`);
+      - return contract updated to `status:string`.
+  - added regression guardrail:
+    - `tests/Unit/TransportPayloadScalarSafetyTest.php` asserts payment/shipment creation DTO `toArray()` returns scalar status values.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/TransportPayloadScalarSafetyTest.php tests/Unit/GatewayDriverBindingTest.php tests/Feature/PaymentWebhookTest.php tests/Feature/ShippingWebhookTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout discount resolver extraction):
+  - checkout discount/coupon resolution logic extracted from `CheckoutService` into dedicated module:
+    - added typed discount context DTO:
+      - `app/Services/Checkout/Dto/CheckoutDiscountContextDto.php`;
+    - added resolver service:
+      - `app/Services/Checkout/CheckoutDiscountResolver.php` (coupon/promotion validation + discount calculation).
+  - `CheckoutService` reduced to orchestration responsibility:
+    - injected `CheckoutDiscountResolver`;
+    - removed inline discount resolution/calculation methods;
+    - switched coupon/promotion counter increments to typed context fields.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/CouponCheckoutTest.php tests/Feature/CartCheckoutTest.php tests/Feature/GuestCheckoutTest.php tests/Feature/CheckoutAuthenticatedTokenTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — API contract fix (`admin products`: variant `attributes` object|null):
+  - backend product resource response normalized to strict contract boundary:
+    - `app/Http/Resources/ProductResource.php` now emits variant `attributes` as:
+      - object (`{}` / associative object) for object-like payloads,
+      - `null` for non-object payloads,
+      - `{}` for empty attributes to avoid JSON array `[]` leakage.
+  - added feature regression coverage:
+    - `tests/Feature/AdminProductVariantsTest.php`:
+      - `test_product_variant_without_attributes_is_returned_as_empty_object`.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/AdminProductVariantsTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout idempotency guard extraction):
+  - checkout idempotency decision flow extracted from `CheckoutService` into dedicated module:
+    - added typed resolution DTO:
+      - `app/Services/Checkout/Dto/CheckoutIdempotencyResolutionDto.php`;
+    - added guard service:
+      - `app/Services/Checkout/CheckoutIdempotencyGuard.php`;
+      - owns `lockForUpdate` decision path for:
+        - idempotency acquire,
+        - replay return by existing `order_id`,
+        - expiry reset,
+        - payload hash mismatch check,
+        - cross-cart reuse protection.
+  - `CheckoutService` reduced to orchestration:
+    - injected `CheckoutIdempotencyGuard`;
+    - replaced inline idempotency branch with single `resolve(...)` call and explicit early replay return.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/CartCheckoutTest.php tests/Feature/GuestCheckoutTest.php tests/Feature/CheckoutAuthenticatedTokenTest.php tests/Feature/CouponCheckoutTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout inventory allocator extraction):
+  - inventory validation/consumption path extracted from `CheckoutService` into dedicated module:
+    - added service:
+      - `app/Services/Checkout/CheckoutInventoryAllocator.php`;
+      - owns row-lock inventory fetch, availability checks, and stock decrement flow.
+    - introduced typed demand DTO in application layer:
+      - `app/Application/Checkout/Dto/CheckoutInventoryDemandDto.php`;
+      - `CheckoutService` now passes typed demand instead of direct array contract.
+  - `CheckoutService` reduced to orchestration:
+    - injected `CheckoutInventoryAllocator`;
+    - removed inline `Inventory` query/check/decrement block and replaced with single allocator call.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/ServiceDtoBoundaryTest.php tests/Feature/CartCheckoutTest.php tests/Feature/GuestCheckoutTest.php tests/Feature/CheckoutAuthenticatedTokenTest.php tests/Feature/CouponCheckoutTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint` (initial style fail in `CheckoutService.php`; fixed via `php -d sys_temp_dir=... .\vendor\bin\pint app/Services/Checkout/CheckoutService.php`, then re-run green);
+    - `composer run analyse`;
+    - `php artisan test` (initial fail on `ServiceDtoBoundaryTest` due DTO location under `Services`; fixed by moving `CheckoutInventoryDemandDto` to `app/Application/Checkout/Dto`, then re-run green with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: status transition policies extraction + checkout orchestration split finalization):
+  - transition matrices extracted from webhook adapters into dedicated policy boundaries:
+    - `app/Services/Payment/PaymentStatusTransitionPolicy.php`;
+    - `app/Services/Shipping/ShipmentStatusTransitionPolicy.php`;
+    - `app/Services/Order/OrderStatusTransitionPolicy.php`.
+  - `PaymentWebhookAdapter` and `ShippingWebhookAdapter` reduced to orchestration:
+    - transition decisions delegated to injected policy services;
+    - inline transition matrix logic removed from adapters.
+  - checkout decomposition finalization reflected in active architecture plan:
+    - order-write orchestration now explicitly tracked as extracted to
+      - `app/Services/Checkout/CheckoutCartPreparer.php`,
+      - `app/Services/Checkout/CheckoutOrderWriter.php`.
+  - added deterministic unit guardrails for transition matrices:
+    - `tests/Unit/PaymentStatusTransitionPolicyTest.php`;
+    - `tests/Unit/ShipmentStatusTransitionPolicyTest.php`;
+    - `tests/Unit/OrderStatusTransitionPolicyTest.php`.
+  - architecture execution rules tightened in active source-of-truth:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now explicitly requires deep Wave 4+ blocks:
+      - boundary extraction,
+      - matrix tests,
+      - execution-log update with checks.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/PaymentStatusTransitionPolicyTest.php tests/Unit/ShipmentStatusTransitionPolicyTest.php tests/Unit/OrderStatusTransitionPolicyTest.php tests/Feature/PaymentWebhookTest.php tests/Feature/ShippingWebhookTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (in this environment with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...` due local SQLite file-lock/disk I/O constraints);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: `CartService` decomposition into resolver/mutation/result-mapper boundaries):
+  - cart service decomposition completed with explicit service boundaries:
+    - `app/Services/Cart/CartResolver.php`:
+      - owns cart resolution flows (`resolve`, `resolveForCheckout`) for user/guest scenarios.
+    - `app/Services/Cart/CartMutationService.php`:
+      - owns mutation flows (`upsertItem`, `removeItem`, `mergeGuestCart`) including stock checks and merge transaction.
+    - `app/Services/Cart/CartResultMapper.php`:
+      - owns deterministic `Cart` -> `CartResultDto` mapping.
+    - `app/Services/Cart/CartService.php`:
+      - reduced to facade orchestration delegating to extracted components.
+  - typed regression guardrail added:
+    - `tests/Unit/CartResultMapperTest.php`:
+      - verifies stable item/summary payload mapping;
+      - verifies invalid/non-cart-item payloads are ignored.
+  - static-analysis baseline cleanup after extraction:
+    - removed obsolete cart-specific ignores from `phpstan-baseline.neon` previously tied to `app/Services/Cart/CartService.php`.
+  - active architecture source-of-truth updated:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now marks cart decomposition as completed sub-block in Wave 4.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/CartResultMapperTest.php tests/Feature/CheckoutAuthenticatedTokenTest.php tests/Feature/GuestCheckoutTest.php tests/Feature/CartCheckoutTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse` (initial fail due moved cart typing warnings + stale baseline entries; fixed in cart services + baseline, then re-run green);
+    - `php artisan test` (initial fail on new mapper unit expectation for unsaved model status; fixed status fallback in mapper, then re-run green with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: admin/manual order status flow adopts transition policies):
+  - admin status update service aligned with transition policy boundaries:
+    - `app/Services/Admin/AdminOrderService.php` now injects and uses:
+      - `OrderStatusTransitionPolicy`,
+      - `PaymentStatusTransitionPolicy`,
+      - `ShipmentStatusTransitionPolicy`;
+    - payment/shipment manual status updates are validated via policy matrix before write;
+    - when explicit `status` is absent, order status is derived deterministically from payment/shipment transition rules.
+  - transport layer error mapping added for manual transition rejections:
+    - `app/Http/Controllers/Api/V1/Admin/OrderController.php` now maps `DomainException` from status update flow to `422` API error envelope.
+  - feature coverage expanded:
+    - `tests/Feature/PhaseOneHardeningTest.php`:
+      - `test_admin_order_status_update_derives_order_status_when_status_not_provided`;
+      - `test_admin_order_status_update_rejects_invalid_payment_transition`.
+  - active architecture source-of-truth updated:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks Wave 4 as completed and sets Wave 5 as active focus.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Feature/PhaseOneHardeningTest.php tests/Unit/OrderStatusTransitionPolicyTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: checkout command ORM return leakage removal):
+  - checkout payment initiation application boundary hardened:
+    - `app/Application/Checkout/Commands/InitiateCheckoutPaymentHandler.php` migrated from `Payment` model return to typed DTO `CheckoutPaymentResultDto`.
+  - transport layer aligned to typed command result:
+    - `app/Http/Controllers/Api/V1/CheckoutController.php` `pay(...)` endpoint now returns `$payment->toArray()` from application DTO instead of reading ORM fields.
+  - application architecture guardrail added for checkout command handlers:
+    - `tests/Unit/Architecture/ApplicationCheckoutCommandBoundaryTest.php` enforces that checkout command handlers do not return `App\Models\*`.
+  - static-analysis baseline cleanup:
+    - removed stale checkout-controller ignores from `phpstan-baseline.neon` that became obsolete after DTO migration.
+  - active architecture source-of-truth updated:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now records Wave 5 sub-block completion for checkout command boundary.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/ApplicationCheckoutCommandBoundaryTest.php tests/Feature/CartCheckoutTest.php tests/Feature/GuestCheckoutTest.php tests/Feature/CheckoutAuthenticatedTokenTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse` (initial fail due stale baseline ignore entries for checkout controller; fixed by pruning obsolete records in `phpstan-baseline.neon`, then re-run green);
+    - `php artisan test` (with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: admin categories ORM/paginator return leakage removal):
+  - admin categories application boundary hardened:
+    - `app/Application/Admin/Categories/Commands/CreateAdminCategoryHandler.php` migrated from `Category` model return to `AdminCategoryResultDto`;
+    - `app/Application/Admin/Categories/Commands/UpdateAdminCategoryHandler.php` migrated from `Category` model return to `AdminCategoryResultDto`;
+    - `app/Application/Admin/Categories/Queries/GetAdminCategoryDetailHandler.php` migrated from `Category` model return to `AdminCategoryResultDto`;
+    - `app/Application/Admin/Categories/Queries/PaginateAdminCategoriesHandler.php` migrated from `LengthAwarePaginator` return to `AdminCategoryPaginatedResultDto`.
+  - typed result DTO boundaries added:
+    - `app/Application/Admin/Categories/Dto/AdminCategoryParentResultDto.php`;
+    - `app/Application/Admin/Categories/Dto/AdminCategoryResultDto.php`;
+    - `app/Application/Admin/Categories/Dto/AdminCategoryPaginatedResultDto.php`.
+  - transport layer aligned to DTO boundaries:
+    - `app/Http/Controllers/Api/V1/Admin/CategoryController.php` now returns explicit DTO `toArray()` payloads for `store/show/update` and DTO-based `data/meta` for `index`;
+    - `app/Support/Api/ApiResponse.php` extended with `paginatedWithMeta(...)` for typed paginated DTO responses without passing paginator across application boundary.
+  - architecture guardrail added:
+    - `tests/Unit/Architecture/ApplicationAdminCategoriesHandlerBoundaryTest.php` enforces that admin category handlers do not return `App\Models\*` or `LengthAwarePaginator`.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/ApplicationAdminCategoriesHandlerBoundaryTest.php tests/Feature/AdminCategoryCrudTest.php tests/Feature/AdminListFilteringTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-02-27` — project engineering governance update (`architecture-first for new functionality`):
+  - project rules strengthened in `AGENTS.md`:
+    - added explicit mandatory rule: new functionality must follow project architecture from the first implementation step (layer boundaries, contracts, module responsibilities).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test` (with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: admin products ORM/paginator return leakage removal):
+  - admin products application boundary hardened:
+    - `app/Application/Admin/Products/Commands/CreateAdminProductHandler.php` migrated from `Product` model return to `AdminProductResultDto`;
+    - `app/Application/Admin/Products/Commands/UpdateAdminProductHandler.php` migrated from `Product` model return to `AdminProductResultDto`;
+    - `app/Application/Admin/Products/Queries/GetAdminProductDetailHandler.php` migrated from `Product` model return to `AdminProductResultDto`;
+    - `app/Application/Admin/Products/Queries/PaginateAdminProductsHandler.php` migrated from `LengthAwarePaginator` return to `AdminProductPaginatedResultDto`.
+  - typed result DTO boundaries added:
+    - `app/Application/Admin/Products/Dto/AdminProductCategoryResultDto.php`;
+    - `app/Application/Admin/Products/Dto/AdminProductVariantInventoryResultDto.php`;
+    - `app/Application/Admin/Products/Dto/AdminProductVariantResultDto.php`;
+    - `app/Application/Admin/Products/Dto/AdminProductResultDto.php`;
+    - `app/Application/Admin/Products/Dto/AdminProductPaginatedResultDto.php`.
+  - transport layer aligned to DTO boundaries:
+    - `app/Http/Controllers/Api/V1/Admin/ProductController.php` now returns explicit DTO `toArray()` payloads for `store/show/update` and DTO-based `data/meta` for `index`;
+    - existing `ApiResponse::paginatedWithMeta(...)` boundary used for paginated DTO responses without passing paginator across application boundary.
+  - architecture guardrail added:
+    - `tests/Unit/Architecture/ApplicationAdminProductsHandlerBoundaryTest.php` enforces that admin product handlers do not return `App\Models\*` or `LengthAwarePaginator`.
+  - targeted verification:
+    - `php -d sys_temp_dir=... artisan test tests/Unit/Architecture/ApplicationAdminProductsHandlerBoundaryTest.php tests/Feature/AdminProductVariantsTest.php tests/Feature/AdminListFilteringTest.php` (with `DB_DATABASE=:memory:`).
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse` (initial fail on typed date/status assumptions in `AdminProductResultDto`; fixed via `getRawOriginal('status')` + safe date formatter, then re-run green);
+    - `php artisan test` (with `DB_DATABASE=:memory:` and `php -d sys_temp_dir=...`);
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.

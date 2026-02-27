@@ -75,12 +75,7 @@ class CheckoutController extends Controller
             new InitiateCheckoutPaymentCommand($order, $idempotencyKey)
         );
 
-        return ApiResponse::data([
-            'payment_id' => $payment->id,
-            'transaction_id' => $payment->transaction_id,
-            'status' => $payment->status?->value,
-            'payload' => $payment->payload,
-        ]);
+        return ApiResponse::data($payment->toArray());
     }
 
     /**

@@ -1,5 +1,7 @@
 # Template Componentization Plan
 
+> Historical plan (completed; archived). Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## Цель
 
 Декомпозировать шаблоны страниц (`resources/js/pages/**/*.vue`) на переиспользуемые и тестируемые компоненты без изменения бизнес-поведения, API-контрактов и роутинга.

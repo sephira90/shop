@@ -20,6 +20,7 @@ This file defines mandatory engineering rules for contributors and coding agents
 ## Strict architecture policy (mandatory)
 
 - Architecture quality is non-negotiable and has priority over implementation speed.
+- New functionality must follow the project architecture from the first implementation step (layer boundaries, contracts, and module responsibilities are mandatory).
 - Always choose the best-architecture option that keeps boundaries explicit, testable, and evolvable.
 - Every change must preserve or improve architectural integrity; "temporary hacks" are prohibited.
 - If a requested implementation conflicts with architecture quality, clarify constraints first and deliver an architecture-safe solution.

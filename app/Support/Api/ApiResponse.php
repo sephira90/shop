@@ -38,6 +38,24 @@ final class ApiResponse
     }
 
     /**
+     * Return list envelope with explicit pagination meta payload.
+     *
+     * @param  array{
+     *     current_page:int,
+     *     last_page:int,
+     *     per_page:int,
+     *     total:int
+     * }  $meta
+     */
+    public static function paginatedWithMeta(mixed $items, array $meta): JsonResponse
+    {
+        return response()->json([
+            'data' => $items,
+            'meta' => $meta,
+        ]);
+    }
+
+    /**
      * Return standard error envelope.
      *
      * @param  array<string, mixed>  $details

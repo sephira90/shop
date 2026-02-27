@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Categories\Queries;
 
-use App\Models\Category;
+use App\Application\Admin\Categories\Dto\AdminCategoryPaginatedResultDto;
 use App\Repositories\CategoryRepository;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class PaginateAdminCategoriesHandler
 {
@@ -19,11 +18,11 @@ final class PaginateAdminCategoriesHandler
 
     /**
      * Execute admin categories list query.
-     *
-     * @return LengthAwarePaginator<int, Category>
      */
-    public function handle(PaginateAdminCategoriesQuery $query): LengthAwarePaginator
+    public function handle(PaginateAdminCategoriesQuery $query): AdminCategoryPaginatedResultDto
     {
-        return $this->categoryRepository->paginateForAdmin($query->filter);
+        $paginator = $this->categoryRepository->paginateForAdmin($query->filter);
+
+        return AdminCategoryPaginatedResultDto::fromPaginator($paginator);
     }
 }

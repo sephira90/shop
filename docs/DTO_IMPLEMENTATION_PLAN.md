@@ -1,5 +1,7 @@
 # DTO Implementation Plan (Backend + Frontend, Incremental)
 
+> Historical plan (completed; archived). Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## Кратко
 
 Цель: убрать неструктурированные `array<string, mixed>` / `unknown` из бизнес-критичных путей и перейти на типизированные DTO на границах:
