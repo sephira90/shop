@@ -170,4 +170,83 @@ class PhaseOneHardeningTest extends TestCase
         $this->assertNotNull($freshOrder->getRawOriginal('cancelled_at'));
         $this->assertSame($cancelledAt->toDateTimeString(), (string) $freshOrder->getRawOriginal('cancelled_at'));
     }
+
+    /**
+     * Ensure admin status update derives order status from payment/shipment transitions.
+     */
+    public function test_admin_order_status_update_derives_order_status_when_status_not_provided(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $order = Order::query()->create([
+            'order_number' => 'ORD-PHASE1-DERIVE-STATUS',
+            'email' => 'customer@example.com',
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'shipment_status' => 'pending',
+            'currency' => 'USD',
+            'subtotal' => 100,
+            'discount_total' => 0,
+            'shipping_total' => 0,
+            'total' => 100,
+            'billing_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'cart_snapshot' => [],
+            'placed_at' => now(),
+        ]);
+
+        $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
+            'payment_status' => 'captured',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'paid')
+            ->assertJsonPath('data.payment_status', 'captured');
+
+        $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
+            'shipment_status' => 'delivered',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.shipment_status', 'delivered');
+    }
+
+    /**
+     * Ensure invalid admin payment status transition is rejected.
+     */
+    public function test_admin_order_status_update_rejects_invalid_payment_transition(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $order = Order::query()->create([
+            'order_number' => 'ORD-PHASE1-INVALID-PAYMENT-TRANSITION',
+            'email' => 'customer@example.com',
+            'status' => 'paid',
+            'payment_status' => 'captured',
+            'shipment_status' => 'pending',
+            'currency' => 'USD',
+            'subtotal' => 100,
+            'discount_total' => 0,
+            'shipping_total' => 0,
+            'total' => 100,
+            'billing_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'cart_snapshot' => [],
+            'placed_at' => now(),
+        ]);
+
+        $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
+            'payment_status' => 'authorized',
+        ])->assertUnprocessable()
+            ->assertJsonPath('error.message', 'Payment status transition is not allowed.');
+
+        $freshOrder = Order::query()->findOrFail($order->id);
+        $this->assertSame('paid', (string) $freshOrder->getRawOriginal('status'));
+        $this->assertSame('captured', (string) $freshOrder->getRawOriginal('payment_status'));
+    }
 }

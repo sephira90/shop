@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
+use App\Enums\ShipmentStatus;
+use App\Services\Order\OrderStatusTransitionPolicy;
+use PHPUnit\Framework\TestCase;
+
+class OrderStatusTransitionPolicyTest extends TestCase
+{
+    /**
+     * Ensure order status transitions from payment events are deterministic.
+     */
+    public function test_order_status_resolution_by_payment_status_is_stable(): void
+    {
+        $policy = new OrderStatusTransitionPolicy;
+
+        $cases = [
+            [OrderStatus::PENDING, PaymentStatus::CAPTURED, OrderStatus::PAID],
+            [OrderStatus::PENDING, PaymentStatus::FAILED, OrderStatus::CANCELLED],
+            [OrderStatus::PENDING, PaymentStatus::REFUNDED, OrderStatus::REFUNDED],
+            [OrderStatus::PAID, PaymentStatus::CAPTURED, OrderStatus::PAID],
+            [OrderStatus::PAID, PaymentStatus::FAILED, OrderStatus::PAID],
+            [OrderStatus::CANCELLED, PaymentStatus::FAILED, OrderStatus::CANCELLED],
+            [OrderStatus::CANCELLED, PaymentStatus::REFUNDED, OrderStatus::REFUNDED],
+            ['pending', PaymentStatus::CAPTURED, OrderStatus::PAID],
+        ];
+
+        foreach ($cases as [$currentStatus, $paymentStatus, $expectedStatus]) {
+            self::assertSame(
+                $expectedStatus,
+                $policy->resolveByPaymentStatus($currentStatus, $paymentStatus),
+                sprintf(
+                    'Unexpected order transition from payment "%s" + "%s".',
+                    is_string($currentStatus) ? $currentStatus : $currentStatus->value,
+                    $paymentStatus->value,
+                ),
+            );
+        }
+    }
+
+    /**
+     * Ensure order status transitions from shipment events are deterministic.
+     */
+    public function test_order_status_resolution_by_shipment_status_is_stable(): void
+    {
+        $policy = new OrderStatusTransitionPolicy;
+
+        $cases = [
+            [OrderStatus::PENDING, ShipmentStatus::SHIPPED, OrderStatus::PENDING],
+            [OrderStatus::PAID, ShipmentStatus::DELIVERED, OrderStatus::COMPLETED],
+            [OrderStatus::CANCELLED, ShipmentStatus::DELIVERED, OrderStatus::CANCELLED],
+            [OrderStatus::COMPLETED, ShipmentStatus::RETURNED, OrderStatus::COMPLETED],
+            ['paid', ShipmentStatus::DELIVERED, OrderStatus::COMPLETED],
+        ];
+
+        foreach ($cases as [$currentStatus, $shipmentStatus, $expectedStatus]) {
+            self::assertSame(
+                $expectedStatus,
+                $policy->resolveByShipmentStatus($currentStatus, $shipmentStatus),
+                sprintf(
+                    'Unexpected order transition from shipment "%s" + "%s".',
+                    is_string($currentStatus) ? $currentStatus : $currentStatus->value,
+                    $shipmentStatus->value,
+                ),
+            );
+        }
+    }
+}
