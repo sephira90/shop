@@ -7,6 +7,8 @@ namespace App\Infrastructure\Payments;
 use App\Contracts\PaymentGatewayInterface;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
+use App\Services\Payment\Dto\PaymentCreationResultDto;
+use App\Support\Data\JsonPayload;
 use Illuminate\Support\Str;
 
 final class FakePaymentGateway implements PaymentGatewayInterface
@@ -14,20 +16,20 @@ final class FakePaymentGateway implements PaymentGatewayInterface
     /**
      * {@inheritDoc}
      */
-    public function createPayment(Order $order, string $idempotencyKey): array
+    public function createPayment(Order $order, string $idempotencyKey): PaymentCreationResultDto
     {
         $transactionId = 'fake_txn_'.Str::lower(Str::random(20));
 
-        return [
-            'transaction_id' => $transactionId,
-            'status' => PaymentStatus::PENDING,
-            'payload' => [
+        return new PaymentCreationResultDto(
+            transactionId: $transactionId,
+            status: PaymentStatus::PENDING,
+            payload: JsonPayload::fromArray([
                 'provider' => 'fake',
                 'idempotency_key' => $idempotencyKey,
                 'order_number' => $order->order_number,
                 'checkout_url' => '/checkout/success?order='.$order->id,
-            ],
-        ];
+            ]),
+        );
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Queries;
 
+use App\Application\Checkout\Dto\MyOrdersSummaryResultDto;
 use App\Repositories\OrderRepository;
 
 final class GetMyOrdersSummaryHandler
@@ -17,11 +18,11 @@ final class GetMyOrdersSummaryHandler
 
     /**
      * Execute account order summary query.
-     *
-     * @return array{total_orders:int,paid_orders:int,in_delivery_orders:int,total_spent:float}
      */
-    public function handle(GetMyOrdersSummaryQuery $query): array
+    public function handle(GetMyOrdersSummaryQuery $query): MyOrdersSummaryResultDto
     {
-        return $this->orderRepository->summaryForUser($query->user);
+        return MyOrdersSummaryResultDto::fromSummaryArray(
+            $this->orderRepository->summaryForUser($query->user),
+        );
     }
 }

@@ -11,6 +11,9 @@ use App\Enums\ShipmentStatus;
 use App\Infrastructure\Payments\FakePaymentGateway;
 use App\Infrastructure\Shipping\FakeShippingGateway;
 use App\Models\Order;
+use App\Services\Payment\Dto\PaymentCreationResultDto;
+use App\Services\Shipping\Dto\ShipmentCreationResultDto;
+use App\Support\Data\JsonPayload;
 use InvalidArgumentException;
 use Tests\TestCase;
 
@@ -56,13 +59,13 @@ final class GatewayDriverBindingTest extends TestCase
 
 final class TestPaymentGateway implements PaymentGatewayInterface
 {
-    public function createPayment(Order $order, string $idempotencyKey): array
+    public function createPayment(Order $order, string $idempotencyKey): PaymentCreationResultDto
     {
-        return [
-            'transaction_id' => 'test_txn_1',
-            'status' => PaymentStatus::PENDING,
-            'payload' => [],
-        ];
+        return new PaymentCreationResultDto(
+            transactionId: 'test_txn_1',
+            status: PaymentStatus::PENDING,
+            payload: JsonPayload::fromArray([]),
+        );
     }
 
     /**
@@ -100,14 +103,14 @@ final class TestPaymentGateway implements PaymentGatewayInterface
 
 final class TestShippingGateway implements ShippingGatewayInterface
 {
-    public function createShipment(Order $order): array
+    public function createShipment(Order $order): ShipmentCreationResultDto
     {
-        return [
-            'tracking_number' => 'TRKTEST123456',
-            'status' => ShipmentStatus::PENDING,
-            'cost' => 0.0,
-            'payload' => [],
-        ];
+        return new ShipmentCreationResultDto(
+            trackingNumber: 'TRKTEST123456',
+            status: ShipmentStatus::PENDING,
+            cost: 0.0,
+            payload: JsonPayload::fromArray([]),
+        );
     }
 
     /**

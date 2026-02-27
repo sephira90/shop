@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Webhook;
 
 use App\Models\WebhookReceipt;
+use App\Support\Data\JsonPayload;
 use App\Support\Observability\ObservabilityService;
 use Carbon\CarbonImmutable;
 use DomainException;
@@ -21,12 +22,10 @@ final readonly class WebhookProcessingPipeline
 
     /**
      * Execute unified webhook processing flow.
-     *
-     * @param  array<string, mixed>  $payload
      */
     public function process(
         WebhookProcessorAdapterInterface $adapter,
-        array $payload,
+        JsonPayload $payload,
         string $signature,
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',
@@ -45,7 +44,7 @@ final readonly class WebhookProcessingPipeline
                 throw new DomainException('Webhook event id is required.');
             }
 
-            $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
+            $payloadHash = hash('sha256', json_encode($payload->toArray(), JSON_THROW_ON_ERROR));
 
             DB::transaction(function () use ($adapter, $payload, $eventId, $payloadHash, &$outcome): void {
                 $receipt = WebhookReceipt::query()->firstOrCreate(

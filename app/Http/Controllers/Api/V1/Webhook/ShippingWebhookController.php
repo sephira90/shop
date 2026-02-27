@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Webhook;
 use App\Http\Controllers\Controller;
 use App\Services\Shipping\ShippingService;
 use App\Support\Api\ApiResponse;
+use App\Support\Data\JsonPayload;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,11 @@ class ShippingWebhookController extends Controller
         }
 
         try {
-            $this->shippingService->processWebhook($request->all(), $signature, now()->toIso8601String());
+            $this->shippingService->processWebhook(
+                JsonPayload::fromArray($request->all()),
+                $signature,
+                now()->toIso8601String(),
+            );
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }

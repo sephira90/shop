@@ -7,6 +7,8 @@ namespace App\Infrastructure\Shipping;
 use App\Contracts\ShippingGatewayInterface;
 use App\Enums\ShipmentStatus;
 use App\Models\Order;
+use App\Services\Shipping\Dto\ShipmentCreationResultDto;
+use App\Support\Data\JsonPayload;
 use Illuminate\Support\Str;
 
 final class FakeShippingGateway implements ShippingGatewayInterface
@@ -14,17 +16,17 @@ final class FakeShippingGateway implements ShippingGatewayInterface
     /**
      * {@inheritDoc}
      */
-    public function createShipment(Order $order): array
+    public function createShipment(Order $order): ShipmentCreationResultDto
     {
-        return [
-            'tracking_number' => 'TRK'.Str::upper(Str::random(12)),
-            'status' => ShipmentStatus::PACKED,
-            'cost' => 7.50,
-            'payload' => [
+        return new ShipmentCreationResultDto(
+            trackingNumber: 'TRK'.Str::upper(Str::random(12)),
+            status: ShipmentStatus::PACKED,
+            cost: 7.50,
+            payload: JsonPayload::fromArray([
                 'provider' => 'fake-shipping',
                 'order_id' => $order->id,
-            ],
-        ];
+            ]),
+        );
     }
 
     /**

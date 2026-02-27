@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Webhook;
 
+use App\Support\Data\JsonPayload;
+
 interface WebhookProcessorAdapterInterface
 {
     /**
@@ -23,22 +25,16 @@ interface WebhookProcessorAdapterInterface
 
     /**
      * Verify webhook signature.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function verifySignature(array $payload, string $signature): bool;
+    public function verifySignature(JsonPayload $payload, string $signature): bool;
 
     /**
      * Resolve webhook event id.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function extractEventId(array $payload): string;
+    public function extractEventId(JsonPayload $payload): string;
 
     /**
      * Apply provider-specific transition.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function processTransition(array $payload): WebhookProcessingOutcome;
+    public function processTransition(JsonPayload $payload): WebhookProcessingOutcome;
 }

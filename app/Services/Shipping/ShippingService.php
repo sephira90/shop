@@ -8,6 +8,7 @@ use App\Contracts\ShippingGatewayInterface;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Webhook\WebhookProcessingPipeline;
+use App\Support\Data\JsonPayload;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -53,21 +54,19 @@ final readonly class ShippingService
             return Shipment::query()->create([
                 'order_id' => $lockedOrder->id,
                 'provider' => $shippingDriver,
-                'tracking_number' => $result['tracking_number'],
-                'status' => $result['status']->value,
-                'cost' => $result['cost'],
-                'payload' => $result['payload'],
+                'tracking_number' => $result->trackingNumber,
+                'status' => $result->status->value,
+                'cost' => $result->cost,
+                'payload' => $result->payload->toArray(),
             ]);
         });
     }
 
     /**
      * Process shipping webhook payload.
-     *
-     * @param  array<string, mixed>  $payload
      */
     public function processWebhook(
-        array $payload,
+        JsonPayload $payload,
         string $signature,
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',

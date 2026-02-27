@@ -48,9 +48,9 @@ class CheckoutController extends Controller
             return ApiResponse::error('Idempotency-Key header is required.', Response::HTTP_BAD_REQUEST);
         }
 
-        $payload = $request->validated();
+        $input = $request->toDto();
         $currentUser = $this->resolveCurrentUser($request);
-        $command = new PlaceCheckoutOrderCommand($payload, $idempotencyKey, $currentUser);
+        $command = new PlaceCheckoutOrderCommand($input, $idempotencyKey, $currentUser);
 
         try {
             $result = $this->placeCheckoutOrderHandler->handle($command);
@@ -60,15 +60,7 @@ class CheckoutController extends Controller
 
         $orderData = OrderResource::make($result->order)->toArray($request);
 
-        return ApiResponse::data([
-            ...$orderData,
-            'payment' => [
-                'payment_id' => $result->payment->id,
-                'transaction_id' => $result->payment->transaction_id,
-                'status' => $result->payment->status?->value,
-                'payload' => $result->payment->payload,
-            ],
-        ], Response::HTTP_CREATED);
+        return ApiResponse::data($result->toArray($orderData), Response::HTTP_CREATED);
     }
 
     /**
@@ -121,7 +113,7 @@ class CheckoutController extends Controller
         }
 
         return ApiResponse::data(
-            $this->getMyOrdersSummaryHandler->handle(new GetMyOrdersSummaryQuery($currentUser))
+            $this->getMyOrdersSummaryHandler->handle(new GetMyOrdersSummaryQuery($currentUser))->toArray(),
         );
     }
 

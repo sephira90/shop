@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessPaymentWebhookJob;
 use App\Services\Payment\PaymentWebhookAdapter;
 use App\Support\Api\ApiResponse;
+use App\Support\Data\JsonPayload;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ class PaymentWebhookController extends Controller
             return ApiResponse::error('Missing X-Signature header.', Response::HTTP_BAD_REQUEST);
         }
 
-        $payload = $request->all();
+        $payload = JsonPayload::fromArray($request->all());
         if (! $this->paymentWebhookAdapter->verifySignature($payload, $signature)) {
             return ApiResponse::error(
                 $this->paymentWebhookAdapter->invalidSignatureMessage(),
@@ -48,7 +49,7 @@ class PaymentWebhookController extends Controller
         }
 
         try {
-            ProcessPaymentWebhookJob::dispatch($payload, $signature, now()->toIso8601String());
+            ProcessPaymentWebhookJob::dispatch($payload->toArray(), $signature, now()->toIso8601String());
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }

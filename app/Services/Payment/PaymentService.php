@@ -9,6 +9,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Webhook\WebhookProcessingPipeline;
+use App\Support\Data\JsonPayload;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -71,22 +72,20 @@ final readonly class PaymentService
                 'order_id' => $lockedOrder->id,
                 'idempotency_key' => $idempotencyKey,
                 'gateway' => $gatewayDriver,
-                'transaction_id' => $result['transaction_id'],
+                'transaction_id' => $result->transactionId,
                 'amount' => $lockedOrder->total,
                 'currency' => $lockedOrder->currency,
-                'status' => $result['status']->value,
-                'payload' => $result['payload'],
+                'status' => $result->status->value,
+                'payload' => $result->payload->toArray(),
             ]);
         });
     }
 
     /**
      * Process webhook payload in idempotent way.
-     *
-     * @param  array<string, mixed>  $payload
      */
     public function processWebhook(
-        array $payload,
+        JsonPayload $payload,
         string $signature,
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',

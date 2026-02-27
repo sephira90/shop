@@ -11,8 +11,10 @@ use App\Jobs\DispatchShipmentJob;
 use App\Jobs\SendOrderConfirmationJob;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\Payment\Dto\PaymentWebhookPayloadDto;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Services\Webhook\WebhookProcessorAdapterInterface;
+use App\Support\Data\JsonPayload;
 use DomainException;
 
 final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInterface
@@ -51,44 +53,45 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
     /**
      * {@inheritDoc}
      */
-    public function verifySignature(array $payload, string $signature): bool
+    public function verifySignature(JsonPayload $payload, string $signature): bool
     {
-        return $this->gateway->verifyWebhookSignature($payload, $signature);
+        $webhookPayload = $this->parsePayload($payload);
+
+        return $this->gateway->verifyWebhookSignature($webhookPayload->rawPayload->toArray(), $signature);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function extractEventId(array $payload): string
+    public function extractEventId(JsonPayload $payload): string
     {
-        return $this->gateway->extractEventId($payload);
+        return $this->parsePayload($payload)->eventId;
     }
 
     /**
      * Resolve payment transaction id from payload.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function extractTransactionId(array $payload): string
+    public function extractTransactionId(JsonPayload $payload): string
     {
-        return $this->gateway->extractTransactionId($payload);
+        return $this->parsePayload($payload)->transactionId;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function processTransition(array $payload): WebhookProcessingOutcome
+    public function processTransition(JsonPayload $payload): WebhookProcessingOutcome
     {
-        $transactionId = $this->extractTransactionId($payload);
-        if ($transactionId === '') {
+        $webhookPayload = $this->parsePayload($payload);
+
+        if ($webhookPayload->transactionId === '') {
             throw new DomainException('Payment transaction id is required.');
         }
 
-        $paymentStatus = $this->gateway->resolveWebhookStatus($payload);
+        $paymentStatus = $this->gateway->resolveWebhookStatus($webhookPayload->rawPayload->toArray());
 
         $payment = Payment::query()
             ->where('gateway', $this->receiptProvider())
-            ->where('transaction_id', $transactionId)
+            ->where('transaction_id', $webhookPayload->transactionId)
             ->lockForUpdate()
             ->first();
 
@@ -104,7 +107,7 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
 
         $payment->update([
             'status' => $paymentStatus->value,
-            'payload' => array_merge($payment->payload ?? [], ['webhook' => $payload]),
+            'payload' => array_merge($payment->payload ?? [], ['webhook' => $webhookPayload->rawPayload->toArray()]),
             'processed_at' => now(),
         ]);
 
@@ -126,6 +129,18 @@ final readonly class PaymentWebhookAdapter implements WebhookProcessorAdapterInt
         }
 
         return WebhookProcessingOutcome::PROCESSED;
+    }
+
+    /**
+     * Parse raw payload into typed webhook DTO.
+     */
+    private function parsePayload(JsonPayload $payload): PaymentWebhookPayloadDto
+    {
+        return PaymentWebhookPayloadDto::fromResolved(
+            rawPayload: $payload,
+            eventId: $this->gateway->extractEventId($payload->toArray()),
+            transactionId: $this->gateway->extractTransactionId($payload->toArray()),
+        );
     }
 
     /**

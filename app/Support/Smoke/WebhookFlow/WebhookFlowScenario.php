@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\WebhookFlow;
 
+use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
@@ -19,6 +20,7 @@ use App\Services\Cart\CartService;
 use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
 use App\Services\Shipping\ShippingService;
+use App\Support\Data\JsonPayload;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use DomainException;
@@ -206,12 +208,10 @@ final class WebhookFlowScenario
 
     /**
      * Build checkout payload for smoke order.
-     *
-     * @return array<string, mixed>
      */
-    private function buildCheckoutPayload(User $user): array
+    private function buildCheckoutPayload(User $user): CheckoutPlaceOrderInputDto
     {
-        return [
+        return CheckoutPlaceOrderInputDto::fromValidated([
             'email' => $user->email,
             'billing_address' => [
                 'line1' => '1 Smoke Street',
@@ -225,7 +225,7 @@ final class WebhookFlowScenario
                 'country' => 'US',
                 'postcode' => '10001',
             ],
-        ];
+        ]);
     }
 
     /**
@@ -241,8 +241,9 @@ final class WebhookFlowScenario
         ];
         $signature = hash('sha256', $eventId);
 
-        $this->paymentService->processWebhook($payload, $signature, source: 'smoke');
-        $this->paymentService->processWebhook($payload, $signature, source: 'smoke');
+        $payloadDto = JsonPayload::fromArray($payload);
+        $this->paymentService->processWebhook($payloadDto, $signature, source: 'smoke');
+        $this->paymentService->processWebhook($payloadDto, $signature, source: 'smoke');
     }
 
     /**
@@ -258,7 +259,8 @@ final class WebhookFlowScenario
         ];
         $signature = hash('sha256', $eventId);
 
-        $this->shippingService->processWebhook($payload, $signature, source: 'smoke');
-        $this->shippingService->processWebhook($payload, $signature, source: 'smoke');
+        $payloadDto = JsonPayload::fromArray($payload);
+        $this->shippingService->processWebhook($payloadDto, $signature, source: 'smoke');
+        $this->shippingService->processWebhook($payloadDto, $signature, source: 'smoke');
     }
 }

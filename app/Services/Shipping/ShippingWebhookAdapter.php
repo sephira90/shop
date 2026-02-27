@@ -9,8 +9,10 @@ use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Models\Order;
 use App\Models\Shipment;
+use App\Services\Shipping\Dto\ShippingWebhookPayloadDto;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Services\Webhook\WebhookProcessorAdapterInterface;
+use App\Support\Data\JsonPayload;
 use DomainException;
 
 final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterInterface
@@ -49,34 +51,37 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
     /**
      * {@inheritDoc}
      */
-    public function verifySignature(array $payload, string $signature): bool
+    public function verifySignature(JsonPayload $payload, string $signature): bool
     {
-        return $this->gateway->verifyWebhookSignature($payload, $signature);
+        $webhookPayload = $this->parsePayload($payload);
+
+        return $this->gateway->verifyWebhookSignature($webhookPayload->rawPayload->toArray(), $signature);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function extractEventId(array $payload): string
+    public function extractEventId(JsonPayload $payload): string
     {
-        return $this->gateway->extractEventId($payload);
+        return $this->parsePayload($payload)->eventId;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function processTransition(array $payload): WebhookProcessingOutcome
+    public function processTransition(JsonPayload $payload): WebhookProcessingOutcome
     {
-        $trackingNumber = $this->gateway->extractTrackingNumber($payload);
-        if ($trackingNumber === '') {
+        $webhookPayload = $this->parsePayload($payload);
+
+        if ($webhookPayload->trackingNumber === '') {
             throw new DomainException('Tracking number is required.');
         }
 
-        $status = $this->gateway->resolveWebhookStatus($payload);
+        $status = $this->gateway->resolveWebhookStatus($webhookPayload->rawPayload->toArray());
 
         $shipment = Shipment::query()
             ->where('provider', $this->receiptProvider())
-            ->where('tracking_number', $trackingNumber)
+            ->where('tracking_number', $webhookPayload->trackingNumber)
             ->lockForUpdate()
             ->first();
 
@@ -91,7 +96,7 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
 
         $shipment->update([
             'status' => $status->value,
-            'payload' => array_merge($shipment->payload ?? [], ['webhook' => $payload]),
+            'payload' => array_merge($shipment->payload ?? [], ['webhook' => $webhookPayload->rawPayload->toArray()]),
             'shipped_at' => in_array($status, [ShipmentStatus::SHIPPED, ShipmentStatus::DELIVERED, ShipmentStatus::RETURNED], true)
                 ? ($shipment->shipped_at ?? now())
                 : $shipment->shipped_at,
@@ -114,6 +119,18 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
         }
 
         return WebhookProcessingOutcome::PROCESSED;
+    }
+
+    /**
+     * Parse raw payload into typed webhook DTO.
+     */
+    private function parsePayload(JsonPayload $payload): ShippingWebhookPayloadDto
+    {
+        return ShippingWebhookPayloadDto::fromResolved(
+            rawPayload: $payload,
+            eventId: $this->gateway->extractEventId($payload->toArray()),
+            trackingNumber: $this->gateway->extractTrackingNumber($payload->toArray()),
+        );
     }
 
     /**
