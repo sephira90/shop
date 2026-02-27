@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Queries;
 
-use App\Filters\Account\AccountOrderListFilter;
+use App\Application\Checkout\Dto\AccountOrderListFilterDto;
 use App\Models\User;
 
 final readonly class PaginateMyOrdersQuery
@@ -14,6 +14,6 @@ final readonly class PaginateMyOrdersQuery
      */
     public function __construct(
         public User $user,
-        public AccountOrderListFilter $filter,
+        public AccountOrderListFilterDto $filter,
     ) {}
 }

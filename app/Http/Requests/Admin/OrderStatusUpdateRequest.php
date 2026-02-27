@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Orders\Dto\UpdateAdminOrderStatusInputDto;
+use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
+use App\Enums\ShipmentStatus;
 use App\Models\Order;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class OrderStatusUpdateRequest extends FormRequest
 {
@@ -29,9 +33,9 @@ class OrderStatusUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', 'in:pending,paid,processing,shipped,completed,cancelled,refunded'],
-            'payment_status' => ['nullable', 'in:pending,authorized,captured,failed,refunded'],
-            'shipment_status' => ['nullable', 'in:pending,packed,shipped,delivered,returned'],
+            'status' => ['nullable', Rule::enum(OrderStatus::class)],
+            'payment_status' => ['nullable', Rule::enum(PaymentStatus::class)],
+            'shipment_status' => ['nullable', Rule::enum(ShipmentStatus::class)],
         ];
     }
 

@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Filters\Admin;
+namespace App\Application\Admin\Orders\Dto;
 
-use App\Enums\ProductStatus;
+use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
+use App\Enums\ShipmentStatus;
 
-final readonly class AdminProductListFilter
+final readonly class AdminOrderListFilterDto
 {
     /**
      * Create filter object.
@@ -15,8 +17,9 @@ final readonly class AdminProductListFilter
         public int $page,
         public int $perPage,
         public ?string $search,
-        public ?ProductStatus $status,
-        public ?int $categoryId,
+        public ?OrderStatus $orderStatus,
+        public ?PaymentStatus $paymentStatus,
+        public ?ShipmentStatus $shipmentStatus,
     ) {}
 
     /**
@@ -26,14 +29,13 @@ final readonly class AdminProductListFilter
      */
     public static function fromValidated(array $validated): self
     {
-        $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
-
         return new self(
             page: max(1, (int) ($validated['page'] ?? 1)),
             perPage: max(1, (int) ($validated['per_page'] ?? 30)),
             search: self::normalizeSearch($validated['q'] ?? null),
-            status: isset($validated['status']) ? ProductStatus::tryFrom((string) $validated['status']) : null,
-            categoryId: $categoryId !== null && $categoryId > 0 ? $categoryId : null,
+            orderStatus: isset($validated['status']) ? OrderStatus::tryFrom((string) $validated['status']) : null,
+            paymentStatus: isset($validated['payment_status']) ? PaymentStatus::tryFrom((string) $validated['payment_status']) : null,
+            shipmentStatus: isset($validated['shipment_status']) ? ShipmentStatus::tryFrom((string) $validated['shipment_status']) : null,
         );
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-use App\Filters\Admin\AdminPromotionListFilter;
+use App\Application\Admin\Promotions\Dto\AdminPromotionListFilterDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PromotionIndexRequest extends FormRequest
@@ -35,11 +35,11 @@ class PromotionIndexRequest extends FormRequest
     /**
      * Build typed filter object for promotion list query.
      */
-    public function filter(): AdminPromotionListFilter
+    public function filter(): AdminPromotionListFilterDto
     {
         /** @var array<string, mixed> $validated */
         $validated = $this->validated();
 
-        return AdminPromotionListFilter::fromValidated($validated);
+        return AdminPromotionListFilterDto::fromValidated($validated);
     }
 }

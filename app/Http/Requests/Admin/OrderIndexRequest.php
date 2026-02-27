@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
-use App\Filters\Admin\AdminOrderListFilter;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
@@ -41,11 +41,11 @@ class OrderIndexRequest extends FormRequest
     /**
      * Build typed filter object for order list query.
      */
-    public function filter(): AdminOrderListFilter
+    public function filter(): AdminOrderListFilterDto
     {
         /** @var array<string, mixed> $validated */
         $validated = $this->validated();
 
-        return AdminOrderListFilter::fromValidated($validated);
+        return AdminOrderListFilterDto::fromValidated($validated);
     }
 }

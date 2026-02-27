@@ -19,13 +19,13 @@ final readonly class ShipmentCreationResultDto
     /**
      * Convert DTO to transport-friendly payload.
      *
-     * @return array{tracking_number:string,status:ShipmentStatus,cost:float,payload:array<string,mixed>}
+     * @return array{tracking_number:string,status:string,cost:float,payload:array<string,mixed>}
      */
     public function toArray(): array
     {
         return [
             'tracking_number' => $this->trackingNumber,
-            'status' => $this->status,
+            'status' => $this->status->value,
             'cost' => $this->cost,
             'payload' => $this->payload->toArray(),
         ];

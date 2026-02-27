@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
 use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Enums\ProductStatus;
-use App\Filters\Admin\AdminProductListFilter;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -58,7 +58,7 @@ final class ProductRepository
      *
      * @return LengthAwarePaginator<int, Product>
      */
-    public function paginateForAdmin(AdminProductListFilter $filter): LengthAwarePaginator
+    public function paginateForAdmin(AdminProductListFilterDto $filter): LengthAwarePaginator
     {
         $query = $this->newAdminListQuery();
         $this->applyAdminFilters($query, $filter);
@@ -158,7 +158,7 @@ final class ProductRepository
      *
      * @param  Builder<Product>  $query
      */
-    private function applyAdminFilters(Builder $query, AdminProductListFilter $filter): void
+    private function applyAdminFilters(Builder $query, AdminProductListFilterDto $filter): void
     {
         if ($filter->search !== null) {
             $like = '%'.$filter->search.'%';

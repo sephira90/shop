@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
 use App\Enums\ProductStatus;
-use App\Filters\Admin\AdminProductListFilter;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
@@ -38,11 +38,11 @@ class ProductIndexRequest extends FormRequest
     /**
      * Build typed filter object for product list query.
      */
-    public function filter(): AdminProductListFilter
+    public function filter(): AdminProductListFilterDto
     {
         /** @var array<string, mixed> $validated */
         $validated = $this->validated();
 
-        return AdminProductListFilter::fromValidated($validated);
+        return AdminProductListFilterDto::fromValidated($validated);
     }
 }

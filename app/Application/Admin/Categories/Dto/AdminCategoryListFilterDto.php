@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Filters\Admin;
+namespace App\Application\Admin\Categories\Dto;
 
-final readonly class AdminCategoryListFilter
+final readonly class AdminCategoryListFilterDto
 {
     /**
      * Create filter object.

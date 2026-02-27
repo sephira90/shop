@@ -18,13 +18,13 @@ final readonly class PaymentCreationResultDto
     /**
      * Convert DTO to transport-friendly payload.
      *
-     * @return array{transaction_id:string,status:PaymentStatus,payload:array<string,mixed>}
+     * @return array{transaction_id:string,status:string,payload:array<string,mixed>}
      */
     public function toArray(): array
     {
         return [
             'transaction_id' => $this->transactionId,
-            'status' => $this->status,
+            'status' => $this->status->value,
             'payload' => $this->payload->toArray(),
         ];
     }

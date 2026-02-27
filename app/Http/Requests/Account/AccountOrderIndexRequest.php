@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Account;
 
+use App\Application\Checkout\Dto\AccountOrderListFilterDto;
 use App\Enums\OrderStatus;
-use App\Filters\Account\AccountOrderListFilter;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
@@ -37,11 +37,11 @@ class AccountOrderIndexRequest extends FormRequest
     /**
      * Build typed filter object for account orders list.
      */
-    public function filter(): AccountOrderListFilter
+    public function filter(): AccountOrderListFilterDto
     {
         /** @var array<string, mixed> $validated */
         $validated = $this->validated();
 
-        return AccountOrderListFilter::fromValidated($validated);
+        return AccountOrderListFilterDto::fromValidated($validated);
     }
 }

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Filters\Admin;
+namespace App\Application\Admin\Products\Dto;
 
-final readonly class AdminPromotionListFilter
+use App\Enums\ProductStatus;
+
+final readonly class AdminProductListFilterDto
 {
     /**
      * Create filter object.
@@ -13,7 +15,8 @@ final readonly class AdminPromotionListFilter
         public int $page,
         public int $perPage,
         public ?string $search,
-        public ?bool $isActive,
+        public ?ProductStatus $status,
+        public ?int $categoryId,
     ) {}
 
     /**
@@ -23,11 +26,14 @@ final readonly class AdminPromotionListFilter
      */
     public static function fromValidated(array $validated): self
     {
+        $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
+
         return new self(
             page: max(1, (int) ($validated['page'] ?? 1)),
             perPage: max(1, (int) ($validated['per_page'] ?? 30)),
             search: self::normalizeSearch($validated['q'] ?? null),
-            isActive: self::normalizeBoolean($validated['is_active'] ?? null),
+            status: isset($validated['status']) ? ProductStatus::tryFrom((string) $validated['status']) : null,
+            categoryId: $categoryId !== null && $categoryId > 0 ? $categoryId : null,
         );
     }
 
@@ -43,35 +49,5 @@ final readonly class AdminPromotionListFilter
         $search = trim($value);
 
         return $search !== '' ? $search : null;
-    }
-
-    /**
-     * Normalize boolean-like payload from query string.
-     */
-    private static function normalizeBoolean(mixed $value): ?bool
-    {
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        if (is_int($value)) {
-            return match ($value) {
-                1 => true,
-                0 => false,
-                default => null,
-            };
-        }
-
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $normalized = strtolower(trim($value));
-
-        return match ($normalized) {
-            '1', 'true', 'on', 'yes' => true,
-            '0', 'false', 'off', 'no' => false,
-            default => null,
-        };
     }
 }

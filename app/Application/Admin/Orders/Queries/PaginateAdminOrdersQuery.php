@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Orders\Queries;
 
-use App\Filters\Admin\AdminOrderListFilter;
+use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 
 final readonly class PaginateAdminOrdersQuery
 {
@@ -12,6 +12,6 @@ final readonly class PaginateAdminOrdersQuery
      * Create query payload for admin orders pagination.
      */
     public function __construct(
-        public AdminOrderListFilter $filter,
+        public AdminOrderListFilterDto $filter,
     ) {}
 }

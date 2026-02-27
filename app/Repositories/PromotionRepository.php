@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use App\Filters\Admin\AdminPromotionListFilter;
+use App\Application\Admin\Promotions\Dto\AdminPromotionListFilterDto;
 use App\Models\Promotion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +16,7 @@ final class PromotionRepository
      *
      * @return LengthAwarePaginator<int, Promotion>
      */
-    public function paginateForAdmin(AdminPromotionListFilter $filter): LengthAwarePaginator
+    public function paginateForAdmin(AdminPromotionListFilterDto $filter): LengthAwarePaginator
     {
         $query = Promotion::query()
             ->with(['coupons' => static fn ($couponQuery) => $couponQuery->latest('id')]);

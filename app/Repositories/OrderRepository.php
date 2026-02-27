@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use App\Filters\Account\AccountOrderListFilter;
-use App\Filters\Admin\AdminOrderListFilter;
+use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
+use App\Application\Checkout\Dto\AccountOrderListFilterDto;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -18,7 +18,7 @@ final class OrderRepository
      *
      * @return LengthAwarePaginator<int, Order>
      */
-    public function paginateForUser(User $user, AccountOrderListFilter $filter): LengthAwarePaginator
+    public function paginateForUser(User $user, AccountOrderListFilterDto $filter): LengthAwarePaginator
     {
         $query = Order::query()
             ->with(['items'])
@@ -77,7 +77,7 @@ final class OrderRepository
      *
      * @return LengthAwarePaginator<int, Order>
      */
-    public function paginateSummaryForAdmin(AdminOrderListFilter $filter): LengthAwarePaginator
+    public function paginateSummaryForAdmin(AdminOrderListFilterDto $filter): LengthAwarePaginator
     {
         $query = Order::query()
             ->select([

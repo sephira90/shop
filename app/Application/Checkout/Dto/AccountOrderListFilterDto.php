@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Filters\Account;
+namespace App\Application\Checkout\Dto;
 
 use App\Enums\OrderStatus;
 
-final readonly class AccountOrderListFilter
+final readonly class AccountOrderListFilterDto
 {
     /**
      * Create filter instance.

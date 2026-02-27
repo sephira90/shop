@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
+use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
 use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Enums\ProductStatus;
-use App\Filters\Admin\AdminOrderListFilter;
-use App\Filters\Admin\AdminProductListFilter;
 use App\Models\ProductVariant;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
@@ -84,11 +84,11 @@ class AppPerformanceSmokeCommand extends Command
             $this->prepareGuestCart($cartGuestToken, $variantId);
             $this->prepareGuestCart($checkoutGuestToken, $variantId);
 
-            $orderFilter = AdminOrderListFilter::fromValidated([
+            $orderFilter = AdminOrderListFilterDto::fromValidated([
                 'page' => 1,
                 'per_page' => 20,
             ]);
-            $productFilter = AdminProductListFilter::fromValidated([
+            $productFilter = AdminProductListFilterDto::fromValidated([
                 'page' => 1,
                 'per_page' => 20,
             ]);

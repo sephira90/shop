@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use App\Filters\Admin\AdminCategoryListFilter;
+use App\Application\Admin\Categories\Dto\AdminCategoryListFilterDto;
 use App\Models\Category;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +16,7 @@ final class CategoryRepository
      *
      * @return LengthAwarePaginator<int, Category>
      */
-    public function paginateForAdmin(AdminCategoryListFilter $filter): LengthAwarePaginator
+    public function paginateForAdmin(AdminCategoryListFilterDto $filter): LengthAwarePaginator
     {
         $query = Category::query()
             ->with(['parent:id,name,slug'])

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-use App\Filters\Admin\AdminCategoryListFilter;
+use App\Application\Admin\Categories\Dto\AdminCategoryListFilterDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CategoryIndexRequest extends FormRequest
@@ -35,11 +35,11 @@ class CategoryIndexRequest extends FormRequest
     /**
      * Build typed filter object for category list query.
      */
-    public function filter(): AdminCategoryListFilter
+    public function filter(): AdminCategoryListFilterDto
     {
         /** @var array<string, mixed> $validated */
         $validated = $this->validated();
 
-        return AdminCategoryListFilter::fromValidated($validated);
+        return AdminCategoryListFilterDto::fromValidated($validated);
     }
 }
