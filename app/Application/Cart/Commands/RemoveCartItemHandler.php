@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Cart\Commands;
 
+use App\Application\Cart\Dto\CartResultDto;
 use App\Services\Cart\CartService;
 
 final class RemoveCartItemHandler
@@ -17,14 +18,12 @@ final class RemoveCartItemHandler
 
     /**
      * Execute cart item remove command.
-     *
-     * @return array<string, mixed>
      */
-    public function handle(RemoveCartItemCommand $command): array
+    public function handle(RemoveCartItemCommand $command): CartResultDto
     {
-        $cart = $this->cartService->resolve($command->user, $command->guestToken);
-        $cart = $this->cartService->removeItem($cart, $command->variantId);
+        $cart = $this->cartService->resolve($command->user, $command->input->guestToken);
+        $cart = $this->cartService->removeItem($cart, $command->input->variantId);
 
-        return $this->cartService->payload($cart);
+        return $this->cartService->toResultDto($cart);
     }
 }

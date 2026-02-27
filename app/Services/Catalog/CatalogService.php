@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Catalog;
 
+use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Models\Category;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
@@ -25,15 +26,13 @@ final readonly class CatalogService
 
     /**
      * Return paginated catalog response with caching.
-     *
-     * @param  array<string, mixed>  $filters
      */
-    public function list(array $filters, int $perPage = 12): LengthAwarePaginator
+    public function list(CatalogProductListFilterDto $filter, int $perPage = 12): LengthAwarePaginator
     {
         $cacheKey = sprintf(
             'catalog:v%d:list:%s',
             $this->catalogVersionService->current(),
-            sha1(json_encode([$filters, $perPage], JSON_THROW_ON_ERROR)),
+            sha1(json_encode([$filter->toCachePayload(), $perPage], JSON_THROW_ON_ERROR)),
         );
 
         $cacheHit = Cache::has($cacheKey);
@@ -42,7 +41,7 @@ final readonly class CatalogService
         $paginator = Cache::remember(
             $cacheKey,
             now()->addMinutes(5),
-            fn (): LengthAwarePaginator => $this->productRepository->paginateCatalog($filters, $perPage),
+            fn (): LengthAwarePaginator => $this->productRepository->paginateCatalog($filter, $perPage),
         );
 
         $durationMs = (hrtime(true) - $startedAt) / 1_000_000;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Enums\ProductStatus;
 use App\Filters\Admin\AdminOrderListFilter;
 use App\Filters\Admin\AdminProductListFilter;
@@ -71,7 +73,9 @@ class AppPerformanceSmokeCommand extends Command
         config()->set('observability.enabled', false);
 
         try {
-            $filters = ['_smoke_nonce' => Str::uuid()->toString()];
+            $catalogFilter = CatalogProductListFilterDto::fromValidated([
+                'q' => '__smoke_cache_buster_'.Str::uuid()->toString(),
+            ]);
             $variantId = $this->ensureAvailableVariantId();
             $cartGuestToken = 'perf-cart-'.Str::lower(Str::random(12));
             $checkoutGuestToken = 'perf-checkout-'.Str::lower(Str::random(12));
@@ -90,15 +94,15 @@ class AppPerformanceSmokeCommand extends Command
             ]);
 
             $checks = [
-                $this->measure('catalog_list_cold', function () use ($filters): void {
-                    $this->catalogService->list($filters, 12);
+                $this->measure('catalog_list_cold', function () use ($catalogFilter): void {
+                    $this->catalogService->list($catalogFilter, 12);
                 }),
-                $this->measure('catalog_list_warm', function () use ($filters): void {
-                    $this->catalogService->list($filters, 12);
+                $this->measure('catalog_list_warm', function () use ($catalogFilter): void {
+                    $this->catalogService->list($catalogFilter, 12);
                 }),
                 $this->measure('cart_show', function () use ($cartGuestToken): void {
                     $cart = $this->cartService->resolve(null, $cartGuestToken);
-                    $this->cartService->payload($cart);
+                    $this->cartService->toResultDto($cart);
                 }),
                 $this->measure('checkout_place_order', function () use ($checkoutGuestToken, $checkoutPayload): void {
                     $cart = $this->cartService->resolveForCheckout(null, $checkoutGuestToken);
@@ -278,12 +282,10 @@ class AppPerformanceSmokeCommand extends Command
 
     /**
      * Build deterministic checkout payload for budget checks.
-     *
-     * @return array<string, mixed>
      */
-    private function buildCheckoutPayload(): array
+    private function buildCheckoutPayload(): CheckoutPlaceOrderInputDto
     {
-        return [
+        return CheckoutPlaceOrderInputDto::fromValidated([
             'email' => 'performance-smoke-'.Str::lower(Str::random(8)).'@shop.local',
             'billing_address' => [
                 'line1' => '1 Performance Street',
@@ -297,7 +299,7 @@ class AppPerformanceSmokeCommand extends Command
                 'country' => 'US',
                 'postcode' => '10001',
             ],
-        ];
+        ]);
     }
 
     /**

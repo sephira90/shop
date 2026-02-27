@@ -21,6 +21,6 @@ final class CreateAdminProductHandler
      */
     public function handle(CreateAdminProductCommand $command): Product
     {
-        return $this->adminCatalogService->createProduct($command->payload);
+        return $this->adminCatalogService->createProduct($command->input);
     }
 }

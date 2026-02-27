@@ -21,6 +21,6 @@ final class UpdateAdminPromotionHandler
      */
     public function handle(UpdateAdminPromotionCommand $command): Promotion
     {
-        return $this->adminPromotionService->update($command->promotion, $command->payload);
+        return $this->adminPromotionService->update($command->promotion, $command->input);
     }
 }

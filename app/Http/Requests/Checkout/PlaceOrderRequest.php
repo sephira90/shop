@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Checkout;
 
+use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
@@ -45,5 +46,16 @@ class PlaceOrderRequest extends FormRequest
             'shipping_address.country' => ['required', 'string', 'size:2'],
             'shipping_address.postcode' => ['required', 'string', 'max:20'],
         ];
+    }
+
+    /**
+     * Build typed DTO for checkout place-order flow.
+     */
+    public function toDto(): CheckoutPlaceOrderInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return CheckoutPlaceOrderInputDto::fromValidated($validated);
     }
 }

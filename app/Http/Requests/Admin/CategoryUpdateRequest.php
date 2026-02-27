@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Categories\Dto\UpdateAdminCategoryInputDto;
 use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -45,5 +46,18 @@ class CategoryUpdateRequest extends FormRequest
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ];
+    }
+
+    /**
+     * Build typed DTO for update flow.
+     */
+    public function toDto(): UpdateAdminCategoryInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+        $category = $this->route('category');
+        $existingSlug = $category instanceof Category ? (string) $category->slug : '';
+
+        return UpdateAdminCategoryInputDto::fromValidated($validated, $existingSlug);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Auth;
 
+use App\Application\Auth\Dto\LoginAuthInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LoginRequest extends FormRequest
@@ -29,5 +30,16 @@ class LoginRequest extends FormRequest
             'device_name' => ['nullable', 'string', 'max:80'],
             'guest_token' => ['nullable', 'string', 'max:80'],
         ];
+    }
+
+    /**
+     * Build typed DTO for login flow.
+     */
+    public function toDto(): LoginAuthInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return LoginAuthInputDto::fromValidated($validated);
     }
 }

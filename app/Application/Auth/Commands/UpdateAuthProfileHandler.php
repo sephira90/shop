@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Commands;
 
-use App\Application\Auth\Support\AuthUserPayloadBuilder;
+use App\Application\Auth\Dto\AuthUserDto;
+use App\Application\Auth\Support\AuthUserDtoMapper;
 use App\Models\User;
 
 final class UpdateAuthProfileHandler
@@ -13,31 +14,26 @@ final class UpdateAuthProfileHandler
      * Create command handler instance.
      */
     public function __construct(
-        private readonly AuthUserPayloadBuilder $authUserPayloadBuilder,
+        private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
 
     /**
      * Execute auth profile update command.
-     *
-     * @return array<string, mixed>
      */
-    public function handle(UpdateAuthProfileCommand $command): array
+    public function handle(UpdateAuthProfileCommand $command): AuthUserDto
     {
-        $payload = $command->payload;
-        $firstName = trim((string) $payload['first_name']);
-        $lastName = trim((string) $payload['last_name']);
-        $phone = isset($payload['phone']) ? trim((string) $payload['phone']) : '';
+        $input = $command->input;
 
         $command->user->update([
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            'name' => trim($firstName.' '.$lastName),
-            'phone' => $phone !== '' ? $phone : null,
+            'first_name' => $input->firstName,
+            'last_name' => $input->lastName,
+            'name' => trim($input->firstName.' '.$input->lastName),
+            'phone' => $input->phone,
         ]);
 
         $fresh = $command->user->fresh();
 
-        return $this->authUserPayloadBuilder->build(
+        return $this->authUserDtoMapper->map(
             $fresh instanceof User ? $fresh : $command->user
         );
     }

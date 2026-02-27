@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Enums\ProductStatus;
 use App\Filters\Admin\AdminProductListFilter;
 use App\Models\Product;
@@ -67,14 +68,12 @@ final class ProductRepository
 
     /**
      * Search products with filters.
-     *
-     * @param  array<string, mixed>  $filters
      */
-    public function paginateCatalog(array $filters, int $perPage = 12): LengthAwarePaginator
+    public function paginateCatalog(CatalogProductListFilterDto $filter, int $perPage = 12): LengthAwarePaginator
     {
         $query = $this->newCatalogBaseQuery();
 
-        $this->applyFilters($query, $filters);
+        $this->applyFilters($query, $filter);
 
         return $query->paginate($perPage)->withQueryString();
     }
@@ -91,42 +90,39 @@ final class ProductRepository
 
     /**
      * Apply catalog filters to query.
-     *
-     * @param  array<string, mixed>  $filters
      */
-    private function applyFilters(Builder $query, array $filters): void
+    private function applyFilters(Builder $query, CatalogProductListFilterDto $filter): void
     {
-        if (! empty($filters['category_slug'])) {
-            $query->whereHas('category', static function (Builder $categoryQuery) use ($filters): void {
-                $categoryQuery->where('slug', (string) $filters['category_slug']);
+        if ($filter->categorySlug !== null) {
+            $query->whereHas('category', function (Builder $categoryQuery) use ($filter): void {
+                $categoryQuery->where('slug', $filter->categorySlug);
             });
         }
 
-        if (! empty($filters['q'])) {
-            $search = trim((string) $filters['q']);
-            $query->where(static function (Builder $searchQuery) use ($search): void {
+        if ($filter->search !== null) {
+            $query->where(function (Builder $searchQuery) use ($filter): void {
                 $searchQuery
-                    ->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('sku', 'like', '%'.$search.'%')
-                    ->orWhere('short_description', 'like', '%'.$search.'%');
+                    ->where('name', 'like', '%'.$filter->search.'%')
+                    ->orWhere('sku', 'like', '%'.$filter->search.'%')
+                    ->orWhere('short_description', 'like', '%'.$filter->search.'%');
             });
         }
 
-        if (! empty($filters['min_price']) || ! empty($filters['max_price'])) {
-            $query->whereHas('variants', static function (Builder $variantQuery) use ($filters): void {
+        if ($filter->minPrice !== null || $filter->maxPrice !== null) {
+            $query->whereHas('variants', function (Builder $variantQuery) use ($filter): void {
                 $variantQuery->where('is_active', true);
 
-                if (! empty($filters['min_price'])) {
-                    $variantQuery->where('price', '>=', (float) $filters['min_price']);
+                if ($filter->minPrice !== null) {
+                    $variantQuery->where('price', '>=', $filter->minPrice);
                 }
 
-                if (! empty($filters['max_price'])) {
-                    $variantQuery->where('price', '<=', (float) $filters['max_price']);
+                if ($filter->maxPrice !== null) {
+                    $variantQuery->where('price', '<=', $filter->maxPrice);
                 }
             });
         }
 
-        $sort = (string) ($filters['sort'] ?? 'newest');
+        $sort = $filter->sort;
 
         if (in_array($sort, ['price_asc', 'price_desc'], true)) {
             $query->withMin(

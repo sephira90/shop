@@ -6,15 +6,14 @@ namespace App\Contracts;
 
 use App\Enums\PaymentStatus;
 use App\Models\Order;
+use App\Services\Payment\Dto\PaymentCreationResultDto;
 
 interface PaymentGatewayInterface
 {
     /**
      * Create payment in provider and return normalized payload.
-     *
-     * @return array{transaction_id:string,status:PaymentStatus,payload:array<string,mixed>}
      */
-    public function createPayment(Order $order, string $idempotencyKey): array;
+    public function createPayment(Order $order, string $idempotencyKey): PaymentCreationResultDto;
 
     /**
      * Verify webhook signature from provider.

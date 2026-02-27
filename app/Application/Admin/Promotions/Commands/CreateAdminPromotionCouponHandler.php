@@ -21,6 +21,6 @@ final class CreateAdminPromotionCouponHandler
      */
     public function handle(CreateAdminPromotionCouponCommand $command): Coupon
     {
-        return $this->adminPromotionService->createCoupon($command->promotion, $command->payload);
+        return $this->adminPromotionService->createCoupon($command->promotion, $command->input);
     }
 }

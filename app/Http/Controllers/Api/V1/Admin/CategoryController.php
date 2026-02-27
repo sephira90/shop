@@ -56,7 +56,7 @@ class CategoryController extends Controller
         $this->authorize('create', Category::class);
 
         $category = $this->createAdminCategoryHandler->handle(
-            new CreateAdminCategoryCommand($request->validated())
+            new CreateAdminCategoryCommand($request->toDto())
         );
 
         return ApiResponse::data($category, 201);
@@ -84,7 +84,7 @@ class CategoryController extends Controller
         $this->authorize('update', $category);
 
         $updated = $this->updateAdminCategoryHandler->handle(
-            new UpdateAdminCategoryCommand($category, $request->validated())
+            new UpdateAdminCategoryCommand($category, $request->toDto())
         );
 
         return ApiResponse::data($updated);

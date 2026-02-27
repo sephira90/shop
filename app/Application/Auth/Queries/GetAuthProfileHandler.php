@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Queries;
 
-use App\Application\Auth\Support\AuthUserPayloadBuilder;
+use App\Application\Auth\Dto\AuthUserDto;
+use App\Application\Auth\Support\AuthUserDtoMapper;
 
 final class GetAuthProfileHandler
 {
@@ -12,16 +13,14 @@ final class GetAuthProfileHandler
      * Create query handler instance.
      */
     public function __construct(
-        private readonly AuthUserPayloadBuilder $authUserPayloadBuilder,
+        private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
 
     /**
      * Execute auth me profile query.
-     *
-     * @return array<string, mixed>
      */
-    public function handle(GetAuthProfileQuery $query): array
+    public function handle(GetAuthProfileQuery $query): AuthUserDto
     {
-        return $this->authUserPayloadBuilder->build($query->user);
+        return $this->authUserDtoMapper->map($query->user);
     }
 }

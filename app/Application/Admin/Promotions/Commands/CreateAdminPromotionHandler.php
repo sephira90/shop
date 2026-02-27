@@ -21,6 +21,6 @@ final class CreateAdminPromotionHandler
      */
     public function handle(CreateAdminPromotionCommand $command): Promotion
     {
-        return $this->adminPromotionService->create($command->payload);
+        return $this->adminPromotionService->create($command->input);
     }
 }

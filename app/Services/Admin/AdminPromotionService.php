@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Application\Admin\Promotions\Dto\CreateAdminPromotionCouponInputDto;
+use App\Application\Admin\Promotions\Dto\CreateAdminPromotionInputDto;
+use App\Application\Admin\Promotions\Dto\UpdateAdminPromotionCouponInputDto;
+use App\Application\Admin\Promotions\Dto\UpdateAdminPromotionInputDto;
 use App\Models\Coupon;
 use App\Models\Promotion;
 use Illuminate\Support\Facades\DB;
@@ -17,23 +21,18 @@ final class AdminPromotionService
 
     /**
      * Create promotion entry.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function create(array $payload): Promotion
+    public function create(CreateAdminPromotionInputDto $input): Promotion
     {
-        return DB::transaction(function () use ($payload): Promotion {
-            $couponPayload = $payload['coupon'] ?? null;
-            $couponPayload = is_array($couponPayload) ? $couponPayload : null;
-            unset($payload['coupon']);
-
-            if (array_key_exists('code', $payload) && $payload['code'] !== null) {
-                $payload['code'] = $this->promotionCouponSyncService->normalizeCode((string) $payload['code']);
+        return DB::transaction(function () use ($input): Promotion {
+            $promotionAttributes = $input->toPromotionAttributes();
+            if ($input->code !== null) {
+                $promotionAttributes['code'] = $this->promotionCouponSyncService->normalizeCode($input->code);
             }
 
-            $promotion = Promotion::query()->create($payload);
+            $promotion = Promotion::query()->create($promotionAttributes);
 
-            $this->promotionCouponSyncService->createPrimaryCouponIfRequired($promotion, $payload, $couponPayload);
+            $this->promotionCouponSyncService->createPrimaryCouponIfRequired($promotion, $input);
 
             /** @var Promotion $freshPromotion */
             $freshPromotion = $promotion->fresh('coupons');
@@ -44,20 +43,19 @@ final class AdminPromotionService
 
     /**
      * Update promotion entry.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function update(Promotion $promotion, array $payload): Promotion
+    public function update(Promotion $promotion, UpdateAdminPromotionInputDto $input): Promotion
     {
-        return DB::transaction(function () use ($promotion, $payload): Promotion {
-            if (array_key_exists('code', $payload) && $payload['code'] !== null) {
-                $payload['code'] = $this->promotionCouponSyncService->normalizeCode((string) $payload['code']);
+        return DB::transaction(function () use ($promotion, $input): Promotion {
+            $promotionAttributes = $input->toPromotionAttributes();
+            if ($input->hasCode && $input->code !== null) {
+                $promotionAttributes['code'] = $this->promotionCouponSyncService->normalizeCode($input->code);
             }
 
-            $promotion->update($payload);
+            $promotion->update($promotionAttributes);
 
-            if (array_key_exists('code', $payload) && $payload['code'] !== null) {
-                $this->promotionCouponSyncService->syncPrimaryCouponCode($promotion, (string) $payload['code']);
+            if ($input->hasCode && $input->code !== null) {
+                $this->promotionCouponSyncService->syncPrimaryCouponCode($promotion, $input->code);
             }
 
             /** @var Promotion $freshPromotion */
@@ -77,21 +75,17 @@ final class AdminPromotionService
 
     /**
      * Create coupon for existing promotion.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function createCoupon(Promotion $promotion, array $payload): Coupon
+    public function createCoupon(Promotion $promotion, CreateAdminPromotionCouponInputDto $input): Coupon
     {
-        return $this->promotionCouponSyncService->createCoupon($promotion, $payload);
+        return $this->promotionCouponSyncService->createCoupon($promotion, $input);
     }
 
     /**
      * Update coupon flags and limits.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function updateCoupon(Coupon $coupon, array $payload): Coupon
+    public function updateCoupon(Coupon $coupon, UpdateAdminPromotionCouponInputDto $input): Coupon
     {
-        return $this->promotionCouponSyncService->updateCoupon($coupon, $payload);
+        return $this->promotionCouponSyncService->updateCoupon($coupon, $input);
     }
 }

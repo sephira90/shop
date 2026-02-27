@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Application\Admin\Promotions\Dto\CreateAdminPromotionCouponInputDto;
+use App\Application\Admin\Promotions\Dto\CreateAdminPromotionInputDto;
+use App\Application\Admin\Promotions\Dto\UpdateAdminPromotionCouponInputDto;
 use App\Models\Coupon;
 use App\Models\Promotion;
 use Illuminate\Support\Str;
@@ -12,17 +15,15 @@ final class PromotionCouponSyncService
 {
     /**
      * Create coupon for existing promotion.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function createCoupon(Promotion $promotion, array $payload): Coupon
+    public function createCoupon(Promotion $promotion, CreateAdminPromotionCouponInputDto $input): Coupon
     {
         $coupon = Coupon::query()->create([
             'promotion_id' => $promotion->id,
-            'code' => $this->normalizeCode((string) $payload['code']),
-            'is_active' => (bool) ($payload['is_active'] ?? true),
-            'max_redemptions' => $payload['max_redemptions'] ?? null,
-            'expires_at' => $payload['expires_at'] ?? null,
+            'code' => $this->normalizeCode($input->requiredCode()),
+            'is_active' => $input->isActive,
+            'max_redemptions' => $input->maxRedemptions,
+            'expires_at' => $input->expiresAt,
         ]);
 
         /** @var Coupon $freshCoupon */
@@ -33,16 +34,24 @@ final class PromotionCouponSyncService
 
     /**
      * Update coupon flags and limits.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function updateCoupon(Coupon $coupon, array $payload): Coupon
+    public function updateCoupon(Coupon $coupon, UpdateAdminPromotionCouponInputDto $input): Coupon
     {
-        $coupon->update([
-            'is_active' => array_key_exists('is_active', $payload) ? (bool) $payload['is_active'] : $coupon->is_active,
-            'max_redemptions' => array_key_exists('max_redemptions', $payload) ? $payload['max_redemptions'] : $coupon->max_redemptions,
-            'expires_at' => array_key_exists('expires_at', $payload) ? $payload['expires_at'] : $coupon->expires_at,
-        ]);
+        $updates = [];
+
+        if ($input->hasIsActive) {
+            $updates['is_active'] = (bool) $input->isActive;
+        }
+        if ($input->hasMaxRedemptions) {
+            $updates['max_redemptions'] = $input->maxRedemptions;
+        }
+        if ($input->hasExpiresAt) {
+            $updates['expires_at'] = $input->expiresAt;
+        }
+
+        if ($updates !== []) {
+            $coupon->update($updates);
+        }
 
         /** @var Coupon $freshCoupon */
         $freshCoupon = $coupon->fresh();
@@ -51,32 +60,30 @@ final class PromotionCouponSyncService
     }
 
     /**
-     * Create initial coupon from payload.
-     *
-     * @param  array<string, mixed>  $promotionPayload
-     * @param  array<string, mixed>|null  $couponPayload
+     * Create initial coupon from promotion DTO.
      */
-    public function createPrimaryCouponIfRequired(Promotion $promotion, array $promotionPayload, ?array $couponPayload): void
+    public function createPrimaryCouponIfRequired(Promotion $promotion, CreateAdminPromotionInputDto $input): void
     {
-        $primaryCode = '';
+        $primaryCode = null;
+        $coupon = $input->coupon;
 
-        if ($couponPayload !== null && ! empty($couponPayload['code'])) {
-            $primaryCode = (string) $couponPayload['code'];
-        } elseif (! empty($promotionPayload['code'])) {
+        if ($coupon !== null && $coupon->hasCode && $coupon->code !== null) {
+            $primaryCode = $coupon->code;
+        } elseif ($input->code !== null) {
             // Backward-compatible path: promotion code acts as primary coupon code.
-            $primaryCode = (string) $promotionPayload['code'];
+            $primaryCode = $input->code;
         }
 
-        if ($primaryCode === '') {
+        if ($primaryCode === null) {
             return;
         }
 
         Coupon::query()->create([
             'promotion_id' => $promotion->id,
             'code' => $this->normalizeCode($primaryCode),
-            'is_active' => (bool) ($couponPayload['is_active'] ?? true),
-            'max_redemptions' => $couponPayload['max_redemptions'] ?? null,
-            'expires_at' => $couponPayload['expires_at'] ?? null,
+            'is_active' => $coupon !== null ? $coupon->isActive : true,
+            'max_redemptions' => $coupon?->maxRedemptions,
+            'expires_at' => $coupon?->expiresAt,
         ]);
     }
 

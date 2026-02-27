@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Application\Catalog\Queries;
 
+use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+
 final readonly class PaginateCatalogProductsQuery
 {
     /**
      * Create query payload for catalog list.
-     *
-     * @param  array<string, mixed>  $filters
      */
     public function __construct(
-        public array $filters,
+        public CatalogProductListFilterDto $filter,
         public int $perPage,
     ) {}
 }

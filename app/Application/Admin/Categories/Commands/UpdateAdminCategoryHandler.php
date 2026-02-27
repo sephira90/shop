@@ -21,6 +21,6 @@ final class UpdateAdminCategoryHandler
      */
     public function handle(UpdateAdminCategoryCommand $command): Category
     {
-        return $this->adminCategoryService->update($command->category, $command->payload);
+        return $this->adminCategoryService->update($command->category, $command->input);
     }
 }

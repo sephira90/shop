@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Cart\Commands;
 
+use App\Application\Cart\Dto\RemoveCartItemInputDto;
 use App\Models\User;
 
 final readonly class RemoveCartItemCommand
@@ -13,7 +14,6 @@ final readonly class RemoveCartItemCommand
      */
     public function __construct(
         public ?User $user,
-        public ?string $guestToken,
-        public int $variantId,
+        public RemoveCartItemInputDto $input,
     ) {}
 }

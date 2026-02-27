@@ -58,7 +58,7 @@ class ProductController extends Controller
         $this->authorize('create', Product::class);
 
         $product = $this->createAdminProductHandler->handle(
-            new CreateAdminProductCommand($request->validated())
+            new CreateAdminProductCommand($request->toDto())
         );
 
         return ApiResponse::data(ProductResource::make($product), 201);
@@ -84,7 +84,7 @@ class ProductController extends Controller
         $this->authorize('update', $product);
 
         $product = $this->updateAdminProductHandler->handle(
-            new UpdateAdminProductCommand($product, $request->validated())
+            new UpdateAdminProductCommand($product, $request->toDto())
         );
 
         return ApiResponse::data(ProductResource::make($product));

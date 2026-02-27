@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Cart;
 
+use App\Application\Cart\Dto\CartUpsertItemInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpsertCartItemRequest extends FormRequest
@@ -28,5 +29,16 @@ class UpsertCartItemRequest extends FormRequest
             'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
             'guest_token' => ['nullable', 'string', 'max:80'],
         ];
+    }
+
+    /**
+     * Build typed DTO for cart upsert.
+     */
+    public function toDto(): CartUpsertItemInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return CartUpsertItemInputDto::fromValidated($validated);
     }
 }

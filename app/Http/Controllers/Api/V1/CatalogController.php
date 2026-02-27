@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Application\Catalog\Queries\GetCatalogProductBySlugHandler;
 use App\Application\Catalog\Queries\GetCatalogProductBySlugQuery;
 use App\Application\Catalog\Queries\ListCatalogCategoriesHandler;
@@ -42,8 +43,9 @@ class CatalogController extends Controller
         ]);
 
         $perPage = (int) ($validated['per_page'] ?? 12);
+        $filter = CatalogProductListFilterDto::fromValidated($validated);
         $paginator = $this->paginateCatalogProductsHandler->handle(
-            new PaginateCatalogProductsQuery($validated, $perPage)
+            new PaginateCatalogProductsQuery($filter, $perPage)
         );
 
         return ApiResponse::paginated(ProductResource::collection($paginator->items()), $paginator);

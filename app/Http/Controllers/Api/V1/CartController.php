@@ -8,6 +8,7 @@ use App\Application\Cart\Commands\RemoveCartItemCommand;
 use App\Application\Cart\Commands\RemoveCartItemHandler;
 use App\Application\Cart\Commands\UpsertCartItemCommand;
 use App\Application\Cart\Commands\UpsertCartItemHandler;
+use App\Application\Cart\Dto\RemoveCartItemInputDto;
 use App\Application\Cart\Queries\GetCurrentCartHandler;
 use App\Application\Cart\Queries\GetCurrentCartQuery;
 use App\Http\Controllers\Controller;
@@ -42,7 +43,7 @@ class CartController extends Controller
             new GetCurrentCartQuery($currentUser, is_string($guestToken) ? $guestToken : null)
         );
 
-        return ApiResponse::data($payload);
+        return ApiResponse::data($payload->toArray());
     }
 
     /**
@@ -50,23 +51,21 @@ class CartController extends Controller
      */
     public function upsertItem(UpsertCartItemRequest $request): JsonResponse
     {
-        $payload = $request->validated();
+        $input = $request->toDto();
         $currentUser = $this->resolveCurrentUser($request);
 
         try {
             $cartPayload = $this->upsertCartItemHandler->handle(
                 new UpsertCartItemCommand(
                     $currentUser,
-                    $payload['guest_token'] ?? null,
-                    (int) $payload['product_variant_id'],
-                    (int) $payload['quantity'],
+                    $input,
                 )
             );
         } catch (DomainException $exception) {
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return ApiResponse::data($cartPayload);
+        return ApiResponse::data($cartPayload->toArray());
     }
 
     /**
@@ -77,10 +76,13 @@ class CartController extends Controller
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
         $currentUser = $this->resolveCurrentUser($request);
         $cartPayload = $this->removeCartItemHandler->handle(
-            new RemoveCartItemCommand($currentUser, is_string($guestToken) ? $guestToken : null, $variantId)
+            new RemoveCartItemCommand(
+                $currentUser,
+                RemoveCartItemInputDto::fromRaw($guestToken, $variantId),
+            )
         );
 
-        return ApiResponse::data($cartPayload);
+        return ApiResponse::data($cartPayload->toArray());
     }
 
     /**

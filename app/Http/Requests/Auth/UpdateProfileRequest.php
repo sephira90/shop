@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Auth;
 
+use App\Application\Auth\Dto\UpdateAuthProfileInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProfileRequest extends FormRequest
@@ -28,5 +29,16 @@ class UpdateProfileRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:80'],
             'phone' => ['nullable', 'string', 'max:32'],
         ];
+    }
+
+    /**
+     * Build typed DTO for profile update flow.
+     */
+    public function toDto(): UpdateAuthProfileInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return UpdateAuthProfileInputDto::fromValidated($validated);
     }
 }

@@ -64,7 +64,7 @@ class PromotionController extends Controller
         $this->authorize('create', Promotion::class);
 
         $promotion = $this->createAdminPromotionHandler->handle(
-            new CreateAdminPromotionCommand($request->validated())
+            new CreateAdminPromotionCommand($request->toDto())
         );
 
         return ApiResponse::data(PromotionResource::make($promotion), 201);
@@ -78,7 +78,7 @@ class PromotionController extends Controller
         $this->authorize('update', $promotion);
 
         $promotion = $this->updateAdminPromotionHandler->handle(
-            new UpdateAdminPromotionCommand($promotion, $request->validated())
+            new UpdateAdminPromotionCommand($promotion, $request->toDto())
         );
 
         return ApiResponse::data(PromotionResource::make($promotion));
@@ -104,7 +104,7 @@ class PromotionController extends Controller
         $this->authorize('update', $promotion);
 
         $coupon = $this->createAdminPromotionCouponHandler->handle(
-            new CreateAdminPromotionCouponCommand($promotion, $request->validated())
+            new CreateAdminPromotionCouponCommand($promotion, $request->toDto())
         );
 
         return ApiResponse::data($coupon, 201);
@@ -118,7 +118,7 @@ class PromotionController extends Controller
         $this->authorize('update', $coupon);
 
         $coupon = $this->updateAdminPromotionCouponHandler->handle(
-            new UpdateAdminPromotionCouponCommand($coupon, $request->validated())
+            new UpdateAdminPromotionCouponCommand($coupon, $request->toDto())
         );
 
         return ApiResponse::data($coupon);

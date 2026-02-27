@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Application\Auth\Commands;
 
 use App\Application\Auth\AuthApplicationException;
-use App\Application\Auth\Support\AuthUserPayloadBuilder;
+use App\Application\Auth\Dto\AuthTokenResultDto;
+use App\Application\Auth\Support\AuthUserDtoMapper;
 use App\Models\User;
 use App\Services\Cart\CartService;
 use Illuminate\Support\Facades\Hash;
@@ -18,20 +19,18 @@ final class LoginAuthUserHandler
      */
     public function __construct(
         private readonly CartService $cartService,
-        private readonly AuthUserPayloadBuilder $authUserPayloadBuilder,
+        private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
 
     /**
      * Execute auth login command.
-     *
-     * @return array{token:string,user:array<string,mixed>}
      */
-    public function handle(LoginAuthUserCommand $command): array
+    public function handle(LoginAuthUserCommand $command): AuthTokenResultDto
     {
-        $payload = $command->payload;
-        $user = User::query()->where('email', $payload['email'])->first();
+        $input = $command->input;
+        $user = User::query()->where('email', $input->email)->first();
 
-        if (! $user instanceof User || ! Hash::check($payload['password'], $user->password)) {
+        if (! $user instanceof User || ! Hash::check($input->password, $user->password)) {
             throw new AuthApplicationException(
                 'Invalid credentials.',
                 Response::HTTP_UNPROCESSABLE_ENTITY,
@@ -45,13 +44,15 @@ final class LoginAuthUserHandler
             );
         }
 
-        if (! empty($payload['guest_token'])) {
-            $this->cartService->mergeGuestCart($user, (string) $payload['guest_token']);
+        if ($input->guestToken !== null) {
+            $this->cartService->mergeGuestCart($user, $input->guestToken);
         }
 
-        return [
-            'token' => $user->createToken((string) ($payload['device_name'] ?? 'api-device'))->plainTextToken,
-            'user' => $this->authUserPayloadBuilder->build($user),
-        ];
+        $deviceName = $input->deviceName ?? 'api-device';
+
+        return new AuthTokenResultDto(
+            token: $user->createToken($deviceName)->plainTextToken,
+            user: $this->authUserDtoMapper->map($user),
+        );
     }
 }

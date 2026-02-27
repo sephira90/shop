@@ -64,7 +64,7 @@ class OrderController extends Controller
         $this->authorize('update', $order);
 
         $updated = $this->updateAdminOrderStatusHandler->handle(
-            new UpdateAdminOrderStatusCommand($order, $request->validated())
+            new UpdateAdminOrderStatusCommand($order, $request->toDto())
         );
 
         return ApiResponse::data(OrderResource::make($updated));

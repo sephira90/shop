@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Promotions\Dto\UpdateAdminPromotionInputDto;
 use App\Models\Promotion;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -56,5 +57,16 @@ class PromotionUpdateRequest extends FormRequest
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
         ];
+    }
+
+    /**
+     * Build typed DTO for promotion update flow.
+     */
+    public function toDto(): UpdateAdminPromotionInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return UpdateAdminPromotionInputDto::fromValidated($validated);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Cart\Queries;
 
+use App\Application\Cart\Dto\CartResultDto;
 use App\Services\Cart\CartService;
 
 final class GetCurrentCartHandler
@@ -17,13 +18,11 @@ final class GetCurrentCartHandler
 
     /**
      * Execute current cart show query.
-     *
-     * @return array<string, mixed>
      */
-    public function handle(GetCurrentCartQuery $query): array
+    public function handle(GetCurrentCartQuery $query): CartResultDto
     {
         $cart = $this->cartService->resolve($query->user, $query->guestToken);
 
-        return $this->cartService->payload($cart);
+        return $this->cartService->toResultDto($cart);
     }
 }

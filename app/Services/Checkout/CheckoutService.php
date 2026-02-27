@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Checkout;
 
+use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Enums\CartStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
@@ -30,19 +31,17 @@ final class CheckoutService
 {
     /**
      * Create order from cart with idempotency key.
-     *
-     * @param  array<string, mixed>  $checkoutPayload
      */
     public function placeOrder(
         Cart $cart,
-        array $checkoutPayload,
+        CheckoutPlaceOrderInputDto $checkoutInput,
         string $idempotencyKey,
         ?User $user = null,
     ): Order {
         $scopeKey = $this->resolveScopeKey($cart, $user);
-        $hash = hash('sha256', json_encode([$cart->id, $checkoutPayload], JSON_THROW_ON_ERROR));
+        $hash = hash('sha256', json_encode([$cart->id, $checkoutInput->toHashPayload()], JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($cart, $checkoutPayload, $idempotencyKey, $hash, $scopeKey, $user): Order {
+        return DB::transaction(function () use ($cart, $checkoutInput, $idempotencyKey, $hash, $scopeKey, $user): Order {
             $lockedCart = Cart::query()
                 ->whereKey($cart->id)
                 ->with(['items.variant.product'])
@@ -163,7 +162,7 @@ final class CheckoutService
                 $inventory->decrement('quantity', $requiredQuantity);
             }
 
-            $discountContext = $this->resolveDiscountContext($checkoutPayload, $subtotal);
+            $discountContext = $this->resolveDiscountContext($checkoutInput, $subtotal);
             $discountTotal = $discountContext['discount_total'];
             $shippingTotal = 0.0;
             $total = $subtotal - $discountTotal + $shippingTotal;
@@ -171,17 +170,17 @@ final class CheckoutService
             $order = Order::query()->create([
                 'order_number' => 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
                 'user_id' => $user?->id,
-                'email' => (string) $checkoutPayload['email'],
+                'email' => $checkoutInput->email,
                 'status' => OrderStatus::PENDING->value,
                 'payment_status' => PaymentStatus::PENDING->value,
                 'shipment_status' => ShipmentStatus::PENDING->value,
-                'currency' => (string) ($checkoutPayload['currency'] ?? 'USD'),
+                'currency' => $checkoutInput->currency,
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
                 'shipping_total' => $shippingTotal,
                 'total' => $total,
-                'billing_address' => (array) ($checkoutPayload['billing_address'] ?? []),
-                'shipping_address' => (array) ($checkoutPayload['shipping_address'] ?? []),
+                'billing_address' => $checkoutInput->billingAddress->toArray(),
+                'shipping_address' => $checkoutInput->shippingAddress->toArray(),
                 'cart_snapshot' => $lineItems,
                 'placed_at' => now(),
             ]);
@@ -250,12 +249,11 @@ final class CheckoutService
     /**
      * Resolve discount context from coupon code.
      *
-     * @param  array<string, mixed>  $checkoutPayload
      * @return array{discount_total:float,coupon:?Coupon,promotion:?Promotion}
      */
-    private function resolveDiscountContext(array $checkoutPayload, float $subtotal): array
+    private function resolveDiscountContext(CheckoutPlaceOrderInputDto $checkoutInput, float $subtotal): array
     {
-        $couponCode = strtoupper(trim((string) ($checkoutPayload['coupon_code'] ?? '')));
+        $couponCode = $checkoutInput->couponCode ?? '';
 
         if ($couponCode === '') {
             return [

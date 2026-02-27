@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Cart\Commands;
 
+use App\Application\Cart\Dto\CartResultDto;
 use App\Services\Cart\CartService;
 
 final class UpsertCartItemHandler
@@ -17,14 +18,16 @@ final class UpsertCartItemHandler
 
     /**
      * Execute cart item upsert command.
-     *
-     * @return array<string, mixed>
      */
-    public function handle(UpsertCartItemCommand $command): array
+    public function handle(UpsertCartItemCommand $command): CartResultDto
     {
-        $cart = $this->cartService->resolve($command->user, $command->guestToken);
-        $cart = $this->cartService->upsertItem($cart, $command->variantId, $command->quantity);
+        $cart = $this->cartService->resolve($command->user, $command->input->guestToken);
+        $cart = $this->cartService->upsertItem(
+            $cart,
+            $command->input->productVariantId,
+            $command->input->quantity,
+        );
 
-        return $this->cartService->payload($cart);
+        return $this->cartService->toResultDto($cart);
     }
 }

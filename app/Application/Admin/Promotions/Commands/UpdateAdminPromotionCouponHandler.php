@@ -21,6 +21,6 @@ final class UpdateAdminPromotionCouponHandler
      */
     public function handle(UpdateAdminPromotionCouponCommand $command): Coupon
     {
-        return $this->adminPromotionService->updateCoupon($command->coupon, $command->payload);
+        return $this->adminPromotionService->updateCoupon($command->coupon, $command->input);
     }
 }

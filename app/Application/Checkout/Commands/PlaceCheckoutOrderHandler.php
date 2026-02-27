@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Commands;
 
+use App\Application\Checkout\Dto\CheckoutPlaceOrderResultDto;
 use App\Services\Cart\CartService;
 use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
@@ -22,7 +23,7 @@ final class PlaceCheckoutOrderHandler
     /**
      * Execute place-order flow and return order + payment.
      */
-    public function handle(PlaceCheckoutOrderCommand $command): PlaceCheckoutOrderResult
+    public function handle(PlaceCheckoutOrderCommand $command): CheckoutPlaceOrderResultDto
     {
         $guestToken = $command->guestToken();
 
@@ -36,12 +37,12 @@ final class PlaceCheckoutOrderHandler
         );
         $order = $this->checkoutService->placeOrder(
             $cart,
-            $command->payload,
+            $command->input,
             $command->idempotencyKey,
             $command->user,
         );
         $payment = $this->paymentService->initiate($order, 'checkout-'.$command->idempotencyKey);
 
-        return new PlaceCheckoutOrderResult($order, $payment);
+        return CheckoutPlaceOrderResultDto::fromModels($order, $payment);
     }
 }

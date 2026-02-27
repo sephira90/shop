@@ -24,6 +24,6 @@ final class PaginateCatalogProductsHandler
      */
     public function handle(PaginateCatalogProductsQuery $query): LengthAwarePaginator
     {
-        return $this->catalogService->list($query->filters, $query->perPage);
+        return $this->catalogService->list($query->filter, $query->perPage);
     }
 }

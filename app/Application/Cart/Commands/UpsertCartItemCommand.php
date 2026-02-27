@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Cart\Commands;
 
+use App\Application\Cart\Dto\CartUpsertItemInputDto;
 use App\Models\User;
 
 final readonly class UpsertCartItemCommand
@@ -13,8 +14,6 @@ final readonly class UpsertCartItemCommand
      */
     public function __construct(
         public ?User $user,
-        public ?string $guestToken,
-        public int $variantId,
-        public int $quantity,
+        public CartUpsertItemInputDto $input,
     ) {}
 }

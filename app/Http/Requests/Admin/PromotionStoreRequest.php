@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Promotions\Dto\CreateAdminPromotionInputDto;
 use App\Models\Promotion;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -49,5 +50,16 @@ class PromotionStoreRequest extends FormRequest
             'coupon.max_redemptions' => ['nullable', 'integer', 'min:1'],
             'coupon.expires_at' => ['nullable', 'date'],
         ];
+    }
+
+    /**
+     * Build typed DTO for promotion create flow.
+     */
+    public function toDto(): CreateAdminPromotionInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return CreateAdminPromotionInputDto::fromValidated($validated);
     }
 }

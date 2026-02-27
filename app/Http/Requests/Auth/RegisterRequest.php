@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Auth;
 
+use App\Application\Auth\Dto\RegisterAuthInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterRequest extends FormRequest
@@ -30,5 +31,16 @@ class RegisterRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:32'],
             'password' => ['required', 'string', 'min:8', 'max:128', 'confirmed'],
         ];
+    }
+
+    /**
+     * Build typed DTO for register flow.
+     */
+    public function toDto(): RegisterAuthInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return RegisterAuthInputDto::fromValidated($validated);
     }
 }

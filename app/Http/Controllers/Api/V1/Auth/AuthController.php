@@ -44,11 +44,11 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $payload = $this->registerAuthUserHandler->handle(
-            new RegisterAuthUserCommand($request->validated())
+        $result = $this->registerAuthUserHandler->handle(
+            new RegisterAuthUserCommand($request->toDto())
         );
 
-        return ApiResponse::data($payload, Response::HTTP_CREATED);
+        return ApiResponse::data($result->toArray(), Response::HTTP_CREATED);
     }
 
     /**
@@ -57,8 +57,8 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $payload = $this->loginAuthUserHandler->handle(
-                new LoginAuthUserCommand($request->validated())
+            $result = $this->loginAuthUserHandler->handle(
+                new LoginAuthUserCommand($request->toDto())
             );
         } catch (AuthApplicationException $exception) {
             return ApiResponse::error($exception->getMessage(), $exception->statusCode);
@@ -66,7 +66,7 @@ class AuthController extends Controller
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return ApiResponse::data($payload);
+        return ApiResponse::data($result->toArray());
     }
 
     /**
@@ -96,7 +96,7 @@ class AuthController extends Controller
         }
 
         return ApiResponse::data(
-            $this->getAuthProfileHandler->handle(new GetAuthProfileQuery($authenticated))
+            $this->getAuthProfileHandler->handle(new GetAuthProfileQuery($authenticated))->toArray()
         );
     }
 
@@ -113,8 +113,8 @@ class AuthController extends Controller
 
         return ApiResponse::data(
             $this->updateAuthProfileHandler->handle(
-                new UpdateAuthProfileCommand($authenticated, $request->validated())
-            )
+                new UpdateAuthProfileCommand($authenticated, $request->toDto())
+            )->toArray()
         );
     }
 }

@@ -21,6 +21,6 @@ final class UpdateAdminProductHandler
      */
     public function handle(UpdateAdminProductCommand $command): Product
     {
-        return $this->adminCatalogService->updateProduct($command->product, $command->payload);
+        return $this->adminCatalogService->updateProduct($command->product, $command->input);
     }
 }

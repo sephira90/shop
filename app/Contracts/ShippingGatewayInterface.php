@@ -6,15 +6,14 @@ namespace App\Contracts;
 
 use App\Enums\ShipmentStatus;
 use App\Models\Order;
+use App\Services\Shipping\Dto\ShipmentCreationResultDto;
 
 interface ShippingGatewayInterface
 {
     /**
      * Create shipment in provider and return normalized payload.
-     *
-     * @return array{tracking_number:string,status:ShipmentStatus,cost:float,payload:array<string,mixed>}
      */
-    public function createShipment(Order $order): array;
+    public function createShipment(Order $order): ShipmentCreationResultDto;
 
     /**
      * Verify webhook signature from shipping provider.

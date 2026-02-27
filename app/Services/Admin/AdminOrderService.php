@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Application\Admin\Orders\Dto\UpdateAdminOrderStatusInputDto;
 use App\Models\Order;
 
 final class AdminOrderService
 {
     /**
      * Update order status tuple.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function updateStatus(Order $order, array $payload): Order
+    public function updateStatus(Order $order, UpdateAdminOrderStatusInputDto $input): Order
     {
-        $nextStatus = $payload['status'] ?? $order->status;
+        $nextStatus = $input->status ?? $order->status;
         $cancelledAt = $order->cancelled_at;
 
         if ($nextStatus === 'cancelled' && $cancelledAt === null) {
@@ -24,8 +23,8 @@ final class AdminOrderService
 
         $order->update([
             'status' => $nextStatus,
-            'payment_status' => $payload['payment_status'] ?? $order->payment_status,
-            'shipment_status' => $payload['shipment_status'] ?? $order->shipment_status,
+            'payment_status' => $input->paymentStatus ?? $order->payment_status,
+            'shipment_status' => $input->shipmentStatus ?? $order->shipment_status,
             'cancelled_at' => $cancelledAt,
         ]);
 

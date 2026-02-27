@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Commands;
 
+use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Models\User;
 
 final readonly class PlaceCheckoutOrderCommand
 {
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     public function __construct(
-        public array $payload,
+        public CheckoutPlaceOrderInputDto $input,
         public string $idempotencyKey,
         public ?User $user,
     ) {}
@@ -22,6 +20,6 @@ final readonly class PlaceCheckoutOrderCommand
      */
     public function guestToken(): string
     {
-        return trim((string) ($this->payload['guest_token'] ?? ''));
+        return $this->input->guestToken ?? '';
     }
 }

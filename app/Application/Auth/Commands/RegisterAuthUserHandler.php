@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Commands;
 
-use App\Application\Auth\Support\AuthUserPayloadBuilder;
+use App\Application\Auth\Dto\AuthTokenResultDto;
+use App\Application\Auth\Support\AuthUserDtoMapper;
 use App\Enums\RoleName;
 use App\Models\User;
 
@@ -14,33 +15,31 @@ final class RegisterAuthUserHandler
      * Create command handler instance.
      */
     public function __construct(
-        private readonly AuthUserPayloadBuilder $authUserPayloadBuilder,
+        private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
 
     /**
      * Execute auth register command.
-     *
-     * @return array{token:string,user:array<string,mixed>}
      */
-    public function handle(RegisterAuthUserCommand $command): array
+    public function handle(RegisterAuthUserCommand $command): AuthTokenResultDto
     {
-        $payload = $command->payload;
+        $input = $command->input;
 
         $user = User::query()->create([
-            'first_name' => $payload['first_name'],
-            'last_name' => $payload['last_name'],
-            'name' => trim($payload['first_name'].' '.$payload['last_name']),
-            'email' => $payload['email'],
-            'phone' => $payload['phone'] ?? null,
-            'password' => $payload['password'],
+            'first_name' => $input->firstName,
+            'last_name' => $input->lastName,
+            'name' => trim($input->firstName.' '.$input->lastName),
+            'email' => $input->email,
+            'phone' => $input->phone,
+            'password' => $input->password,
         ]);
 
         $user->assignRole(RoleName::CUSTOMER);
         $user->sendEmailVerificationNotification();
 
-        return [
-            'token' => $user->createToken('api-register')->plainTextToken,
-            'user' => $this->authUserPayloadBuilder->build($user),
-        ];
+        return new AuthTokenResultDto(
+            token: $user->createToken('api-register')->plainTextToken,
+            user: $this->authUserDtoMapper->map($user),
+        );
     }
 }

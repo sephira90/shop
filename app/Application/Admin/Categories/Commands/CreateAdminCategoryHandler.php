@@ -21,6 +21,6 @@ final class CreateAdminCategoryHandler
      */
     public function handle(CreateAdminCategoryCommand $command): Category
     {
-        return $this->adminCategoryService->create($command->payload);
+        return $this->adminCategoryService->create($command->input);
     }
 }

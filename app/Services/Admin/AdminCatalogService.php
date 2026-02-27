@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Application\Admin\Products\Dto\AdminProductVariantInputDto;
+use App\Application\Admin\Products\Dto\CreateAdminProductInputDto;
+use App\Application\Admin\Products\Dto\UpdateAdminProductInputDto;
 use App\Models\Inventory;
 use App\Models\Price;
 use App\Models\Product;
@@ -24,19 +27,17 @@ final class AdminCatalogService
 
     /**
      * Create product.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function createProduct(array $payload): Product
+    public function createProduct(CreateAdminProductInputDto $input): Product
     {
-        return DB::transaction(function () use ($payload): Product {
-            $variants = $this->extractVariantsPayload($payload);
-            $payload['slug'] = $payload['slug'] ?? Str::slug((string) $payload['name']);
+        return DB::transaction(function () use ($input): Product {
+            $attributes = $input->toPersistenceAttributes();
+            $attributes['slug'] = $attributes['slug'] ?? Str::slug($input->name);
 
-            $product = Product::query()->create($payload);
+            $product = Product::query()->create($attributes);
 
-            if ($variants !== null) {
-                $this->syncVariants($product, $variants);
+            if ($input->variants !== null) {
+                $this->syncVariants($product, $input->variants);
             }
 
             $this->catalogVersionService->bump();
@@ -47,18 +48,16 @@ final class AdminCatalogService
 
     /**
      * Update product.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function updateProduct(Product $product, array $payload): Product
+    public function updateProduct(Product $product, UpdateAdminProductInputDto $input): Product
     {
-        return DB::transaction(function () use ($product, $payload): Product {
-            $variants = $this->extractVariantsPayload($payload);
-            $payload['slug'] = $payload['slug'] ?? $product->slug;
-            $product->update($payload);
+        return DB::transaction(function () use ($product, $input): Product {
+            $attributes = $input->toPersistenceAttributes();
+            $attributes['slug'] = $attributes['slug'] ?? $product->slug;
+            $product->update($attributes);
 
-            if ($variants !== null) {
-                $this->syncVariants($product, $variants);
+            if ($input->variants !== null) {
+                $this->syncVariants($product, $input->variants);
             }
 
             $this->catalogVersionService->bump();
@@ -77,35 +76,17 @@ final class AdminCatalogService
     }
 
     /**
-     * Extract variants payload from product payload.
-     *
-     * @param  array<string, mixed>  $payload
-     * @return array<int, array<string, mixed>>|null
-     */
-    private function extractVariantsPayload(array &$payload): ?array
-    {
-        if (! array_key_exists('variants', $payload)) {
-            return null;
-        }
-
-        $variants = $payload['variants'];
-        unset($payload['variants']);
-
-        return is_array($variants) ? $variants : null;
-    }
-
-    /**
      * Sync full variant set for a product.
      *
-     * @param  array<int, array<string, mixed>>  $variants
+     * @param  iterable<int, AdminProductVariantInputDto>  $variants
      */
-    private function syncVariants(Product $product, array $variants): void
+    private function syncVariants(Product $product, iterable $variants): void
     {
         $keptVariantIds = [];
 
-        foreach ($variants as $index => $variantPayload) {
-            $variant = $this->resolveVariant($product, $variantPayload, $index);
-            $preparedPayload = $this->prepareVariantPayload($variantPayload);
+        foreach ($variants as $index => $variantInput) {
+            $variant = $this->resolveVariant($product, $variantInput, $index);
+            $preparedPayload = $variantInput->toPersistenceAttributes();
 
             if ($variant instanceof ProductVariant) {
                 $variant->update($preparedPayload);
@@ -115,7 +96,7 @@ final class AdminCatalogService
             }
 
             $keptVariantIds[] = $variant->id;
-            $this->syncVariantInventory($variant, $variantPayload);
+            $this->syncVariantInventory($variant, $variantInput);
             $this->syncVariantPrice($variant);
         }
 
@@ -138,12 +119,13 @@ final class AdminCatalogService
 
     /**
      * Resolve variant by id/sku and guard against cross-product collisions.
-     *
-     * @param  array<string, mixed>  $variantPayload
      */
-    private function resolveVariant(Product $product, array $variantPayload, int $index): ?ProductVariant
-    {
-        $variantId = isset($variantPayload['id']) ? (int) $variantPayload['id'] : 0;
+    private function resolveVariant(
+        Product $product,
+        AdminProductVariantInputDto $variantInput,
+        int $index
+    ): ?ProductVariant {
+        $variantId = $variantInput->id ?? 0;
 
         if ($variantId > 0) {
             $variant = $product->variants()->whereKey($variantId)->first();
@@ -154,7 +136,7 @@ final class AdminCatalogService
                 ]);
             }
 
-            $nextSku = trim((string) ($variantPayload['sku'] ?? ''));
+            $nextSku = $variantInput->sku;
 
             if ($nextSku !== '' && $nextSku !== $variant->sku) {
                 $skuCollision = ProductVariant::query()
@@ -172,7 +154,7 @@ final class AdminCatalogService
             return $variant;
         }
 
-        $sku = trim((string) ($variantPayload['sku'] ?? ''));
+        $sku = $variantInput->sku;
 
         if ($sku === '') {
             return null;
@@ -196,55 +178,15 @@ final class AdminCatalogService
     }
 
     /**
-     * Normalize variant payload before persist.
-     *
-     * @param  array<string, mixed>  $variantPayload
-     * @return array<string, mixed>
-     */
-    private function prepareVariantPayload(array $variantPayload): array
-    {
-        $compareAtPrice = $variantPayload['compare_at_price'] ?? null;
-        $compareAtPrice = $compareAtPrice === null || $compareAtPrice === '' ? null : (float) $compareAtPrice;
-
-        $attributes = $variantPayload['attributes'] ?? [];
-        $attributes = is_array($attributes) ? $attributes : [];
-
-        return [
-            'sku' => trim((string) $variantPayload['sku']),
-            'name' => trim((string) $variantPayload['name']),
-            'attributes' => $attributes,
-            'price' => (float) $variantPayload['price'],
-            'compare_at_price' => $compareAtPrice,
-            'currency' => strtoupper((string) ($variantPayload['currency'] ?? 'USD')),
-            'is_active' => (bool) ($variantPayload['is_active'] ?? true),
-        ];
-    }
-
-    /**
      * Persist variant inventory state.
-     *
-     * @param  array<string, mixed>  $variantPayload
      */
-    private function syncVariantInventory(ProductVariant $variant, array $variantPayload): void
-    {
-        $inventoryPayload = $variantPayload['inventory'] ?? [];
-        $inventoryPayload = is_array($inventoryPayload) ? $inventoryPayload : [];
-
-        $quantity = max(0, (int) ($inventoryPayload['quantity'] ?? 0));
-        $reservedQuantity = max(0, (int) ($inventoryPayload['reserved_quantity'] ?? 0));
-        $lowStockThreshold = max(0, (int) ($inventoryPayload['low_stock_threshold'] ?? 3));
-
-        if ($reservedQuantity > $quantity) {
-            $reservedQuantity = $quantity;
-        }
-
+    private function syncVariantInventory(
+        ProductVariant $variant,
+        AdminProductVariantInputDto $variantInput
+    ): void {
         Inventory::query()->updateOrCreate(
             ['product_variant_id' => $variant->id],
-            [
-                'quantity' => $quantity,
-                'reserved_quantity' => $reservedQuantity,
-                'low_stock_threshold' => $lowStockThreshold,
-            ]
+            $variantInput->inventory->toPersistenceAttributes()
         );
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Products\Dto\CreateAdminProductInputDto;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -52,5 +53,16 @@ class ProductStoreRequest extends FormRequest
             'variants.*.inventory.reserved_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
             'variants.*.inventory.low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
         ];
+    }
+
+    /**
+     * Build typed DTO for create flow.
+     */
+    public function toDto(): CreateAdminProductInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return CreateAdminProductInputDto::fromValidated($validated);
     }
 }

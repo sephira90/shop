@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Cart;
 
+use App\Application\Cart\Dto\CartItemResultDto;
+use App\Application\Cart\Dto\CartResultDto;
+use App\Application\Cart\Dto\CartSummaryResultDto;
 use App\Enums\CartStatus;
 use App\Enums\ProductStatus;
 use App\Models\Cart;
@@ -220,35 +223,49 @@ final class CartService
     }
 
     /**
-     * Build normalized cart payload.
-     *
-     * @return array<string, mixed>
+     * Build normalized cart result DTO.
      */
-    public function payload(Cart $cart): array
+    public function toResultDto(Cart $cart): CartResultDto
     {
-        $subtotal = $cart->items->sum('line_total');
+        $subtotal = (float) $cart->items->sum('line_total');
+        $items = [];
 
-        return [
-            'id' => $cart->id,
-            'guest_token' => $cart->guest_token,
-            'currency' => $cart->currency,
-            'status' => $cart->status->value,
-            'items' => $cart->items->map(static function (CartItem $item): array {
-                return [
-                    'product_variant_id' => $item->product_variant_id,
-                    'sku' => $item->variant?->sku,
-                    'name' => $item->variant?->name,
-                    'quantity' => $item->quantity,
-                    'unit_price' => (float) $item->unit_price,
-                    'line_total' => (float) $item->line_total,
-                ];
-            })->values()->all(),
-            'summary' => [
-                'subtotal' => (float) $subtotal,
-                'discount_total' => 0.0,
-                'shipping_total' => 0.0,
-                'total' => (float) $subtotal,
-            ],
-        ];
+        foreach ($cart->items as $item) {
+            if (! $item instanceof CartItem) {
+                continue;
+            }
+
+            $variant = $item->variant;
+            $sku = '';
+            $name = '';
+
+            if ($variant !== null) {
+                $sku = (string) $variant->sku;
+                $name = (string) $variant->name;
+            }
+
+            $items[] = new CartItemResultDto(
+                productVariantId: (int) $item->product_variant_id,
+                sku: $sku,
+                name: $name,
+                quantity: (int) $item->quantity,
+                unitPrice: (float) $item->unit_price,
+                lineTotal: (float) $item->line_total,
+            );
+        }
+
+        return new CartResultDto(
+            id: (string) $cart->id,
+            guestToken: $cart->guest_token,
+            currency: $cart->currency,
+            status: $cart->status->value,
+            items: $items,
+            summary: new CartSummaryResultDto(
+                subtotal: $subtotal,
+                discountTotal: 0.0,
+                shippingTotal: 0.0,
+                total: $subtotal,
+            ),
+        );
     }
 }

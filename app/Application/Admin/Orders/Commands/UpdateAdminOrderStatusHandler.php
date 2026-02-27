@@ -21,6 +21,6 @@ final class UpdateAdminOrderStatusHandler
      */
     public function handle(UpdateAdminOrderStatusCommand $command): Order
     {
-        return $this->adminOrderService->updateStatus($command->order, $command->payload);
+        return $this->adminOrderService->updateStatus($command->order, $command->input);
     }
 }

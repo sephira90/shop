@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Application\Admin\Products\Dto\UpdateAdminProductInputDto;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -58,5 +59,16 @@ class ProductUpdateRequest extends FormRequest
             'variants.*.inventory.reserved_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
             'variants.*.inventory.low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
         ];
+    }
+
+    /**
+     * Build typed DTO for update flow.
+     */
+    public function toDto(): UpdateAdminProductInputDto
+    {
+        /** @var array<string, mixed> $validated */
+        $validated = $this->validated();
+
+        return UpdateAdminProductInputDto::fromValidated($validated);
     }
 }

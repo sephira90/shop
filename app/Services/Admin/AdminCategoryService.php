@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Application\Admin\Categories\Dto\CreateAdminCategoryInputDto;
+use App\Application\Admin\Categories\Dto\UpdateAdminCategoryInputDto;
 use App\Models\Category;
 use App\Services\Catalog\CatalogVersionService;
-use Illuminate\Support\Str;
 
 final class AdminCategoryService
 {
@@ -19,16 +20,10 @@ final class AdminCategoryService
 
     /**
      * Create category.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function create(array $payload): Category
+    public function create(CreateAdminCategoryInputDto $input): Category
     {
-        $payload['slug'] = $payload['slug'] ?? Str::slug((string) $payload['name']);
-        $payload['is_active'] = (bool) ($payload['is_active'] ?? true);
-        $payload['sort_order'] = (int) ($payload['sort_order'] ?? 0);
-
-        $category = Category::query()->create($payload);
+        $category = Category::query()->create($input->toPersistenceAttributes());
         $this->catalogVersionService->bump();
 
         return $this->freshCategory($category);
@@ -36,16 +31,10 @@ final class AdminCategoryService
 
     /**
      * Update category.
-     *
-     * @param  array<string, mixed>  $payload
      */
-    public function update(Category $category, array $payload): Category
+    public function update(Category $category, UpdateAdminCategoryInputDto $input): Category
     {
-        $payload['slug'] = $payload['slug'] ?? $category->slug;
-        $payload['is_active'] = (bool) ($payload['is_active'] ?? false);
-        $payload['sort_order'] = (int) ($payload['sort_order'] ?? 0);
-
-        $category->update($payload);
+        $category->update($input->toPersistenceAttributes());
         $this->catalogVersionService->bump();
 
         return $this->freshCategory($category);
