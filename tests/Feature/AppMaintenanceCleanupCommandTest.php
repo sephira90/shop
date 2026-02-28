@@ -131,6 +131,16 @@ class AppMaintenanceCleanupCommandTest extends TestCase
     }
 
     /**
+     * Ensure cleanup command rejects invalid retention overrides.
+     */
+    public function test_maintenance_cleanup_rejects_invalid_retention_override(): void
+    {
+        $this->artisan('app:maintenance-cleanup --idempotency-retain-hours=0')
+            ->assertFailed()
+            ->expectsOutputToContain('Option --idempotency-retain-hours must be a positive integer.');
+    }
+
+    /**
      * Ensure cleanup command is wired in scheduler.
      */
     public function test_maintenance_cleanup_command_is_registered_in_scheduler(): void

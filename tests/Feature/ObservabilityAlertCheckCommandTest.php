@@ -126,6 +126,55 @@ class ObservabilityAlertCheckCommandTest extends TestCase
     }
 
     /**
+     * Ensure alert check keeps successful channels when some deliveries fail.
+     */
+    public function test_alert_check_keeps_partial_channel_delivery_when_some_channels_fail(): void
+    {
+        $this->configureBaseObservability();
+        $this->configureFailureRouting();
+
+        Cache::flush();
+        Notification::fake();
+        Http::fake([
+            'https://hooks.slack.com/*' => Http::response(['ok' => false], 500),
+            'https://events.pagerduty.com/v2/enqueue' => Http::response(['error' => 'failed'], 500),
+        ]);
+
+        $this->artisan('app:observability-alert-check')
+            ->assertFailed()
+            ->expectsOutputToContain('Observability alerts sent via: email.');
+
+        Notification::assertSentOnDemandTimes(ObservabilitySloFailureNotification::class, 1);
+        Http::assertSentCount(2);
+    }
+
+    /**
+     * Ensure alert check keeps failure exit code when no delivery channels are configured.
+     */
+    public function test_alert_check_warns_when_no_channels_are_configured(): void
+    {
+        $this->configureBaseObservability();
+
+        Cache::flush();
+        Notification::fake();
+        Http::fake();
+
+        config()->set('observability.alerts.email.enabled', false);
+        config()->set('observability.alerts.email.recipients', []);
+        config()->set('observability.alerts.slack.enabled', false);
+        config()->set('observability.alerts.slack.webhook_url', '');
+        config()->set('observability.alerts.pagerduty.enabled', false);
+        config()->set('observability.alerts.pagerduty.integration_key', '');
+
+        $this->artisan('app:observability-alert-check')
+            ->assertFailed()
+            ->expectsOutputToContain('Observability alert routing skipped: no channels configured or delivery failed.');
+
+        Notification::assertNothingSent();
+        Http::assertNothingSent();
+    }
+
+    /**
      * Configure base observability defaults for deterministic tests.
      */
     private function configureBaseObservability(): void

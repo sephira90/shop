@@ -4,6 +4,8 @@ Date: `2026-02-22`
 Owner: `backend/frontend platform team`
 Scope: `Operations & Maintenance closeout`
 
+Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## Exit Criteria Validation
 
 - [x] Controlled growth of service tables is enforced:
@@ -35,10 +37,12 @@ Scope: `Operations & Maintenance closeout`
 ## Verification Gates
 
 - [x] Backend quality gates are green:
+  - canonical alias: `composer run quality:backend`
   - `composer run lint`
   - `composer run analyse`
   - `php artisan test`
 - [x] Frontend quality gates are green:
+  - canonical alias: `composer run quality:frontend`
   - `npm run lint`
   - `npm run lint:ox`
   - `npm run format:ox:check`
@@ -46,6 +50,10 @@ Scope: `Operations & Maintenance closeout`
   - `npm run test`
   - `npm run build`
 - [x] Production-oriented smoke/ops checks are green:
+  - CI alias: `composer run ops:ci-production-smoke`
+  - deploy alias: `composer run ops:production-smoke-core`
+  - `php artisan optimize:clear`
+  - `php artisan route:list --path=api/v1/admin/promotions`
   - `php artisan app:healthcheck`
   - `php artisan app:performance-smoke`
   - `php artisan app:webhook-flow-smoke`

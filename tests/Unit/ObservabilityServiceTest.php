@@ -33,7 +33,7 @@ class ObservabilityServiceTest extends TestCase
             \Mockery::type('array'),
         );
 
-        $service = new ObservabilityService;
+        $service = app(ObservabilityService::class);
         $service->apiRequest('get', '/api/v1/catalog/products', 200, 10.0);
     }
 
@@ -46,7 +46,7 @@ class ObservabilityServiceTest extends TestCase
 
         Log::shouldReceive('channel')->never();
 
-        $service = new ObservabilityService;
+        $service = app(ObservabilityService::class);
         $service->catalogCache('products_list', true, 0.5, 10);
         $service->webhook('payment', 'evt-test', 'processed', 1.0, 0.5);
     }
@@ -63,7 +63,7 @@ class ObservabilityServiceTest extends TestCase
 
         Cache::flush();
 
-        $service = new ObservabilityService;
+        $service = app(ObservabilityService::class);
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 10.0, 'runtime');
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 15.0, 'smoke');
         $service->webhook('payment', 'evt-runtime', 'processed', 10.0, 10.0, 'runtime');

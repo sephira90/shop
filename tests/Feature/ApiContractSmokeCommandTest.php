@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class ApiContractSmokeCommandTest extends TestCase
@@ -73,5 +74,25 @@ class ApiContractSmokeCommandTest extends TestCase
         $this->artisan('app:api-contract-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('API contract smoke checks passed.');
+    }
+
+    public function test_api_contract_smoke_command_can_run_selected_scenario_subset(): void
+    {
+        $exitCode = Artisan::call('app:api-contract-smoke', [
+            '--only' => 'shipping_webhook',
+        ]);
+
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('shipping_webhook_missing_signature', $output);
+        $this->assertStringNotContainsString('catalog_products_list', $output);
+    }
+
+    public function test_api_contract_smoke_command_fails_for_unknown_selected_scenario(): void
+    {
+        $this->artisan('app:api-contract-smoke --only=missing_scenario')
+            ->assertFailed()
+            ->expectsOutputToContain('API contract smoke failed: Option --only contains unknown api smoke scenario "missing_scenario".');
     }
 }

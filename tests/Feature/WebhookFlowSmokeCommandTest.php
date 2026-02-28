@@ -95,4 +95,19 @@ class WebhookFlowSmokeCommandTest extends TestCase
             ->assertSuccessful()
             ->expectsOutputToContain('Webhook flow smoke checks passed.');
     }
+
+    public function test_webhook_flow_smoke_command_persists_data_in_production_when_requested(): void
+    {
+        config()->set('app.env', 'production');
+
+        $this->artisan('app:webhook-flow-smoke', [
+            '--persist' => true,
+        ])
+            ->assertSuccessful()
+            ->doesntExpectOutputToContain('Production safeguard: smoke data rolled back.');
+
+        $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseCount('shipments', 1);
+        $this->assertDatabaseCount('payments', 1);
+    }
 }

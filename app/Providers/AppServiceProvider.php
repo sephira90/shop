@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Application\Auth\Contracts\AuthPasswordBrokerRepository as AuthPasswordBrokerRepositoryContract;
+use App\Application\Auth\Contracts\AuthUserRepository as AuthUserRepositoryContract;
 use App\Contracts\PaymentGatewayInterface;
 use App\Contracts\ShippingGatewayInterface;
 use App\Models\Category;
@@ -16,6 +18,14 @@ use App\Policies\CouponPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\PromotionPolicy;
+use App\Repositories\AuthPasswordBrokerRepository;
+use App\Repositories\AuthUserRepository;
+use App\Support\Observability\Channels\EmailObservabilityAlertChannel;
+use App\Support\Observability\Channels\PagerDutyObservabilityAlertChannel;
+use App\Support\Observability\Channels\SlackObservabilityAlertChannel;
+use App\Support\Observability\ObservabilityAlertCooldownStore;
+use App\Support\Observability\ObservabilityAlertMessageBuilder;
+use App\Support\Observability\ObservabilityAlertRouter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(AuthUserRepositoryContract::class, AuthUserRepository::class);
+        $this->app->bind(AuthPasswordBrokerRepositoryContract::class, AuthPasswordBrokerRepository::class);
+
         $this->app->bind(
             PaymentGatewayInterface::class,
             fn (): PaymentGatewayInterface => $this->resolveGatewayDriver('payment', PaymentGatewayInterface::class),
@@ -38,6 +51,19 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ShippingGatewayInterface::class,
             fn (): ShippingGatewayInterface => $this->resolveGatewayDriver('shipping', ShippingGatewayInterface::class),
+        );
+
+        $this->app->bind(
+            ObservabilityAlertRouter::class,
+            fn (): ObservabilityAlertRouter => new ObservabilityAlertRouter(
+                $this->app->make(ObservabilityAlertCooldownStore::class),
+                $this->app->make(ObservabilityAlertMessageBuilder::class),
+                [
+                    $this->app->make(EmailObservabilityAlertChannel::class),
+                    $this->app->make(SlackObservabilityAlertChannel::class),
+                    $this->app->make(PagerDutyObservabilityAlertChannel::class),
+                ],
+            ),
         );
     }
 

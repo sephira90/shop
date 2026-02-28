@@ -77,11 +77,27 @@
         "analyse": [
             "./vendor/bin/phpstan analyse --memory-limit=1G"
         ],
+        "quality:backend": [
+            "@lint",
+            "@analyse",
+            "@test"
+        ],
+        "quality:frontend": [
+            "npm run lint",
+            "npm run lint:ox",
+            "npm run format:ox:check",
+            "npm run type-check",
+            "npm run test",
+            "npm run build"
+        ],
         "ops:clear": [
             "@php artisan optimize:clear"
         ],
         "ops:routes-smoke": [
             "@php artisan route:list --path=api/v1/admin/promotions"
+        ],
+        "ops:healthcheck": [
+            "@php artisan app:healthcheck"
         ],
         "ops:performance-smoke": [
             "@php artisan app:performance-smoke"
@@ -95,10 +111,20 @@
         "ops:observability-report": [
             "@php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples"
         ],
+        "ops:production-smoke-core": [
+            "@ops:healthcheck",
+            "@ops:performance-smoke",
+            "@ops:webhook-flow-smoke",
+            "@ops:api-contract-smoke",
+            "@ops:observability-report"
+        ],
+        "ops:ci-production-smoke": [
+            "@ops:clear",
+            "@ops:routes-smoke",
+            "@ops:production-smoke-core"
+        ],
         "quality": [
-            "@lint",
-            "@analyse",
-            "@test"
+            "@quality:backend"
         ]
     },
     "extra": {

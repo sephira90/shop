@@ -120,6 +120,24 @@ class ObservabilityReportCommandTest extends TestCase
     }
 
     /**
+     * Ensure observability report can emit structured JSON snapshot.
+     */
+    public function test_observability_report_command_outputs_json_payload_when_requested(): void
+    {
+        config()->set('observability.enabled', true);
+        config()->set('observability.channel', 'null');
+        Cache::flush();
+
+        $service = app(ObservabilityService::class);
+        $service->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0);
+
+        $this->artisan('app:observability-report --minutes=60 --json')
+            ->assertSuccessful()
+            ->expectsOutputToContain('"minutes": 60')
+            ->expectsOutputToContain('Observability report generated.');
+    }
+
+    /**
      * Ensure observability report validates source option.
      */
     public function test_observability_report_command_rejects_invalid_source_option(): void
@@ -157,6 +175,21 @@ class ObservabilityReportCommandTest extends TestCase
             ->assertFailed()
             ->expectsOutputToContain('Required webhook samples are missing in selected window.')
             ->expectsOutputToContain('Observability threshold checks failed.');
+    }
+
+    /**
+     * Ensure disabled observability prints explicit warning but still returns report output.
+     */
+    public function test_observability_report_command_warns_when_observability_is_disabled(): void
+    {
+        config()->set('observability.enabled', false);
+        config()->set('observability.channel', 'null');
+        Cache::flush();
+
+        $this->artisan('app:observability-report --minutes=60')
+            ->assertSuccessful()
+            ->expectsOutputToContain('Observability hooks are disabled (OBSERVABILITY_ENABLED=false). Snapshot may be empty.')
+            ->expectsOutputToContain('Observability report generated.');
     }
 
     /**

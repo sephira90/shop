@@ -1,5 +1,7 @@
 # Checkout and Webhook Incident Runbook
 
+Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+
 ## Scope
 
 Runbook for production incidents affecting checkout flow and webhook processing:
@@ -24,19 +26,31 @@ php artisan app:healthcheck
 ```bash
 php artisan app:api-contract-smoke
 ```
+Targeted contract isolation:
+```bash
+php artisan app:api-contract-smoke --only=payment_webhook
+```
 3. End-to-end webhook chain:
 ```bash
 php artisan app:webhook-flow-smoke
+```
+Persistent production-safe write validation (only with explicit approval):
+```bash
+php artisan app:webhook-flow-smoke --persist
 ```
 4. SLO snapshot (blocking thresholds):
 ```bash
 php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples
 ```
-5. Alert-routing wrapper check:
+5. Targeted performance localization:
+```bash
+php artisan app:performance-smoke --only=checkout_place_order
+```
+6. Alert-routing wrapper check:
 ```bash
 php artisan app:observability-alert-check
 ```
-6. Tabletop drill smoke (dry-run path):
+7. Tabletop drill smoke (dry-run path):
 ```bash
 php artisan app:oncall-drill-smoke
 ```
@@ -48,6 +62,7 @@ If steps 2-4 fail, incident is `SEV-1/SEV-2` for checkout/webhooks.
 1. Confirm impact: elevated API slow/fail rate in observability report.
 2. Verify DB/queue/cache connectivity.
 3. Re-run `app:api-contract-smoke` after infra mitigation.
+4. Use `app:api-contract-smoke --only=payment_webhook` or `--only=shipping_webhook` to isolate transport-contract regressions faster.
 4. Validate order placement path manually with one safe test checkout.
 5. Keep checkout open only after smoke checks are green.
 
@@ -55,9 +70,10 @@ If steps 2-4 fail, incident is `SEV-1/SEV-2` for checkout/webhooks.
 
 1. Confirm provider impact (`payment` or `shipping`) in observability report.
 2. Run `app:webhook-flow-smoke` to localize break point.
-3. Check duplicate/rejected growth and endpoint auth/signature validity.
-4. Replay only idempotent-safe events after root cause is fixed.
-5. Re-run smoke and observability commands before closing incident.
+3. Use `app:performance-smoke --only=checkout_place_order` if latency/regression appears upstream of webhook delivery.
+4. Check duplicate/rejected growth and endpoint auth/signature validity.
+5. Replay only idempotent-safe events after root cause is fixed.
+6. Re-run smoke and observability commands before closing incident.
 
 ## Alert Routing Configuration
 

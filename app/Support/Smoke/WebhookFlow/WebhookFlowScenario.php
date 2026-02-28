@@ -21,6 +21,7 @@ use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
 use App\Services\Shipping\ShippingService;
 use App\Support\Data\JsonPayload;
+use App\Support\Smoke\WebhookFlow\Dto\WebhookFlowSmokeResultDto;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use DomainException;
@@ -41,17 +42,8 @@ final class WebhookFlowScenario
 
     /**
      * Execute checkout and webhook chain.
-     *
-     * @return array{
-     *     order_id:string,
-     *     payment_id:int,
-     *     shipment_id:int,
-     *     order_status:string,
-     *     payment_status:string,
-     *     shipment_status:string
-     * }
      */
-    public function run(): array
+    public function run(): WebhookFlowSmokeResultDto
     {
         $variant = $this->ensureCatalogVariant();
         $user = $this->resolveSmokeUser();
@@ -88,7 +80,7 @@ final class WebhookFlowScenario
             ->latest('id')
             ->first();
 
-        if (! $shipment instanceof Shipment) {
+        if (! ($shipment instanceof Shipment)) {
             // Payment webhook side-effects are dispatched after commit. In production rollback
             // mode this command keeps an outer transaction open, so run shipment sync fallback.
             DispatchShipmentJob::dispatchSync($order->id);
@@ -99,7 +91,7 @@ final class WebhookFlowScenario
                 ->first();
         }
 
-        if (! $shipment instanceof Shipment) {
+        if (! ($shipment instanceof Shipment)) {
             throw new DomainException('Shipment was not created after captured payment.');
         }
 
@@ -120,14 +112,14 @@ final class WebhookFlowScenario
             throw new DomainException('Shipment status did not transition to delivered.');
         }
 
-        return [
-            'order_id' => $completedOrder->id,
-            'payment_id' => $freshPayment->id,
-            'shipment_id' => $deliveredShipment->id,
-            'order_status' => (string) $completedOrder->getRawOriginal('status'),
-            'payment_status' => (string) $freshPayment->getRawOriginal('status'),
-            'shipment_status' => (string) $deliveredShipment->getRawOriginal('status'),
-        ];
+        return new WebhookFlowSmokeResultDto(
+            orderId: $completedOrder->id,
+            paymentId: $freshPayment->id,
+            shipmentId: $deliveredShipment->id,
+            orderStatus: (string) $completedOrder->getRawOriginal('status'),
+            paymentStatus: (string) $freshPayment->getRawOriginal('status'),
+            shipmentStatus: (string) $deliveredShipment->getRawOriginal('status'),
+        );
     }
 
     /**
@@ -139,12 +131,12 @@ final class WebhookFlowScenario
 
         $variant = $this->findActiveVariant();
 
-        if (! $variant instanceof ProductVariant) {
+        if (! ($variant instanceof ProductVariant)) {
             app(CatalogSeeder::class)->run();
             $variant = $this->findActiveVariant();
         }
 
-        if (! $variant instanceof ProductVariant) {
+        if (! ($variant instanceof ProductVariant)) {
             throw new DomainException('Unable to find active catalog variant for smoke flow.');
         }
 
@@ -160,7 +152,7 @@ final class WebhookFlowScenario
 
         $user = User::query()->where('email', $email)->first();
 
-        if (! $user instanceof User) {
+        if (! ($user instanceof User)) {
             $user = User::query()->create([
                 'first_name' => 'Smoke',
                 'last_name' => 'User',

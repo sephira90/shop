@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Support\Smoke\SmokePersistenceGuard;
-use App\Support\Smoke\WebhookFlow\WebhookFlowScenario;
+use App\Support\Smoke\WebhookFlow\WebhookFlowSmokeOutputBuilder;
+use App\Support\Smoke\WebhookFlow\WebhookFlowSmokeRunner;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Config;
 use Throwable;
 
 class AppWebhookFlowSmokeCommand extends Command
@@ -31,8 +30,8 @@ class AppWebhookFlowSmokeCommand extends Command
      * Create command instance.
      */
     public function __construct(
-        private readonly WebhookFlowScenario $webhookFlowScenario,
-        private readonly SmokePersistenceGuard $persistenceGuard,
+        private readonly WebhookFlowSmokeRunner $runner,
+        private readonly WebhookFlowSmokeOutputBuilder $outputBuilder,
     ) {
         parent::__construct();
     }
@@ -42,59 +41,23 @@ class AppWebhookFlowSmokeCommand extends Command
      */
     public function handle(): int
     {
-        $originalQueueConnection = Config::get('queue.default');
-        Config::set('queue.default', 'sync');
-
         try {
-            $execution = $this->persistenceGuard->run(
-                $this->shouldRollbackSmokeData(),
-                fn (): array => $this->webhookFlowScenario->run(),
-            );
+            $result = $this->runner->run((bool) $this->option('persist'));
+            $output = $this->outputBuilder->build($result);
         } catch (Throwable $exception) {
             $this->error('Webhook flow smoke failed: '.$exception->getMessage());
 
             return self::FAILURE;
-        } finally {
-            Config::set('queue.default', $originalQueueConnection);
         }
 
-        /** @var array{
-         *     order_id:string,
-         *     payment_id:int,
-         *     shipment_id:int,
-         *     order_status:string,
-         *     payment_status:string,
-         *     shipment_status:string
-         * } $result
-         */
-        $result = $execution['result'];
+        $this->table($output->headers, $output->rows);
 
-        $this->table(
-            ['metric', 'value'],
-            [
-                ['order_id', (string) $result['order_id']],
-                ['payment_id', (string) $result['payment_id']],
-                ['shipment_id', (string) $result['shipment_id']],
-                ['order_status', $result['order_status']],
-                ['payment_status', $result['payment_status']],
-                ['shipment_status', $result['shipment_status']],
-            ],
-        );
-
-        if ($execution['rolled_back']) {
-            $this->warn('Production safeguard: smoke data rolled back. Use --persist to keep records.');
+        if ($output->warningMessage !== null) {
+            $this->warn($output->warningMessage);
         }
 
-        $this->info('Webhook flow smoke checks passed.');
+        $this->info($output->successMessage);
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Determine whether smoke writes must be rolled back.
-     */
-    private function shouldRollbackSmokeData(): bool
-    {
-        return (string) config('app.env') === 'production' && ! (bool) $this->option('persist');
     }
 }

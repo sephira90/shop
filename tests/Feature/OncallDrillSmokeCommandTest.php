@@ -59,6 +59,24 @@ class OncallDrillSmokeCommandTest extends TestCase
     }
 
     /**
+     * Ensure on-call drill can execute write smoke checks when explicitly requested.
+     */
+    public function test_oncall_drill_smoke_runs_write_smokes_when_requested(): void
+    {
+        $this->configureObservabilityForDrill();
+
+        $observability = app(ObservabilityService::class);
+        $observability->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0);
+        $observability->webhook('payment', 'evt-oncall-write-pass', 'processed', 15.0, 120.0);
+
+        $this->artisan('app:oncall-drill-smoke --with-write-smokes')
+            ->assertSuccessful()
+            ->expectsOutputToContain('oncall_api_contract_smoke')
+            ->expectsOutputToContain('oncall_webhook_flow_smoke')
+            ->expectsOutputToContain('On-call drill passed.');
+    }
+
+    /**
      * Configure deterministic observability options for drill command tests.
      */
     private function configureObservabilityForDrill(): void

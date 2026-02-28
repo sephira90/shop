@@ -4,23 +4,11 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
-use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
-use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
-use App\Enums\ProductStatus;
-use App\Models\ProductVariant;
-use App\Repositories\OrderRepository;
-use App\Repositories\ProductRepository;
-use App\Services\Cart\CartService;
-use App\Services\Catalog\CatalogService;
-use App\Services\Checkout\CheckoutService;
-use Database\Seeders\CatalogSeeder;
-use Database\Seeders\RoleSeeder;
-use DomainException;
+use App\Support\Smoke\Performance\PerformanceSmokeOptionsResolver;
+use App\Support\Smoke\Performance\PerformanceSmokeOutputBuilder;
+use App\Support\Smoke\Performance\PerformanceSmokeRunner;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Throwable;
 
 class AppPerformanceSmokeCommand extends Command
 {
@@ -41,7 +29,9 @@ class AppPerformanceSmokeCommand extends Command
         {--max-orders-ms=800 : Maximum latency for admin orders summary}
         {--max-orders-queries=6 : Maximum query count for admin orders summary}
         {--max-admin-products-ms=900 : Maximum latency for admin products list}
-        {--max-admin-products-queries=12 : Maximum query count for admin products list}';
+        {--max-admin-products-queries=12 : Maximum query count for admin products list}
+        {--persist : Persist smoke records instead of rolling them back in production.}
+        {--only= : Comma-separated scenario names (catalog_list_cold, catalog_list_warm, cart_show, checkout_place_order, admin_orders_summary, admin_products_list).}';
 
     /**
      * The console command description.
@@ -50,282 +40,57 @@ class AppPerformanceSmokeCommand extends Command
      */
     protected $description = 'Run performance smoke checks for critical query paths.';
 
-    /**
-     * Create command instance.
-     */
     public function __construct(
-        private readonly CatalogService $catalogService,
-        private readonly CartService $cartService,
-        private readonly CheckoutService $checkoutService,
-        private readonly OrderRepository $orderRepository,
-        private readonly ProductRepository $productRepository,
+        private readonly PerformanceSmokeOptionsResolver $optionsResolver,
+        private readonly PerformanceSmokeRunner $runner,
+        private readonly PerformanceSmokeOutputBuilder $outputBuilder,
     ) {
         parent::__construct();
     }
 
-    /**
-     * Execute the console command.
-     */
     public function handle(): int
     {
-        // Disable observability hooks during profiling to measure business query path only.
-        $observabilityEnabled = (bool) config('observability.enabled', true);
-        config()->set('observability.enabled', false);
-
         try {
-            $catalogFilter = CatalogProductListFilterDto::fromValidated([
-                'q' => '__smoke_cache_buster_'.Str::uuid()->toString(),
+            $options = $this->optionsResolver->resolve([
+                'persist' => (bool) $this->option('persist'),
+                'only' => $this->option('only'),
+                'max_catalog_ms' => $this->option('max-catalog-ms'),
+                'max_catalog_queries' => $this->option('max-catalog-queries'),
+                'max_catalog_warm_ms' => $this->option('max-catalog-warm-ms'),
+                'max_catalog_warm_queries' => $this->option('max-catalog-warm-queries'),
+                'max_cart_ms' => $this->option('max-cart-ms'),
+                'max_cart_queries' => $this->option('max-cart-queries'),
+                'max_checkout_ms' => $this->option('max-checkout-ms'),
+                'max_checkout_queries' => $this->option('max-checkout-queries'),
+                'max_orders_ms' => $this->option('max-orders-ms'),
+                'max_orders_queries' => $this->option('max-orders-queries'),
+                'max_admin_products_ms' => $this->option('max-admin-products-ms'),
+                'max_admin_products_queries' => $this->option('max-admin-products-queries'),
             ]);
-            $variantId = $this->ensureAvailableVariantId();
-            $cartGuestToken = 'perf-cart-'.Str::lower(Str::random(12));
-            $checkoutGuestToken = 'perf-checkout-'.Str::lower(Str::random(12));
-            $checkoutPayload = $this->buildCheckoutPayload();
+            $result = $this->runner->run($options);
+            $output = $this->outputBuilder->build($result);
+        } catch (Throwable $exception) {
+            $this->error('Performance smoke failed: '.$exception->getMessage());
 
-            $this->prepareGuestCart($cartGuestToken, $variantId);
-            $this->prepareGuestCart($checkoutGuestToken, $variantId);
+            return self::FAILURE;
+        }
 
-            $orderFilter = AdminOrderListFilterDto::fromValidated([
-                'page' => 1,
-                'per_page' => 20,
-            ]);
-            $productFilter = AdminProductListFilterDto::fromValidated([
-                'page' => 1,
-                'per_page' => 20,
-            ]);
+        $this->table($output->headers, $output->rows);
 
-            $checks = [
-                $this->measure('catalog_list_cold', function () use ($catalogFilter): void {
-                    $this->catalogService->list($catalogFilter, 12);
-                }),
-                $this->measure('catalog_list_warm', function () use ($catalogFilter): void {
-                    $this->catalogService->list($catalogFilter, 12);
-                }),
-                $this->measure('cart_show', function () use ($cartGuestToken): void {
-                    $cart = $this->cartService->resolve(null, $cartGuestToken);
-                    $this->cartService->toResultDto($cart);
-                }),
-                $this->measure('checkout_place_order', function () use ($checkoutGuestToken, $checkoutPayload): void {
-                    $cart = $this->cartService->resolveForCheckout(null, $checkoutGuestToken);
-                    $idempotencyKey = 'perf-checkout-'.Str::lower(Str::random(16));
-                    $this->checkoutService->placeOrder($cart, $checkoutPayload, $idempotencyKey);
-                }, rollback: true),
-                $this->measure('admin_orders_summary', function () use ($orderFilter): void {
-                    $this->orderRepository->paginateSummaryForAdmin($orderFilter);
-                }),
-                $this->measure('admin_products_list', function () use ($productFilter): void {
-                    $this->productRepository->paginateForAdmin($productFilter);
-                }),
-            ];
+        if ($output->warningMessage !== null) {
+            $this->warn($output->warningMessage);
+        }
 
-            $this->table(
-                ['check', 'duration_ms', 'queries'],
-                array_map(static fn (array $check): array => [
-                    $check['name'],
-                    number_format((float) $check['duration_ms'], 2, '.', ''),
-                    (string) $check['queries'],
-                ], $checks),
-            );
-
-            $violations = [];
-
-            foreach ($checks as $check) {
-                $budget = $this->resolveBudget($check['name']);
-                $this->assertThreshold($check, $budget['max_ms'], $budget['max_queries'], $violations);
+        if (! $result->passed()) {
+            foreach ($result->violations as $violation) {
+                $this->error($violation);
             }
 
-            if ($violations !== []) {
-                foreach ($violations as $violation) {
-                    $this->error($violation);
-                }
-
-                return self::FAILURE;
-            }
-
-            $this->info('Performance smoke checks passed.');
-
-            return self::SUCCESS;
-        } finally {
-            config()->set('observability.enabled', $observabilityEnabled);
-        }
-    }
-
-    /**
-     * Measure query count and duration for a callable.
-     *
-     * @return array{name: string, duration_ms: float, queries: int}
-     */
-    private function measure(string $name, callable $callback, bool $rollback = false): array
-    {
-        $connection = DB::connection();
-        $connection->flushQueryLog();
-        $connection->enableQueryLog();
-
-        if ($rollback) {
-            DB::beginTransaction();
+            return self::FAILURE;
         }
 
-        $startedAt = hrtime(true);
-        try {
-            $callback();
-        } catch (\Throwable $exception) {
-            if ($rollback && DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
+        $this->info($output->successMessage);
 
-            $connection->disableQueryLog();
-
-            throw $exception;
-        }
-
-        $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
-        $queries = count($connection->getQueryLog());
-
-        if ($rollback && DB::transactionLevel() > 0) {
-            DB::rollBack();
-        }
-
-        $connection->disableQueryLog();
-
-        return [
-            'name' => $name,
-            'duration_ms' => $durationMs,
-            'queries' => $queries,
-        ];
-    }
-
-    /**
-     * Resolve latency/query budget per check.
-     *
-     * @return array{max_ms: float, max_queries: int}
-     */
-    private function resolveBudget(string $checkName): array
-    {
-        return match ($checkName) {
-            'catalog_list_cold' => [
-                'max_ms' => (float) $this->option('max-catalog-ms'),
-                'max_queries' => (int) $this->option('max-catalog-queries'),
-            ],
-            'catalog_list_warm' => [
-                'max_ms' => (float) $this->option('max-catalog-warm-ms'),
-                'max_queries' => (int) $this->option('max-catalog-warm-queries'),
-            ],
-            'cart_show' => [
-                'max_ms' => (float) $this->option('max-cart-ms'),
-                'max_queries' => (int) $this->option('max-cart-queries'),
-            ],
-            'checkout_place_order' => [
-                'max_ms' => (float) $this->option('max-checkout-ms'),
-                'max_queries' => (int) $this->option('max-checkout-queries'),
-            ],
-            'admin_orders_summary' => [
-                'max_ms' => (float) $this->option('max-orders-ms'),
-                'max_queries' => (int) $this->option('max-orders-queries'),
-            ],
-            'admin_products_list' => [
-                'max_ms' => (float) $this->option('max-admin-products-ms'),
-                'max_queries' => (int) $this->option('max-admin-products-queries'),
-            ],
-            default => throw new DomainException(sprintf('Unknown performance smoke check "%s".', $checkName)),
-        };
-    }
-
-    /**
-     * Ensure at least one active/published variant with available stock exists.
-     */
-    private function ensureAvailableVariantId(): int
-    {
-        $variantId = $this->findAvailableVariantId();
-        if ($variantId !== null) {
-            return $variantId;
-        }
-
-        app(RoleSeeder::class)->run();
-        app(CatalogSeeder::class)->run();
-
-        $variantId = $this->findAvailableVariantId();
-        if ($variantId === null) {
-            throw new DomainException('Performance smoke precondition failed: no available variant found.');
-        }
-
-        return $variantId;
-    }
-
-    /**
-     * Find one available variant for cart/checkout smoke checks.
-     */
-    private function findAvailableVariantId(): ?int
-    {
-        $variantId = ProductVariant::query()
-            ->where('is_active', true)
-            ->whereHas('product', static function ($productQuery): void {
-                $productQuery
-                    ->where('status', ProductStatus::ACTIVE->value)
-                    ->whereNotNull('published_at');
-            })
-            ->whereHas('inventory', static function ($inventoryQuery): void {
-                $inventoryQuery->whereColumn('quantity', '>', 'reserved_quantity');
-            })
-            ->orderBy('id')
-            ->value('id');
-
-        return is_numeric($variantId) ? (int) $variantId : null;
-    }
-
-    /**
-     * Prepare guest cart with one available item for performance checks.
-     */
-    private function prepareGuestCart(string $guestToken, int $variantId): void
-    {
-        $cart = $this->cartService->resolve(null, $guestToken);
-        $this->cartService->upsertItem($cart, $variantId, 1);
-    }
-
-    /**
-     * Build deterministic checkout payload for budget checks.
-     */
-    private function buildCheckoutPayload(): CheckoutPlaceOrderInputDto
-    {
-        return CheckoutPlaceOrderInputDto::fromValidated([
-            'email' => 'performance-smoke-'.Str::lower(Str::random(8)).'@shop.local',
-            'billing_address' => [
-                'line1' => '1 Performance Street',
-                'city' => 'New York',
-                'country' => 'US',
-                'postcode' => '10001',
-            ],
-            'shipping_address' => [
-                'line1' => '1 Performance Street',
-                'city' => 'New York',
-                'country' => 'US',
-                'postcode' => '10001',
-            ],
-        ]);
-    }
-
-    /**
-     * Validate check result against thresholds.
-     *
-     * @param  array{name: string, duration_ms: float, queries: int}  $check
-     * @param  array<int, string>  $violations
-     */
-    private function assertThreshold(array $check, float $maxMs, int $maxQueries, array &$violations): void
-    {
-        if ($check['duration_ms'] > $maxMs) {
-            $violations[] = sprintf(
-                '%s latency budget exceeded: %.2fms > %.2fms',
-                $check['name'],
-                $check['duration_ms'],
-                $maxMs,
-            );
-        }
-
-        if ($check['queries'] > $maxQueries) {
-            $violations[] = sprintf(
-                '%s query budget exceeded: %d > %d',
-                $check['name'],
-                $check['queries'],
-                $maxQueries,
-            );
-        }
+        return self::SUCCESS;
     }
 }

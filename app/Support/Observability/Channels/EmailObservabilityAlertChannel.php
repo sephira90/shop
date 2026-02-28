@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support\Observability\Channels;
+
+use App\Notifications\ObservabilitySloFailureNotification;
+use App\Support\Observability\Contracts\ObservabilityAlertChannel;
+use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
+use App\Support\Observability\ObservabilityAlertRoutingLogger;
+use Illuminate\Support\Facades\Notification;
+
+final readonly class EmailObservabilityAlertChannel implements ObservabilityAlertChannel
+{
+    public function __construct(private ObservabilityAlertRoutingLogger $routingLogger) {}
+
+    public function channel(): string
+    {
+        return 'email';
+    }
+
+    public function send(ObservabilityAlertMessageDto $message): bool
+    {
+        if (! (bool) config('observability.alerts.email.enabled', false)) {
+            return false;
+        }
+
+        $configuredRecipients = config('observability.alerts.email.recipients', []);
+        if (! is_array($configuredRecipients)) {
+            $this->routingLogger->warning($this->channel(), 'Configured recipients value is not an array.');
+
+            return false;
+        }
+
+        /** @var list<string> $recipients */
+        $recipients = array_values(array_filter(array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            $configuredRecipients,
+        )));
+
+        if ($recipients === []) {
+            $this->routingLogger->warning($this->channel(), 'No recipients configured.');
+
+            return false;
+        }
+
+        foreach ($recipients as $recipient) {
+            Notification::route('mail', $recipient)
+                ->notify(new ObservabilitySloFailureNotification($message->subject, $message->lines));
+        }
+
+        return true;
+    }
+}

@@ -68,21 +68,10 @@ jobs:
           php -r "file_exists('database/testing.sqlite') || touch('database/testing.sqlite');"
 
       - name: Run backend quality checks
-        run: |
-          composer run lint
-          composer run analyse
-
-      - name: Run backend tests
-        run: php artisan test
+        run: composer run quality:backend
 
       - name: Run frontend quality checks
-        run: |
-          npm run lint
-          npm run lint:ox
-          npm run format:ox:check
-          npm run type-check
-          npm run test
-          npm run build
+        run: composer run quality:frontend
 
       - name: Run production smoke checks
         env:
@@ -97,10 +86,4 @@ jobs:
           REDIS_PORT: 6379
         run: |
           php artisan migrate --force
-          php artisan optimize:clear
-          php artisan route:list --path=api/v1/admin/promotions
-          php artisan app:healthcheck
-          php artisan app:performance-smoke
-          php artisan app:webhook-flow-smoke
-          php artisan app:api-contract-smoke
-          php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples
+          composer run ops:ci-production-smoke
