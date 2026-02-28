@@ -2,6 +2,7 @@ import { onScopeDispose, watch, type WatchSource } from "vue";
 
 interface UseServerListFiltersOptions {
     debounceMs?: number;
+    shouldReload?: () => boolean;
 }
 
 type ReloadHandler = () => void | Promise<void>;
@@ -15,6 +16,10 @@ export const useServerListFilters = (
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const stop = watch(source, () => {
+        if (options.shouldReload && !options.shouldReload()) {
+            return;
+        }
+
         if (timer !== null) {
             clearTimeout(timer);
         }

@@ -1,11 +1,14 @@
 import type { LocationQueryRaw } from "vue-router";
 
 import type { AdminOrderListParams } from "@/types/admin-orders";
+import { normalizeEnumQuery, toSingleQueryValue } from "@/queries/route-query";
+
 import {
-    normalizeEnumQuery,
-    normalizePageFromQuery,
-    toSingleQueryValue,
-} from "@/queries/route-query";
+    buildAdminRouteQuery,
+    isSameAdminRouteQuery,
+    parseAdminRouteFilters,
+    type AdminRouteQuerySchema,
+} from "./route-query-schema";
 
 export interface AdminOrderFilters {
     search: string;
@@ -17,6 +20,13 @@ export interface AdminOrderFilters {
 export interface AdminOrderRouteFilters extends AdminOrderFilters {
     page: number;
 }
+
+const DEFAULT_ROUTE_FILTERS: AdminOrderFilters = {
+    search: "",
+    orderStatus: "all",
+    paymentStatus: "all",
+    shipmentStatus: "all",
+};
 
 const ALLOWED_ORDER_STATUSES = [
     "all",
@@ -46,60 +56,54 @@ const ALLOWED_SHIPMENT_STATUSES = [
     "delivered",
     "returned",
 ] as const;
+const ORDER_ROUTE_QUERY_SCHEMA: AdminRouteQuerySchema<AdminOrderFilters> = {
+    fields: [
+        {
+            key: "search",
+            queryKey: "q",
+            parse: (value) => toSingleQueryValue(value).trim(),
+            format: (value) => {
+                const query = String(value).trim();
+
+                return query === "" ? null : query;
+            },
+        },
+        {
+            key: "orderStatus",
+            queryKey: "status",
+            parse: (value) => normalizeEnumQuery(value, ALLOWED_ORDER_STATUSES, "all"),
+            format: (value) => (value === "all" ? null : String(value)),
+        },
+        {
+            key: "paymentStatus",
+            queryKey: "payment_status",
+            parse: (value) => normalizeEnumQuery(value, ALLOWED_PAYMENT_STATUSES, "all"),
+            format: (value) => (value === "all" ? null : String(value)),
+        },
+        {
+            key: "shipmentStatus",
+            queryKey: "shipment_status",
+            parse: (value) => normalizeEnumQuery(value, ALLOWED_SHIPMENT_STATUSES, "all"),
+            format: (value) => (value === "all" ? null : String(value)),
+        },
+    ],
+};
 
 export const parseAdminOrderFiltersFromRouteQuery = (
     query: Readonly<Record<string, unknown>>,
 ): AdminOrderRouteFilters => {
-    return {
-        search: toSingleQueryValue(query.q).trim(),
-        orderStatus: normalizeEnumQuery(query.status, ALLOWED_ORDER_STATUSES, "all"),
-        paymentStatus: normalizeEnumQuery(query.payment_status, ALLOWED_PAYMENT_STATUSES, "all"),
-        shipmentStatus: normalizeEnumQuery(query.shipment_status, ALLOWED_SHIPMENT_STATUSES, "all"),
-        page: normalizePageFromQuery(query.page),
-    };
+    return parseAdminRouteFilters(query, ORDER_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminOrderRouteQuery = (filters: AdminOrderRouteFilters): LocationQueryRaw => {
-    const routeQuery: LocationQueryRaw = {};
-    const query = filters.search.trim();
-
-    if (query !== "") {
-        routeQuery.q = query;
-    }
-
-    if (filters.orderStatus !== "all") {
-        routeQuery.status = filters.orderStatus;
-    }
-
-    if (filters.paymentStatus !== "all") {
-        routeQuery.payment_status = filters.paymentStatus;
-    }
-
-    if (filters.shipmentStatus !== "all") {
-        routeQuery.shipment_status = filters.shipmentStatus;
-    }
-
-    if (filters.page > 1) {
-        routeQuery.page = String(filters.page);
-    }
-
-    return routeQuery;
+    return buildAdminRouteQuery(filters, ORDER_ROUTE_QUERY_SCHEMA);
 };
 
 export const isSameAdminOrderRouteQuery = (
     left: Readonly<Record<string, unknown>>,
     right: Readonly<Record<string, unknown>>,
 ): boolean => {
-    const parsedLeft = parseAdminOrderFiltersFromRouteQuery(left);
-    const parsedRight = parseAdminOrderFiltersFromRouteQuery(right);
-
-    return (
-        parsedLeft.search === parsedRight.search &&
-        parsedLeft.orderStatus === parsedRight.orderStatus &&
-        parsedLeft.paymentStatus === parsedRight.paymentStatus &&
-        parsedLeft.shipmentStatus === parsedRight.shipmentStatus &&
-        parsedLeft.page === parsedRight.page
-    );
+    return isSameAdminRouteQuery(left, right, ORDER_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminOrderListParams = (

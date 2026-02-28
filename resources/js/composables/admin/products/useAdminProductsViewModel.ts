@@ -2,9 +2,7 @@ import { computed } from "vue";
 
 import type { AdminRouteSyncOptions } from "@/composables/admin/adminRouteSync";
 import type { AdminUiEffectsAdapter } from "@/composables/admin/adminUiEffects";
-import { resolveAdminUiEffectsAdapter } from "@/composables/admin/adminUiEffects";
-import { useAdminMutation } from "@/composables/useAdminMutation";
-import { useAdminNotice } from "@/composables/useAdminNotice";
+import { useAdminUiMutationContext } from "@/composables/admin/useAdminUiMutationContext";
 import { useAuthStore } from "@/stores/auth";
 import type { ProductStatus } from "@/types/admin-products";
 import {
@@ -22,29 +20,14 @@ interface UseAdminProductsOptions {
 
 export const useAdminProductsViewModel = (options: UseAdminProductsOptions = {}) => {
     const authStore = useAuthStore();
-    const uiEffects = resolveAdminUiEffectsAdapter(options.uiEffects);
-    const { notice, clearNotice, showSuccess, showError, showApiError } = useAdminNotice();
-    const { executeMutation } = useAdminMutation({
-        clearNotice,
-        showApiError,
-    });
+    const { uiEffects, mutationContext } = useAdminUiMutationContext(options.uiEffects);
     const canDeleteProducts = computed<boolean>(() => authStore.hasRole("admin"));
-    const query = useAdminProductsQuery(
-        {
-            clearNotice,
-            showApiError,
-        },
-        options.routeSync,
-    );
+    const query = useAdminProductsQuery(mutationContext.queryNotice, options.routeSync);
     const mutations = useAdminProductsMutations({
         query,
-        executeMutation,
+        executeMutation: mutationContext.executeMutation,
         canDeleteProducts,
-        notice: {
-            clearNotice,
-            showSuccess,
-            showError,
-        },
+        notice: mutationContext.mutationNotice,
         uiEffects,
     });
 
@@ -53,7 +36,7 @@ export const useAdminProductsViewModel = (options: UseAdminProductsOptions = {})
     };
 
     return {
-        notice,
+        notice: mutationContext.notice,
         canDeleteProducts,
         statusBadgeTone,
         ...query,

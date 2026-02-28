@@ -1,11 +1,14 @@
 import type { LocationQueryRaw } from "vue-router";
 
 import type { PromotionListParams, PromotionStatusFilter } from "@/types/admin-promotions";
+import { normalizeEnumQuery, toSingleQueryValue } from "@/queries/route-query";
+
 import {
-    normalizeEnumQuery,
-    normalizePageFromQuery,
-    toSingleQueryValue,
-} from "@/queries/route-query";
+    buildAdminRouteQuery,
+    isSameAdminRouteQuery,
+    parseAdminRouteFilters,
+    type AdminRouteQuerySchema,
+} from "./route-query-schema";
 
 export interface AdminPromotionFilters {
     searchQuery: string;
@@ -17,50 +20,48 @@ export interface AdminPromotionRouteFilters extends AdminPromotionFilters {
 }
 
 const ALLOWED_STATUS_FILTERS: PromotionStatusFilter[] = ["all", "active", "inactive"];
+const DEFAULT_ROUTE_FILTERS: AdminPromotionFilters = {
+    searchQuery: "",
+    statusFilter: "all",
+};
+const PROMOTION_ROUTE_QUERY_SCHEMA: AdminRouteQuerySchema<AdminPromotionFilters> = {
+    fields: [
+        {
+            key: "searchQuery",
+            queryKey: "q",
+            parse: (value) => toSingleQueryValue(value).trim(),
+            format: (value) => {
+                const query = String(value).trim();
+
+                return query === "" ? null : query;
+            },
+        },
+        {
+            key: "statusFilter",
+            queryKey: "status",
+            parse: (value) => normalizeEnumQuery(value, ALLOWED_STATUS_FILTERS, "all"),
+            format: (value) => (value === "all" ? null : String(value)),
+        },
+    ],
+};
 
 export const parseAdminPromotionFiltersFromRouteQuery = (
     query: Readonly<Record<string, unknown>>,
 ): AdminPromotionRouteFilters => {
-    return {
-        searchQuery: toSingleQueryValue(query.q).trim(),
-        statusFilter: normalizeEnumQuery(query.status, ALLOWED_STATUS_FILTERS, "all"),
-        page: normalizePageFromQuery(query.page),
-    };
+    return parseAdminRouteFilters(query, PROMOTION_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminPromotionRouteQuery = (
     filters: AdminPromotionRouteFilters,
 ): LocationQueryRaw => {
-    const routeQuery: LocationQueryRaw = {};
-    const query = filters.searchQuery.trim();
-
-    if (query !== "") {
-        routeQuery.q = query;
-    }
-
-    if (filters.statusFilter !== "all") {
-        routeQuery.status = filters.statusFilter;
-    }
-
-    if (filters.page > 1) {
-        routeQuery.page = String(filters.page);
-    }
-
-    return routeQuery;
+    return buildAdminRouteQuery(filters, PROMOTION_ROUTE_QUERY_SCHEMA);
 };
 
 export const isSameAdminPromotionRouteQuery = (
     left: Readonly<Record<string, unknown>>,
     right: Readonly<Record<string, unknown>>,
 ): boolean => {
-    const parsedLeft = parseAdminPromotionFiltersFromRouteQuery(left);
-    const parsedRight = parseAdminPromotionFiltersFromRouteQuery(right);
-
-    return (
-        parsedLeft.searchQuery === parsedRight.searchQuery &&
-        parsedLeft.statusFilter === parsedRight.statusFilter &&
-        parsedLeft.page === parsedRight.page
-    );
+    return isSameAdminRouteQuery(left, right, PROMOTION_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminPromotionListParams = (

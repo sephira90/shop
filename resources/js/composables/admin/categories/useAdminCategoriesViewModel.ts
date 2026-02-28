@@ -2,9 +2,7 @@ import { computed } from "vue";
 
 import type { AdminRouteSyncOptions } from "@/composables/admin/adminRouteSync";
 import type { AdminUiEffectsAdapter } from "@/composables/admin/adminUiEffects";
-import { resolveAdminUiEffectsAdapter } from "@/composables/admin/adminUiEffects";
-import { useAdminMutation } from "@/composables/useAdminMutation";
-import { useAdminNotice } from "@/composables/useAdminNotice";
+import { useAdminUiMutationContext } from "@/composables/admin/useAdminUiMutationContext";
 import { useAuthStore } from "@/stores/auth";
 import type { AdminCategory } from "@/types/admin-categories";
 
@@ -18,29 +16,14 @@ interface UseAdminCategoriesOptions {
 
 export const useAdminCategoriesViewModel = (options: UseAdminCategoriesOptions = {}) => {
     const authStore = useAuthStore();
-    const uiEffects = resolveAdminUiEffectsAdapter(options.uiEffects);
-    const { notice, clearNotice, showSuccess, showError, showApiError } = useAdminNotice();
-    const { executeMutation } = useAdminMutation({
-        clearNotice,
-        showApiError,
-    });
+    const { uiEffects, mutationContext } = useAdminUiMutationContext(options.uiEffects);
     const canDeleteCategories = computed<boolean>(() => authStore.hasRole("admin"));
-    const query = useAdminCategoriesQuery(
-        {
-            clearNotice,
-            showApiError,
-        },
-        options.routeSync,
-    );
+    const query = useAdminCategoriesQuery(mutationContext.queryNotice, options.routeSync);
     const mutations = useAdminCategoriesMutations({
         query,
-        executeMutation,
+        executeMutation: mutationContext.executeMutation,
         canDeleteCategories,
-        notice: {
-            clearNotice,
-            showSuccess,
-            showError,
-        },
+        notice: mutationContext.mutationNotice,
         uiEffects,
     });
     const parentOptions = computed<AdminCategory[]>(() => {
@@ -50,7 +33,7 @@ export const useAdminCategoriesViewModel = (options: UseAdminCategoriesOptions =
     });
 
     return {
-        notice,
+        notice: mutationContext.notice,
         canDeleteCategories,
         parentOptions,
         ...query,

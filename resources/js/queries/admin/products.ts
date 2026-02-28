@@ -1,7 +1,14 @@
 import type { LocationQueryRaw } from "vue-router";
 
 import type { AdminProductListParams } from "@/types/admin-products";
-import { normalizePageFromQuery, toSingleQueryValue } from "@/queries/route-query";
+import { toSingleQueryValue } from "@/queries/route-query";
+
+import {
+    buildAdminRouteQuery,
+    isSameAdminRouteQuery,
+    parseAdminRouteFilters,
+    type AdminRouteQuerySchema,
+} from "./route-query-schema";
 
 export interface AdminProductFilters {
     searchQuery: string;
@@ -11,42 +18,41 @@ export interface AdminProductRouteFilters extends AdminProductFilters {
     page: number;
 }
 
+const DEFAULT_ROUTE_FILTERS: AdminProductFilters = {
+    searchQuery: "",
+};
+const PRODUCT_ROUTE_QUERY_SCHEMA: AdminRouteQuerySchema<AdminProductFilters> = {
+    fields: [
+        {
+            key: "searchQuery",
+            queryKey: "q",
+            parse: (value) => toSingleQueryValue(value).trim(),
+            format: (value) => {
+                const query = String(value).trim();
+
+                return query === "" ? null : query;
+            },
+        },
+    ],
+};
+
 export const parseAdminProductFiltersFromRouteQuery = (
     query: Readonly<Record<string, unknown>>,
 ): AdminProductRouteFilters => {
-    return {
-        searchQuery: toSingleQueryValue(query.q).trim(),
-        page: normalizePageFromQuery(query.page),
-    };
+    return parseAdminRouteFilters(query, PRODUCT_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminProductRouteQuery = (
     filters: AdminProductRouteFilters,
 ): LocationQueryRaw => {
-    const routeQuery: LocationQueryRaw = {};
-    const query = filters.searchQuery.trim();
-
-    if (query !== "") {
-        routeQuery.q = query;
-    }
-
-    if (filters.page > 1) {
-        routeQuery.page = String(filters.page);
-    }
-
-    return routeQuery;
+    return buildAdminRouteQuery(filters, PRODUCT_ROUTE_QUERY_SCHEMA);
 };
 
 export const isSameAdminProductRouteQuery = (
     left: Readonly<Record<string, unknown>>,
     right: Readonly<Record<string, unknown>>,
 ): boolean => {
-    const parsedLeft = parseAdminProductFiltersFromRouteQuery(left);
-    const parsedRight = parseAdminProductFiltersFromRouteQuery(right);
-
-    return (
-        parsedLeft.searchQuery === parsedRight.searchQuery && parsedLeft.page === parsedRight.page
-    );
+    return isSameAdminRouteQuery(left, right, PRODUCT_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminProductListParams = (

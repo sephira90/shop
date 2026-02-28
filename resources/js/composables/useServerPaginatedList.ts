@@ -1,6 +1,7 @@
 import { onScopeDispose, ref, type WatchSource } from "vue";
 
 import type { ListResponse } from "@/api/response";
+import { isAbortLikeError } from "@/composables/requestError";
 import { usePaginationMeta } from "@/composables/usePaginationMeta";
 import { useServerListFilters } from "@/composables/useServerListFilters";
 
@@ -20,20 +21,6 @@ interface UseServerPaginatedListOptions<TItem, TParams> {
     onLoaded?: (response: ListResponse<TItem>) => void | Promise<void>;
     onError?: (error: unknown) => void;
 }
-
-const isAbortError = (error: unknown): boolean => {
-    if (!error || typeof error !== "object") {
-        return false;
-    }
-
-    const payload = error as { name?: unknown; code?: unknown };
-
-    return (
-        payload.name === "AbortError" ||
-        payload.name === "CanceledError" ||
-        payload.code === "ERR_CANCELED"
-    );
-};
 
 export const useServerPaginatedList = <TItem, TParams>(
     options: UseServerPaginatedListOptions<TItem, TParams>,
@@ -76,7 +63,7 @@ export const useServerPaginatedList = <TItem, TParams>(
                 await options.onLoaded(response);
             }
         } catch (error: unknown) {
-            if (requestId !== activeRequestId || isAbortError(error)) {
+            if (requestId !== activeRequestId || isAbortLikeError(error)) {
                 return;
             }
 

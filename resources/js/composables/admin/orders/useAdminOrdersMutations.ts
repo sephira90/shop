@@ -1,13 +1,16 @@
 import { updateAdminOrderStatus } from "@/api/admin/orders";
+import { executeAdminActionMutationPipeline } from "@/composables/admin/adminActionMutationPipeline";
+import type { AdminSuccessNoticeAdapter } from "@/composables/admin/useAdminMutationContext";
 import type { AdminOrderDetail } from "@/types/admin-orders";
 import type { ExecuteAdminMutation } from "@/composables/useAdminMutation";
 
+import { applyUpdatedOrderStatusMutation } from "./adminOrderStatusMutationState";
 import type { useAdminOrdersQuery } from "./useAdminOrdersQuery";
 
 interface UseAdminOrdersMutationsOptions {
     query: ReturnType<typeof useAdminOrdersQuery>;
     executeMutation: ExecuteAdminMutation;
-    showSuccess: (message: string) => void;
+    showSuccess: AdminSuccessNoticeAdapter["showSuccess"];
 }
 
 export const useAdminOrdersMutations = ({
@@ -23,7 +26,8 @@ export const useAdminOrdersMutations = ({
         const order = query.selectedOrderDetail.value;
         const draft = query.ensureDraft(order);
 
-        await executeMutation<AdminOrderDetail | null>({
+        await executeAdminActionMutationPipeline<AdminOrderDetail | null>({
+            executeMutation,
             setPending: (pending) => {
                 draft.saving = pending;
             },
@@ -34,25 +38,20 @@ export const useAdminOrdersMutations = ({
                     payment_status: draft.payment_status,
                     shipment_status: draft.shipment_status,
                 }),
-            onSuccess: (updatedOrder) => {
+            resolveSuccessMessage: () => "Order statuses updated.",
+            showSuccess,
+            afterSuccess: (updatedOrder) => {
                 if (updatedOrder) {
-                    query.orderDetails[updatedOrder.id] = updatedOrder;
-                    query.selectedOrderDetail.value = updatedOrder;
-                    query.syncDraftWithOrder(updatedOrder);
-                    query.orders.value = query.orders.value.map((item) =>
-                        item.id === updatedOrder.id
-                            ? {
-                                  ...item,
-                                  status: updatedOrder.status,
-                                  payment_status: updatedOrder.payment_status,
-                                  shipment_status: updatedOrder.shipment_status,
-                                  total: updatedOrder.total,
-                              }
-                            : item,
+                    applyUpdatedOrderStatusMutation(
+                        {
+                            orderDetails: query.orderDetails,
+                            selectedOrderDetail: query.selectedOrderDetail,
+                            orders: query.orders,
+                            syncDraftWithOrder: query.syncDraftWithOrder,
+                        },
+                        updatedOrder,
                     );
                 }
-
-                showSuccess("Order statuses updated.");
             },
         });
     };

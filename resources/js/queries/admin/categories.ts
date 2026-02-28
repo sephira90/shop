@@ -1,11 +1,14 @@
 import type { LocationQueryRaw } from "vue-router";
 
 import type { AdminCategoryListParams, CategoryStatusFilter } from "@/types/admin-categories";
+import { normalizeEnumQuery, toSingleQueryValue } from "@/queries/route-query";
+
 import {
-    normalizeEnumQuery,
-    normalizePageFromQuery,
-    toSingleQueryValue,
-} from "@/queries/route-query";
+    buildAdminRouteQuery,
+    isSameAdminRouteQuery,
+    parseAdminRouteFilters,
+    type AdminRouteQuerySchema,
+} from "./route-query-schema";
 
 export interface AdminCategoryFilters {
     searchQuery: string;
@@ -17,50 +20,48 @@ export interface AdminCategoryRouteFilters extends AdminCategoryFilters {
 }
 
 const ALLOWED_STATUS_FILTERS: CategoryStatusFilter[] = ["all", "active", "inactive"];
+const DEFAULT_ROUTE_FILTERS: AdminCategoryFilters = {
+    searchQuery: "",
+    statusFilter: "all",
+};
+const CATEGORY_ROUTE_QUERY_SCHEMA: AdminRouteQuerySchema<AdminCategoryFilters> = {
+    fields: [
+        {
+            key: "searchQuery",
+            queryKey: "q",
+            parse: (value) => toSingleQueryValue(value).trim(),
+            format: (value) => {
+                const query = String(value).trim();
+
+                return query === "" ? null : query;
+            },
+        },
+        {
+            key: "statusFilter",
+            queryKey: "status",
+            parse: (value) => normalizeEnumQuery(value, ALLOWED_STATUS_FILTERS, "all"),
+            format: (value) => (value === "all" ? null : String(value)),
+        },
+    ],
+};
 
 export const parseAdminCategoryFiltersFromRouteQuery = (
     query: Readonly<Record<string, unknown>>,
 ): AdminCategoryRouteFilters => {
-    return {
-        searchQuery: toSingleQueryValue(query.q).trim(),
-        statusFilter: normalizeEnumQuery(query.status, ALLOWED_STATUS_FILTERS, "all"),
-        page: normalizePageFromQuery(query.page),
-    };
+    return parseAdminRouteFilters(query, CATEGORY_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminCategoryRouteQuery = (
     filters: AdminCategoryRouteFilters,
 ): LocationQueryRaw => {
-    const routeQuery: LocationQueryRaw = {};
-    const query = filters.searchQuery.trim();
-
-    if (query !== "") {
-        routeQuery.q = query;
-    }
-
-    if (filters.statusFilter !== "all") {
-        routeQuery.status = filters.statusFilter;
-    }
-
-    if (filters.page > 1) {
-        routeQuery.page = String(filters.page);
-    }
-
-    return routeQuery;
+    return buildAdminRouteQuery(filters, CATEGORY_ROUTE_QUERY_SCHEMA);
 };
 
 export const isSameAdminCategoryRouteQuery = (
     left: Readonly<Record<string, unknown>>,
     right: Readonly<Record<string, unknown>>,
 ): boolean => {
-    const parsedLeft = parseAdminCategoryFiltersFromRouteQuery(left);
-    const parsedRight = parseAdminCategoryFiltersFromRouteQuery(right);
-
-    return (
-        parsedLeft.searchQuery === parsedRight.searchQuery &&
-        parsedLeft.statusFilter === parsedRight.statusFilter &&
-        parsedLeft.page === parsedRight.page
-    );
+    return isSameAdminRouteQuery(left, right, CATEGORY_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAdminCategoryListParams = (

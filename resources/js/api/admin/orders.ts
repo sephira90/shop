@@ -20,6 +20,10 @@ interface ApiListRequestOptions {
     signal?: AbortSignal;
 }
 
+interface ApiDetailRequestOptions {
+    signal?: AbortSignal;
+}
+
 export const listAdminOrders = async (
     params: AdminOrderListParams,
     options?: ApiListRequestOptions,
@@ -56,8 +60,13 @@ export const updateAdminOrderStatus = async (
     return mapAdminOrderDetailFromApi(assertAdminOrderDetailWireDto(response));
 };
 
-export const getAdminOrderDetail = async (orderId: string): Promise<AdminOrderDetail | null> => {
-    const { data } = await apiClient.get(`/admin/orders/${orderId}`);
+export const getAdminOrderDetail = async (
+    orderId: string,
+    options?: ApiDetailRequestOptions,
+): Promise<AdminOrderDetail | null> => {
+    const { data } = await apiClient.get(`/admin/orders/${orderId}`, {
+        signal: options?.signal,
+    });
     const response = extractData(data);
 
     if (response === null) {

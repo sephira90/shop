@@ -1,6 +1,5 @@
 import type { AdminRouteSyncOptions } from "@/composables/admin/adminRouteSync";
-import { useAdminMutation } from "@/composables/useAdminMutation";
-import { useAdminNotice } from "@/composables/useAdminNotice";
+import { useAdminMutationContext } from "@/composables/admin/useAdminMutationContext";
 import {
     formatMoney,
     formatOrderAddress,
@@ -19,23 +18,15 @@ interface UseAdminOrdersOptions {
 }
 
 export const useAdminOrdersViewModel = (options: UseAdminOrdersOptions = {}) => {
-    const { notice, clearNotice, showSuccess, showApiError } = useAdminNotice();
-    const { executeMutation } = useAdminMutation({
-        clearNotice,
-        showApiError,
-    });
+    const context = useAdminMutationContext();
     const query = useAdminOrdersQuery({
-        notice: {
-            clearNotice,
-            showApiError,
-        },
-        executeMutation,
+        notice: context.queryNotice,
         routeSync: options.routeSync,
     });
     const mutations = useAdminOrdersMutations({
         query,
-        executeMutation,
-        showSuccess,
+        executeMutation: context.executeMutation,
+        showSuccess: context.mutationNotice.showSuccess,
     });
 
     const formatPrice = (value: number, currency = "USD"): string => formatMoney(value, currency);
@@ -45,7 +36,7 @@ export const useAdminOrdersViewModel = (options: UseAdminOrdersOptions = {}) => 
     const shipmentStatusTone = (status: string): StatusTone => resolveShipmentStatusTone(status);
 
     return {
-        notice,
+        notice: context.notice,
         ...query,
         ...mutations,
         formatPrice,
