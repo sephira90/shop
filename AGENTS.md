@@ -21,6 +21,8 @@ This file defines mandatory engineering rules for contributors and coding agents
 
 - Architecture quality is non-negotiable and has priority over implementation speed.
 - New functionality must follow the project architecture from the first implementation step (layer boundaries, contracts, and module responsibilities are mandatory).
+- Implementation steps must be deep and substantial: prefer closing a coherent architectural slice end-to-end instead of a chain of superficial micro-edits.
+- Each implementation block must carry through the necessary boundaries, contracts, tests, and operational/docs updates required for the result to be genuinely complete.
 - Always choose the best-architecture option that keeps boundaries explicit, testable, and evolvable.
 - Every change must preserve or improve architectural integrity; "temporary hacks" are prohibited.
 - If a requested implementation conflicts with architecture quality, clarify constraints first and deliver an architecture-safe solution.
@@ -165,6 +167,7 @@ After any code change, task is considered complete only when production-readines
 
 - Do not perform unrelated refactors in feature fixes.
 - Commit changes in logical blocks (one commit = one coherent concern).
+- Avoid shallow step fragmentation when a larger coherent block can be completed safely and verified in one pass.
 - After each completed logical block, update `docs/REFACTORING_EXECUTION_PLAN.md` with completed work and executed checks.
 - Keep commits focused and reversible.
 - Document non-obvious decisions in code comments or PR notes.

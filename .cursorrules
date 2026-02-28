@@ -6,8 +6,11 @@ Follow `AGENTS.md` as the primary project policy.
 
 - Keep solutions production-oriented and minimal in scope.
 - Commit changes in logical blocks (one commit = one coherent concern).
+- Prefer broader coherent execution blocks over shallow fragmented steps when the change can be completed and verified safely.
 - Respect existing architecture and naming conventions.
 - Always follow the best-architecture standard strictly; no temporary shortcuts that degrade layering, contracts, or maintainability.
+- Implementation steps must be deep and substantial: complete coherent architectural slices, not superficial micro-edits.
+- Each implementation block should carry through the needed boundaries, contracts, tests, and docs/ops updates for a genuinely complete result.
 - If a request conflicts with architecture quality, clarify constraints first and implement an architecture-safe solution.
 - If a UI/template block appears in `>=2` places, extract it to a shared component.
 - Do not weaken validation, authorization, idempotency, or webhook safety.
