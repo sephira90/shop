@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Promotions\Commands;
 
-use App\Models\Coupon;
+use App\Application\Admin\Promotions\Dto\AdminPromotionCouponResultDto;
 use App\Services\Admin\AdminPromotionService;
 
 final class CreateAdminPromotionCouponHandler
@@ -19,8 +19,10 @@ final class CreateAdminPromotionCouponHandler
     /**
      * Execute admin promotion coupon create command.
      */
-    public function handle(CreateAdminPromotionCouponCommand $command): Coupon
+    public function handle(CreateAdminPromotionCouponCommand $command): AdminPromotionCouponResultDto
     {
-        return $this->adminPromotionService->createCoupon($command->promotion, $command->input);
+        $coupon = $this->adminPromotionService->createCoupon($command->promotion, $command->input);
+
+        return AdminPromotionCouponResultDto::fromCoupon($coupon);
     }
 }

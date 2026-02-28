@@ -4,8 +4,17 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Commands;
 
+use App\Application\Auth\Contracts\AuthUserRepository;
+
 final class ResendAuthVerificationHandler
 {
+    /**
+     * Create command handler instance.
+     */
+    public function __construct(
+        private readonly AuthUserRepository $authUserRepository,
+    ) {}
+
     /**
      * Execute resend-verification command.
      */
@@ -15,7 +24,7 @@ final class ResendAuthVerificationHandler
             return 'Email already verified.';
         }
 
-        $command->user->sendEmailVerificationNotification();
+        $this->authUserRepository->sendEmailVerification($command->user);
 
         return 'Verification email has been sent.';
     }

@@ -13,8 +13,6 @@ use App\Application\Admin\Orders\Queries\PaginateAdminOrdersQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OrderIndexRequest;
 use App\Http\Requests\Admin\OrderStatusUpdateRequest;
-use App\Http\Resources\OrderResource;
-use App\Http\Resources\OrderSummaryResource;
 use App\Models\Order;
 use App\Support\Api\ApiResponse;
 use DomainException;
@@ -43,7 +41,7 @@ class OrderController extends Controller
             new PaginateAdminOrdersQuery($request->filter())
         );
 
-        return ApiResponse::paginated(OrderSummaryResource::collection($orders->items()), $orders);
+        return ApiResponse::paginatedWithMeta($orders->itemsToArray(), $orders->metaToArray());
     }
 
     /**
@@ -55,7 +53,7 @@ class OrderController extends Controller
 
         $detail = $this->getAdminOrderDetailHandler->handle(new GetAdminOrderDetailQuery($order));
 
-        return ApiResponse::data(OrderResource::make($detail));
+        return ApiResponse::data($detail->toArray());
     }
 
     /**
@@ -73,6 +71,6 @@ class OrderController extends Controller
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return ApiResponse::data(OrderResource::make($updated));
+        return ApiResponse::data($updated->toArray());
     }
 }

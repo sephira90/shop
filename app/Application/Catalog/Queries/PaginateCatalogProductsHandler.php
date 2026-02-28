@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Catalog\Queries;
 
-use App\Models\Product;
+use App\Application\Catalog\Dto\CatalogProductPaginatedResultDto;
 use App\Services\Catalog\CatalogService;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class PaginateCatalogProductsHandler
 {
@@ -19,11 +18,11 @@ final class PaginateCatalogProductsHandler
 
     /**
      * Execute catalog products pagination query.
-     *
-     * @return LengthAwarePaginator<int, Product>
      */
-    public function handle(PaginateCatalogProductsQuery $query): LengthAwarePaginator
+    public function handle(PaginateCatalogProductsQuery $query): CatalogProductPaginatedResultDto
     {
-        return $this->catalogService->list($query->filter, $query->perPage);
+        return CatalogProductPaginatedResultDto::fromPaginator(
+            $this->catalogService->list($query->filter, $query->perPage)
+        );
     }
 }

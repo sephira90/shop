@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Catalog\Queries;
 
-use App\Models\Category;
+use App\Application\Catalog\Dto\CatalogCategoriesResultDto;
 use App\Services\Catalog\CatalogService;
-use Illuminate\Database\Eloquent\Collection;
 
 final class ListCatalogCategoriesHandler
 {
@@ -19,11 +18,9 @@ final class ListCatalogCategoriesHandler
 
     /**
      * Execute catalog categories list query.
-     *
-     * @return Collection<int, Category>
      */
-    public function handle(): Collection
+    public function handle(): CatalogCategoriesResultDto
     {
-        return $this->catalogService->categories();
+        return CatalogCategoriesResultDto::fromCollection($this->catalogService->categories());
     }
 }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Commands;
 
+use App\Application\Auth\Contracts\AuthUserRepository;
 use App\Application\Auth\Dto\AuthTokenResultDto;
 use App\Application\Auth\Support\AuthUserDtoMapper;
 use App\Enums\RoleName;
-use App\Models\User;
 
 final class RegisterAuthUserHandler
 {
@@ -15,6 +15,7 @@ final class RegisterAuthUserHandler
      * Create command handler instance.
      */
     public function __construct(
+        private readonly AuthUserRepository $authUserRepository,
         private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
 
@@ -25,20 +26,13 @@ final class RegisterAuthUserHandler
     {
         $input = $command->input;
 
-        $user = User::query()->create([
-            'first_name' => $input->firstName,
-            'last_name' => $input->lastName,
-            'name' => trim($input->firstName.' '.$input->lastName),
-            'email' => $input->email,
-            'phone' => $input->phone,
-            'password' => $input->password,
-        ]);
+        $user = $this->authUserRepository->createUser($input);
 
-        $user->assignRole(RoleName::CUSTOMER);
-        $user->sendEmailVerificationNotification();
+        $this->authUserRepository->assignRole($user, RoleName::CUSTOMER);
+        $this->authUserRepository->sendEmailVerification($user);
 
         return new AuthTokenResultDto(
-            token: $user->createToken('api-register')->plainTextToken,
+            token: $this->authUserRepository->issueAccessToken($user, 'api-register'),
             user: $this->authUserDtoMapper->map($user),
         );
     }

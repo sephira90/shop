@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Promotions\Queries;
 
-use App\Models\Promotion;
+use App\Application\Admin\Promotions\Dto\AdminPromotionPaginatedResultDto;
 use App\Repositories\PromotionRepository;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class PaginateAdminPromotionsHandler
 {
@@ -19,11 +18,11 @@ final class PaginateAdminPromotionsHandler
 
     /**
      * Execute admin promotions list query.
-     *
-     * @return LengthAwarePaginator<int, Promotion>
      */
-    public function handle(PaginateAdminPromotionsQuery $query): LengthAwarePaginator
+    public function handle(PaginateAdminPromotionsQuery $query): AdminPromotionPaginatedResultDto
     {
-        return $this->promotionRepository->paginateForAdmin($query->filter);
+        $paginator = $this->promotionRepository->paginateForAdmin($query->filter);
+
+        return AdminPromotionPaginatedResultDto::fromPaginator($paginator);
     }
 }

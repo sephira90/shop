@@ -15,7 +15,6 @@ use App\Application\Checkout\Queries\PaginateMyOrdersQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Account\AccountOrderIndexRequest;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
-use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Api\ApiResponse;
@@ -58,9 +57,7 @@ class CheckoutController extends Controller
             return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $orderData = OrderResource::make($result->order)->toArray($request);
-
-        return ApiResponse::data($result->toArray($orderData), Response::HTTP_CREATED);
+        return ApiResponse::data($result->toArray(), Response::HTTP_CREATED);
     }
 
     /**
@@ -93,7 +90,7 @@ class CheckoutController extends Controller
             new PaginateMyOrdersQuery($currentUser, $request->filter())
         );
 
-        return ApiResponse::paginated(OrderResource::collection($orders->items()), $orders);
+        return ApiResponse::paginatedWithMeta($orders->itemsToArray(), $orders->metaToArray());
     }
 
     /**

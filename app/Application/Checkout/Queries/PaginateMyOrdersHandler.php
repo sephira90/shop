@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Queries;
 
-use App\Models\Order;
+use App\Application\Checkout\Dto\CheckoutOrderPaginatedResultDto;
 use App\Repositories\OrderRepository;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class PaginateMyOrdersHandler
 {
@@ -19,11 +18,11 @@ final class PaginateMyOrdersHandler
 
     /**
      * Execute account order list query.
-     *
-     * @return LengthAwarePaginator<int, Order>
      */
-    public function handle(PaginateMyOrdersQuery $query): LengthAwarePaginator
+    public function handle(PaginateMyOrdersQuery $query): CheckoutOrderPaginatedResultDto
     {
-        return $this->orderRepository->paginateForUser($query->user, $query->filter);
+        return CheckoutOrderPaginatedResultDto::fromPaginator(
+            $this->orderRepository->paginateForUser($query->user, $query->filter)
+        );
     }
 }

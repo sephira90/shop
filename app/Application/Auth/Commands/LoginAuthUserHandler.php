@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Application\Auth\Commands;
 
 use App\Application\Auth\AuthApplicationException;
+use App\Application\Auth\Contracts\AuthUserRepository;
 use App\Application\Auth\Dto\AuthTokenResultDto;
 use App\Application\Auth\Support\AuthUserDtoMapper;
-use App\Models\User;
 use App\Services\Cart\CartService;
-use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
 
 final class LoginAuthUserHandler
@@ -18,6 +17,7 @@ final class LoginAuthUserHandler
      * Create command handler instance.
      */
     public function __construct(
+        private readonly AuthUserRepository $authUserRepository,
         private readonly CartService $cartService,
         private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
@@ -28,9 +28,9 @@ final class LoginAuthUserHandler
     public function handle(LoginAuthUserCommand $command): AuthTokenResultDto
     {
         $input = $command->input;
-        $user = User::query()->where('email', $input->email)->first();
+        $user = $this->authUserRepository->findByEmail($input->email);
 
-        if (! $user instanceof User || ! Hash::check($input->password, $user->password)) {
+        if ($user === null || ! $this->authUserRepository->isPasswordValid($user, $input->password)) {
             throw new AuthApplicationException(
                 'Invalid credentials.',
                 Response::HTTP_UNPROCESSABLE_ENTITY,
@@ -51,7 +51,7 @@ final class LoginAuthUserHandler
         $deviceName = $input->deviceName ?? 'api-device';
 
         return new AuthTokenResultDto(
-            token: $user->createToken($deviceName)->plainTextToken,
+            token: $this->authUserRepository->issueAccessToken($user, $deviceName),
             user: $this->authUserDtoMapper->map($user),
         );
     }

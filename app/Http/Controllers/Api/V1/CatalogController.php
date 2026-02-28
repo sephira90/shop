@@ -11,7 +11,6 @@ use App\Application\Catalog\Queries\ListCatalogCategoriesHandler;
 use App\Application\Catalog\Queries\PaginateCatalogProductsHandler;
 use App\Application\Catalog\Queries\PaginateCatalogProductsQuery;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ProductResource;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,11 +43,11 @@ class CatalogController extends Controller
 
         $perPage = (int) ($validated['per_page'] ?? 12);
         $filter = CatalogProductListFilterDto::fromValidated($validated);
-        $paginator = $this->paginateCatalogProductsHandler->handle(
+        $paginated = $this->paginateCatalogProductsHandler->handle(
             new PaginateCatalogProductsQuery($filter, $perPage)
         );
 
-        return ApiResponse::paginated(ProductResource::collection($paginator->items()), $paginator);
+        return ApiResponse::paginatedWithMeta($paginated->itemsToArray(), $paginated->metaToArray());
     }
 
     /**
@@ -64,7 +63,7 @@ class CatalogController extends Controller
             return ApiResponse::error('Product not found.', Response::HTTP_NOT_FOUND);
         }
 
-        return ApiResponse::data(ProductResource::make($product));
+        return ApiResponse::data($product->toArray());
     }
 
     /**
@@ -74,6 +73,6 @@ class CatalogController extends Controller
     {
         $categories = $this->listCatalogCategoriesHandler->handle();
 
-        return ApiResponse::data($categories);
+        return ApiResponse::data($categories->itemsToArray());
     }
 }

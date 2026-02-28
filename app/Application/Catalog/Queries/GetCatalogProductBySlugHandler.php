@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Catalog\Queries;
 
-use App\Models\Product;
+use App\Application\Catalog\Dto\CatalogProductResultDto;
 use App\Services\Catalog\CatalogService;
 
 final class GetCatalogProductBySlugHandler
@@ -19,8 +19,14 @@ final class GetCatalogProductBySlugHandler
     /**
      * Execute catalog product show query.
      */
-    public function handle(GetCatalogProductBySlugQuery $query): ?Product
+    public function handle(GetCatalogProductBySlugQuery $query): ?CatalogProductResultDto
     {
-        return $this->catalogService->productBySlug($query->slug);
+        $product = $this->catalogService->productBySlug($query->slug);
+
+        if ($product === null) {
+            return null;
+        }
+
+        return CatalogProductResultDto::fromProduct($product);
     }
 }

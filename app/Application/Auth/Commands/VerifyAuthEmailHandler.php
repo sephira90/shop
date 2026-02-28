@@ -5,19 +5,26 @@ declare(strict_types=1);
 namespace App\Application\Auth\Commands;
 
 use App\Application\Auth\AuthApplicationException;
-use App\Models\User;
+use App\Application\Auth\Contracts\AuthUserRepository;
 use Illuminate\Auth\Events\Verified;
 use Symfony\Component\HttpFoundation\Response;
 
 final class VerifyAuthEmailHandler
 {
     /**
+     * Create command handler instance.
+     */
+    public function __construct(
+        private readonly AuthUserRepository $authUserRepository,
+    ) {}
+
+    /**
      * Execute verify-email command.
      */
     public function handle(VerifyAuthEmailCommand $command): string
     {
-        $user = User::query()->find($command->userId);
-        if (! $user instanceof User) {
+        $user = $this->authUserRepository->findById($command->userId);
+        if ($user === null) {
             throw new AuthApplicationException(
                 'User not found.',
                 Response::HTTP_NOT_FOUND,
@@ -35,7 +42,7 @@ final class VerifyAuthEmailHandler
             return 'Email already verified.';
         }
 
-        if ($user->markEmailAsVerified()) {
+        if ($this->authUserRepository->markEmailAsVerified($user)) {
             event(new Verified($user));
         }
 

@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Orders\Queries;
 
-use App\Models\Order;
+use App\Application\Admin\Orders\Dto\AdminOrderPaginatedResultDto;
 use App\Repositories\OrderRepository;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class PaginateAdminOrdersHandler
 {
@@ -19,11 +18,11 @@ final class PaginateAdminOrdersHandler
 
     /**
      * Execute admin orders list query.
-     *
-     * @return LengthAwarePaginator<int, Order>
      */
-    public function handle(PaginateAdminOrdersQuery $query): LengthAwarePaginator
+    public function handle(PaginateAdminOrdersQuery $query): AdminOrderPaginatedResultDto
     {
-        return $this->orderRepository->paginateSummaryForAdmin($query->filter);
+        $paginator = $this->orderRepository->paginateSummaryForAdmin($query->filter);
+
+        return AdminOrderPaginatedResultDto::fromPaginator($paginator);
     }
 }

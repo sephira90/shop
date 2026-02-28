@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Promotions\Commands;
 
-use App\Models\Promotion;
+use App\Application\Admin\Promotions\Dto\AdminPromotionResultDto;
 use App\Services\Admin\AdminPromotionService;
 
 final class UpdateAdminPromotionHandler
@@ -19,8 +19,10 @@ final class UpdateAdminPromotionHandler
     /**
      * Execute admin promotion update command.
      */
-    public function handle(UpdateAdminPromotionCommand $command): Promotion
+    public function handle(UpdateAdminPromotionCommand $command): AdminPromotionResultDto
     {
-        return $this->adminPromotionService->update($command->promotion, $command->input);
+        $promotion = $this->adminPromotionService->update($command->promotion, $command->input);
+
+        return AdminPromotionResultDto::fromPromotion($promotion);
     }
 }

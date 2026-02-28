@@ -22,7 +22,6 @@ use App\Http\Requests\Admin\CouponUpdateRequest;
 use App\Http\Requests\Admin\PromotionIndexRequest;
 use App\Http\Requests\Admin\PromotionStoreRequest;
 use App\Http\Requests\Admin\PromotionUpdateRequest;
-use App\Http\Resources\PromotionResource;
 use App\Models\Coupon;
 use App\Models\Promotion;
 use App\Support\Api\ApiResponse;
@@ -53,7 +52,7 @@ class PromotionController extends Controller
             new PaginateAdminPromotionsQuery($request->filter())
         );
 
-        return ApiResponse::paginated(PromotionResource::collection($promotions->items()), $promotions);
+        return ApiResponse::paginatedWithMeta($promotions->itemsToArray(), $promotions->metaToArray());
     }
 
     /**
@@ -67,7 +66,7 @@ class PromotionController extends Controller
             new CreateAdminPromotionCommand($request->toDto())
         );
 
-        return ApiResponse::data(PromotionResource::make($promotion), 201);
+        return ApiResponse::data($promotion->toArray(), 201);
     }
 
     /**
@@ -81,7 +80,7 @@ class PromotionController extends Controller
             new UpdateAdminPromotionCommand($promotion, $request->toDto())
         );
 
-        return ApiResponse::data(PromotionResource::make($promotion));
+        return ApiResponse::data($promotion->toArray());
     }
 
     /**
@@ -107,7 +106,7 @@ class PromotionController extends Controller
             new CreateAdminPromotionCouponCommand($promotion, $request->toDto())
         );
 
-        return ApiResponse::data($coupon, 201);
+        return ApiResponse::data($coupon->toArray(), 201);
     }
 
     /**
@@ -121,6 +120,6 @@ class PromotionController extends Controller
             new UpdateAdminPromotionCouponCommand($coupon, $request->toDto())
         );
 
-        return ApiResponse::data($coupon);
+        return ApiResponse::data($coupon->toArray());
     }
 }

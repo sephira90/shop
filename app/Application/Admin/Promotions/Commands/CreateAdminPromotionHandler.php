@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Promotions\Commands;
 
-use App\Models\Promotion;
+use App\Application\Admin\Promotions\Dto\AdminPromotionResultDto;
 use App\Services\Admin\AdminPromotionService;
 
 final class CreateAdminPromotionHandler
@@ -19,8 +19,10 @@ final class CreateAdminPromotionHandler
     /**
      * Execute admin promotion create command.
      */
-    public function handle(CreateAdminPromotionCommand $command): Promotion
+    public function handle(CreateAdminPromotionCommand $command): AdminPromotionResultDto
     {
-        return $this->adminPromotionService->create($command->input);
+        $promotion = $this->adminPromotionService->create($command->input);
+
+        return AdminPromotionResultDto::fromPromotion($promotion);
     }
 }

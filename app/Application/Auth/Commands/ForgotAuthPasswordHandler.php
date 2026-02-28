@@ -5,21 +5,26 @@ declare(strict_types=1);
 namespace App\Application\Auth\Commands;
 
 use App\Application\Auth\AuthApplicationException;
-use Illuminate\Support\Facades\Password;
+use App\Application\Auth\Contracts\AuthPasswordBrokerRepository;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ForgotAuthPasswordHandler
 {
     /**
+     * Create command handler instance.
+     */
+    public function __construct(
+        private readonly AuthPasswordBrokerRepository $authPasswordBrokerRepository,
+    ) {}
+
+    /**
      * Execute forgot-password command.
      */
     public function handle(ForgotAuthPasswordCommand $command): string
     {
-        $status = Password::sendResetLink([
-            'email' => $command->input->email,
-        ]);
+        $status = $this->authPasswordBrokerRepository->sendResetLink($command->input->email);
 
-        if ($status !== Password::RESET_LINK_SENT) {
+        if (! $this->authPasswordBrokerRepository->isResetLinkSentStatus($status)) {
             throw new AuthApplicationException(
                 __($status),
                 Response::HTTP_UNPROCESSABLE_ENTITY,

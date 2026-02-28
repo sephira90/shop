@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Orders\Commands;
 
-use App\Models\Order;
+use App\Application\Admin\Orders\Dto\AdminOrderDetailResultDto;
 use App\Services\Admin\AdminOrderService;
 
 final class UpdateAdminOrderStatusHandler
@@ -19,8 +19,10 @@ final class UpdateAdminOrderStatusHandler
     /**
      * Execute admin order status update command.
      */
-    public function handle(UpdateAdminOrderStatusCommand $command): Order
+    public function handle(UpdateAdminOrderStatusCommand $command): AdminOrderDetailResultDto
     {
-        return $this->adminOrderService->updateStatus($command->order, $command->input);
+        $order = $this->adminOrderService->updateStatus($command->order, $command->input);
+
+        return AdminOrderDetailResultDto::fromOrder($order);
     }
 }
