@@ -147,16 +147,13 @@ Workflow: `.github/workflows/ci.yml` (`Quality Gate`).
 It runs a full blocking pipeline:
 
 - backend alias: `composer run quality:backend`
-- `composer run lint`
-- `composer run analyse`
-- `php artisan test`
+- expands to: `composer run lint`, `composer run analyse`, `php artisan test`
 - frontend alias: `composer run quality:frontend`
-- `npm run lint`
-- `npm run lint:ox`
-- `npm run format:ox:check`
-- `npm run type-check`
-- `npm run test`
-- `npm run build`
+- expands to: `npm run lint`, `npm run lint:ox`, `npm run format:ox:check`, `npm run type-check`, `npm run test`, `npm run build`
+- support aliases:
+  - `composer run ops:clear`
+  - `composer run ops:routes-smoke`
+  - `composer run ops:observability-report`
 - CI production smoke alias: `composer run ops:ci-production-smoke`
 - production smoke: `php artisan migrate --force`, `composer run ops:ci-production-smoke`
 - targeted smoke examples:

@@ -4148,3 +4148,682 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — architecture audit + roadmap refresh saved to active source-of-truth:
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated after deep audit with new priority waves:
+    - `Wave 15` — account orders module extraction and summary/detail split;
+    - `Wave 16` — category selector decoupling and shared option query;
+    - `Wave 17` — maintenance cleanup resource strategy and scale safety;
+    - `Wave 18` — read repository boundary split and product write decomposition;
+    - `Wave 19` — infrastructure provider hygiene and container guardrails;
+    - `Wave 20` — archive and documentation hygiene.
+  - confirmed findings recorded in active roadmap:
+    - account order reads still lag behind admin parity and remain coupled to checkout transport;
+    - admin category selectors still depend on management-list contracts;
+    - maintenance cleanup internals still centralize policy/query/destructive execution;
+    - repository/provider boundaries still retain mixed-context responsibilities.
+  - targeted regression checks executed during audit, green:
+    - `php artisan test --filter="AppMaintenanceCleanupCommandTest|AccountOrdersApiTest|AdminCategoryCrudTest"`;
+    - `npm run test -- resources/js/tests/composables/use-account-orders.spec.ts resources/js/tests/queries/account-orders-query.spec.ts resources/js/tests/queries/admin/categories-query.spec.ts resources/js/tests/composables/admin/use-admin-categories-list-state.spec.ts`.
+- `2026-03-01` — active roadmap strengthened with protected-baseline and execution-completion sections:
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` expanded with:
+    - `Architectural Strengths To Preserve`;
+    - `Audit Snapshot (2026-03-01)`;
+    - `Program Posture`;
+    - `Non-Goals`;
+    - `Wave Dependency Notes`;
+    - `Program Exit Targets`.
+  - roadmap now explicitly distinguishes:
+    - what must be preserved from completed waves;
+    - what is out of scope for future refactors;
+    - which waves depend on earlier boundary-setting work;
+    - which measurable end-state marks completion of the refactor program.
+  - checks executed:
+    - none; documentation-only roadmap refinement.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 15` batch: account orders module extraction and read-model split):
+  - backend account-order read transport extracted from `CheckoutController` into `app/Http/Controllers/Api/V1/Account/AccountOrdersController.php`.
+  - canonical account-order endpoints added:
+    - `GET /api/v1/account/orders`;
+    - `GET /api/v1/account/orders/{order}`;
+    - `GET /api/v1/account/orders/summary`.
+  - legacy aliases preserved for compatibility:
+    - `GET /api/v1/orders/me`;
+    - `GET /api/v1/orders/me/summary`.
+  - account read application layer moved into `app/Application/Account/Orders/*` with explicit:
+    - summary/detail DTO boundaries;
+    - summary/detail query handlers;
+    - `AccountOrderReadRepository` contract.
+  - account read persistence extracted to `app/Repositories/AccountOrderReadRepository.php`; mixed account-read methods removed from `app/Repositories/OrderRepository.php`.
+  - shared authenticated-user resolution extracted into `app/Http/Controllers/Concerns/ResolvesAuthenticatedUser.php` and adopted by:
+    - `app/Http/Controllers/Api/V1/CheckoutController.php`;
+    - `app/Http/Controllers/Api/V1/CartController.php`;
+    - `app/Http/Controllers/Api/V1/Account/AccountOrdersController.php`.
+  - frontend account orders migrated to explicit summary/detail contracts:
+    - `resources/js/types/account-orders.ts`;
+    - `resources/js/contracts/api/v1/account-orders.ts`;
+    - `resources/js/api/account/orders.ts`;
+    - `resources/js/mappers/account/orders.ts`.
+  - account orders UI now uses summary list + lazy detail loading with stale-response suppression:
+    - `resources/js/composables/account/orders/useAccountOrderDetailsState.ts`;
+    - `resources/js/composables/account/orders/useAccountOrdersViewModel.ts`;
+    - `resources/js/components/account/orders/AccountOrderCard.vue`;
+    - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`;
+    - `resources/js/pages/AccountOrdersPage.vue`.
+  - shared route-query schema promoted out of admin-only path:
+    - `resources/js/queries/route-query-schema.ts`;
+    - `resources/js/queries/admin/route-query-schema.ts` now re-exports shared helpers;
+    - `resources/js/queries/account-orders.ts` now uses shared schema-driven parsing/building.
+  - deterministic tests added/updated for:
+    - canonical summary-list payload shape and owner-scoped detail loading;
+    - legacy alias backward compatibility;
+    - lazy detail loading and stale-response suppression in `useAccountOrders`;
+    - account summary/detail API contract assertions.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter=AccountOrdersApiTest`;
+    - `npm run test -- resources/js/tests/composables/use-account-orders.spec.ts resources/js/tests/components/account/account-orders-component-contracts.spec.ts resources/js/tests/api/catalog-account-contract.spec.ts resources/js/tests/queries/account-orders-query.spec.ts resources/js/tests/queries/admin/route-query-schema.spec.ts`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 16` batch: category selector decoupling and shared option query):
+  - backend selector endpoint added:
+    - `GET /api/v1/admin/categories/options`.
+  - selector-specific backend read-model introduced via:
+    - `app/Http/Requests/Admin/CategoryOptionsRequest.php`;
+    - `app/Application/Admin/Categories/Dto/AdminCategoryOptionListFilterDto.php`;
+    - `app/Application/Admin/Categories/Dto/AdminCategoryOptionResultDto.php`;
+    - `app/Application/Admin/Categories/Dto/AdminCategoryOptionsResultDto.php`;
+    - `app/Application/Admin/Categories/Queries/ListAdminCategoryOptionsQuery.php`;
+    - `app/Application/Admin/Categories/Queries/ListAdminCategoryOptionsHandler.php`;
+    - `app/Repositories/CategoryRepository.php` (`listOptionsForAdmin`).
+  - admin category transport now exposes selector-specific options payload through `app/Http/Controllers/Api/V1/Admin/CategoryController.php` instead of reusing paginated list payloads.
+  - frontend selector contracts and mapping added:
+    - `resources/js/types/admin-categories.ts` (`AdminCategoryOption`, `AdminCategoryOptionListParams`);
+    - `resources/js/contracts/api/v1/admin-categories.ts`;
+    - `resources/js/contracts/api/v1/assertions/admin-categories.ts`;
+    - `resources/js/mappers/admin/categories.ts`;
+    - `resources/js/api/admin/categories.ts` (`listAdminCategoryOptions`).
+  - shared category-options state introduced:
+    - `resources/js/composables/admin/categories/useAdminCategoryOptionsState.ts`;
+    - request-id stale-response suppression added for overlapping option loads.
+  - admin category and admin product forms now share the same selector source:
+    - `resources/js/composables/admin/categories/useAdminCategoriesViewModel.ts`;
+    - `resources/js/composables/admin/products/useAdminProductsQuery.ts`;
+    - `resources/js/pages/admin/AdminCategoriesPage.vue`;
+    - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`;
+    - `resources/js/components/admin/products/AdminProductsFormCard.vue`.
+  - product-specific all-pages category loader removed:
+    - `resources/js/composables/admin/products/useAdminProductCategoriesState.ts`.
+  - deterministic tests added/updated for:
+    - backend selector ordering, minimal payload shape, `exclude_id`, and `q` filtering;
+    - admin category option DTO contract assertion;
+    - shared category-options composable load/error/stale-response handling;
+    - category CRUD mutation refresh of selector options;
+    - admin category/product view-model flows that now depend on `listAdminCategoryOptions`.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="AdminCategoryCrudTest|ApplicationAdminCategoriesHandlerBoundaryTest"`;
+    - `npm run test -- resources/js/tests/api/admin-contract.spec.ts resources/js/tests/composables/admin/use-admin-category-options-state.spec.ts resources/js/tests/composables/admin/use-admin-category-crud-mutations.spec.ts resources/js/tests/composables/use-admin-server-list-flows.spec.ts resources/js/tests/composables/use-admin-mutation-flows.spec.ts resources/js/tests/composables/admin-ui-effects-adapter.spec.ts`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 17` batch: maintenance cleanup resource strategy and scale safety):
+  - cleanup resource strategy introduced:
+    - `app/Support/Maintenance/Contracts/MaintenanceCleanupResource.php`;
+    - `app/Support/Maintenance/MaintenanceCleanupPlanFactory.php`;
+    - `app/Support/Maintenance/Dto/MaintenanceCleanupPlanItemDto.php`;
+    - `app/Support/Maintenance/Resources/CheckoutIdempotencyCleanupResource.php`;
+    - `app/Support/Maintenance/Resources/WebhookReceiptCleanupResource.php`;
+    - `app/Support/Maintenance/Resources/ActiveCartCleanupResource.php`;
+    - `app/Support/Maintenance/Resources/InactiveCartCleanupResource.php`.
+  - `app/Support/Maintenance/MaintenanceCleanupExecutor.php` reduced to orchestration over typed cleanup plan/resources and config-driven batch size.
+  - cleanup results expanded with batch-aware reporting:
+    - `app/Support/Maintenance/Dto/MaintenanceCleanupResourceResultDto.php`;
+    - `app/Support/Maintenance/Dto/MaintenanceCleanupRunResultDto.php`;
+    - `app/Console/Commands/AppMaintenanceCleanupCommand.php` now reports per-resource batches and aggregate totals.
+  - additive cleanup config and schema support added:
+    - `config/cleanup.php` (`cleanup.batch_size`);
+    - `database/migrations/2026_03_01_150000_add_cleanup_support_indexes.php`.
+  - cleanup resource wiring registered in `app/Providers/AppServiceProvider.php` via tagged maintenance resources consumed by `MaintenanceCleanupPlanFactory`.
+  - operational docs updated for batch-aware cleanup reporting:
+    - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`.
+  - deterministic tests added/updated for:
+    - cleanup plan order and cutoff resolution;
+    - batched deletion accounting and aggregate totals;
+    - explicit cleanup schema indexes;
+    - command output/reporting and config guardrails.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="MaintenanceCleanupPlanFactoryTest|MaintenanceCleanupExecutorTest|MaintenanceCleanupSchemaSupportTest|AppMaintenanceCleanupCommandTest|MaintenanceCleanupRetentionResolverTest|OperationalDocsConfigGuardrailTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 18` batch: read repository boundary split and product write decomposition):
+  - mixed read repositories split into bounded read-model paths:
+    - `app/Repositories/AdminOrderReadRepository.php`;
+    - `app/Repositories/AdminProductReadRepository.php`;
+    - `app/Repositories/CatalogProductReadRepository.php`;
+    - shared order search concern added in `app/Repositories/Concerns/AppliesOrderSearch.php`;
+    - legacy mixed-context `app/Repositories/OrderRepository.php` and `app/Repositories/ProductRepository.php` removed.
+  - account-order summary semantics moved out of repository layer into explicit projection boundary:
+    - `app/Application/Account/Orders/Dto/AccountOrderSummaryAggregateDto.php`;
+    - `app/Application/Account/Orders/Dto/AccountOrderSummaryStatusGroupDto.php`;
+    - `app/Application/Account/Orders/Support/AccountOrderSummaryProjector.php`;
+    - `app/Repositories/AccountOrderReadRepository.php` now returns typed grouped aggregates for summary projection.
+  - admin/catalog read consumers rewired to bounded repositories:
+    - `app/Application/Admin/Orders/Queries/PaginateAdminOrdersHandler.php`;
+    - `app/Application/Admin/Products/Queries/PaginateAdminProductsHandler.php`;
+    - `app/Services/Catalog/CatalogService.php`;
+    - `app/Support/Smoke/Performance/Scenarios/AdminOrdersSummaryPerformanceSmokeScenario.php`;
+    - `app/Support/Smoke/Performance/Scenarios/AdminProductsListPerformanceSmokeScenario.php`.
+  - `app/Services/Admin/AdminCatalogService.php` reduced to transaction orchestration over explicit product-write collaborators:
+    - `app/Services/Admin/ProductWrites/AdminProductVariantResolver.php`;
+    - `app/Services/Admin/ProductWrites/AdminProductVariantSyncService.php`;
+    - `app/Services/Admin/ProductWrites/AdminVariantInventorySyncService.php`;
+    - `app/Services/Admin/ProductWrites/AdminVariantPriceSyncService.php`.
+  - repository/product-write architecture guardrails and unit coverage added:
+    - `tests/Unit/Architecture/RepositoryReadBoundaryTest.php`;
+    - `tests/Unit/Architecture/RepositoryStatusInterpretationGuardrailTest.php`;
+    - `tests/Unit/Account/AccountOrderSummaryProjectorTest.php`;
+    - `tests/Unit/Admin/AdminProductVariantResolverTest.php`;
+    - `tests/Unit/Admin/AdminProductVariantSyncServiceTest.php`;
+    - `tests/Unit/Admin/AdminVariantInventorySyncServiceTest.php`;
+    - `tests/Unit/Admin/AdminVariantPriceSyncServiceTest.php`.
+  - PHPStan baseline cleaned up for removed repository paths and generics tightened on new catalog read path:
+    - `phpstan-baseline.neon`;
+    - `app/Repositories/CatalogProductReadRepository.php`;
+    - `app/Services/Catalog/CatalogService.php`.
+  - active roadmap synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="AccountOrderSummaryProjectorTest|AdminProductVariantResolverTest|AdminVariantInventorySyncServiceTest|AdminVariantPriceSyncServiceTest|AdminProductVariantSyncServiceTest|RepositoryReadBoundaryTest|RepositoryStatusInterpretationGuardrailTest|AdminProductVariantsTest|AccountOrdersApiTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — admin list query boolean normalization follow-up:
+  - fixed admin category list failure for browser query strings like `/admin/categories?status=active` by normalizing `is_active=true|false` before FormRequest validation instead of rejecting serialized boolean strings;
+  - shared request concern added:
+    - `app/Http/Requests/Concerns/NormalizesBooleanQueryInput.php`;
+  - applied to admin list requests that use `status -> is_active` route-to-API mapping:
+    - `app/Http/Requests/Admin/CategoryIndexRequest.php`;
+    - `app/Http/Requests/Admin/PromotionIndexRequest.php`;
+  - feature coverage added for string boolean query acceptance:
+    - `tests/Feature/AdminListFilteringTest.php`.
+  - targeted regression check executed before the full gate:
+    - `php artisan test --filter="AdminListFilteringTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — admin boolean input boundary hardening:
+  - extended `app/Http/Requests/Concerns/NormalizesBooleanQueryInput.php` into a shared recursive normalizer for top-level, nested, and wildcard boolean input paths;
+  - applied normalization to remaining admin requests with boolean validation rules:
+    - `app/Http/Requests/Admin/CategoryStoreRequest.php`;
+    - `app/Http/Requests/Admin/CategoryUpdateRequest.php`;
+    - `app/Http/Requests/Admin/CouponStoreRequest.php`;
+    - `app/Http/Requests/Admin/CouponUpdateRequest.php`;
+    - `app/Http/Requests/Admin/ProductStoreRequest.php`;
+    - `app/Http/Requests/Admin/ProductUpdateRequest.php`;
+    - `app/Http/Requests/Admin/PromotionStoreRequest.php`;
+    - `app/Http/Requests/Admin/PromotionUpdateRequest.php`;
+    - existing list requests kept on the same normalizer:
+      - `app/Http/Requests/Admin/CategoryIndexRequest.php`;
+      - `app/Http/Requests/Admin/PromotionIndexRequest.php`.
+  - added representative regression coverage for:
+    - top-level string booleans on category create/update;
+    - nested `coupon.is_active` string booleans on promotion create;
+    - top-level `is_featured` and wildcard `variants.*.is_active` string booleans on product create/update;
+    - string boolean coupon update flow.
+  - updated feature tests:
+    - `tests/Feature/AdminCategoryCrudTest.php`;
+    - `tests/Feature/AdminPromotionCouponFlowTest.php`;
+    - `tests/Feature/AdminProductVariantsTest.php`.
+  - targeted regression check executed before the full gate:
+    - `php artisan test --filter="AdminCategoryCrudTest|AdminPromotionCouponFlowTest|AdminProductVariantsTest|AdminListFilteringTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — catalog numeric price sorting fix:
+  - fixed catalog product sorting by price in `app/Repositories/CatalogProductReadRepository.php` so `price_asc` and `price_desc` order by numeric value rather than lexical string order;
+  - aligned catalog variant projection ordering to numeric `price asc` so catalog cards expose the cheapest active variant first;
+  - added feature regression coverage in `tests/Feature/CatalogTest.php` for:
+    - product ordering `1, 2, 10, 20, 100` on `sort=price_asc`;
+    - reverse ordering on `sort=price_desc`;
+    - numeric variant ordering inside the catalog list payload.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — admin product read-model ordering hardening:
+  - audited admin products after the catalog numeric-price fix and confirmed that admin list/detail do not currently expose a public `sort=price_*` contract;
+  - hardened the actual admin-side risk by moving admin product detail loading onto `app/Repositories/AdminProductReadRepository.php` and standardizing the canonical admin eager-load shape for:
+    - `category:id,name,slug`;
+    - `variants` ordered by `id`;
+    - `variants.inventory` with explicit selected columns.
+  - updated `app/Application/Admin/Products/Queries/GetAdminProductDetailHandler.php` to consume the repository read boundary instead of loading relations ad hoc from the ORM model;
+  - added regression coverage in `tests/Feature/AdminProductVariantsTest.php` asserting that both `/api/v1/admin/products` and `/api/v1/admin/products/{product}` return variants in deterministic id order;
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="AdminProductVariantsTest|PerformanceSmokeTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 19` batch: infrastructure provider hygiene and container guardrails):
+  - split container bindings out of `app/Providers/AppServiceProvider.php` into dedicated provider modules:
+    - `app/Providers/ApplicationBindingsServiceProvider.php`;
+    - `app/Providers/AuthBindingsServiceProvider.php`;
+    - `app/Providers/GatewayServiceProvider.php`;
+    - `app/Providers/MaintenanceServiceProvider.php`;
+    - `app/Providers/ObservabilityServiceProvider.php`;
+  - reduced `app/Providers/AppServiceProvider.php` to boot-only application bootstrap wiring (policies + rate limiters);
+  - normalized provider bootstrap registration in `bootstrap/providers.php`;
+  - preserved existing gateway driver resolution semantics while moving them behind `GatewayServiceProvider`;
+  - preserved existing observability alert-router channel/cooldown wiring while moving it behind `ObservabilityServiceProvider`;
+  - added infrastructure provider architecture guardrail:
+    - `tests/Unit/Architecture/InfrastructureProviderBoundaryTest.php`.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="InfrastructureProviderBoundaryTest|GatewayDriverBindingTest|AuthFlowTest|ObservabilityAlertCheckCommandTest|AppMaintenanceCleanupCommandTest|AccountOrdersApiTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 20` batch: archive and documentation hygiene):
+  - normalized archival banners on historical plan documents so each explicitly forbids active-use drift and points to `docs/ARCHITECTURE_REFACTOR_NEXT.md`:
+    - `docs/ARCHITECTURE_REFACTOR_PLAN.md`;
+    - `docs/DEEP_REFACTORING_PLAN.md`;
+    - `docs/DTO_IMPLEMENTATION_PLAN.md`;
+    - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md`.
+  - normalized release and operational docs toward canonical aliases and active-roadmap references:
+    - `README.md`;
+    - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md`;
+    - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`.
+  - fixed residual documentation drift:
+    - stale numbering in checkout incident flow;
+    - duplicate raw quality/smoke command examples replaced with canonical composer aliases where aliases already exist;
+    - release checklist now references `ops:clear`, `ops:routes-smoke`, and `ops:observability-report`.
+  - added documentation authority guardrail:
+    - `tests/Unit/Architecture/DocumentationAuthorityGuardrailTest.php`.
+  - expanded existing docs guardrails:
+    - `tests/Unit/Architecture/OperationalDocsConfigGuardrailTest.php`;
+    - `tests/Unit/Architecture/ReleaseDocsWorkflowGuardrailTest.php`.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan test --filter="OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 21` batch: transport validation consistency):
+  - extracted catalog list validation from `app/Http/Controllers/Api/V1/CatalogController.php` into dedicated `app/Http/Requests/Catalog/CatalogIndexRequest.php`;
+  - catalog list transport parsing now uses typed request accessors:
+    - `CatalogIndexRequest::filter()`;
+    - `CatalogIndexRequest::perPage()`.
+  - extracted checkout place-order `Idempotency-Key` enforcement into transport middleware:
+    - `app/Http/Middleware/EnsureIdempotencyKeyMiddleware.php`;
+    - alias registration in `bootstrap/app.php`;
+    - route wiring in `routes/api.php`.
+  - removed inline idempotency-key validation from `app/Http/Controllers/Api/V1/CheckoutController.php`; controller now consumes `PlaceOrderRequest::idempotencyKey()`.
+  - added architecture guardrail:
+    - `tests/Unit/Architecture/ApiControllerValidationBoundaryTest.php`,
+    forbidding inline `->validate()` calls inside API V1 controllers.
+  - added deterministic feature coverage for:
+    - invalid catalog filters via FormRequest validation (`tests/Feature/CatalogTest.php`);
+    - missing checkout `Idempotency-Key` rejection (`tests/Feature/CartCheckoutTest.php`).
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="CatalogTest|CartCheckoutTest|GuestCheckoutTest|CheckoutAuthenticatedTokenTest|ApiControllerValidationBoundaryTest|PublicApiControllerArchitectureTest"`.
+  - checks executed in strict sequence, green:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — authenticated-user transport boundary hardening:
+  - strengthened `app/Http/Controllers/Concerns/ResolvesAuthenticatedUser.php` with:
+    - `resolveAuthenticatedUser()` for guest-capable endpoints;
+    - `requireAuthenticatedUser()` for auth-required API controller actions with centralized `401` API response handling.
+  - migrated auth-required API V1 controllers away from raw `$request->user()` and repeated inline unauthenticated responses:
+    - `app/Http/Controllers/Api/V1/Auth/AuthController.php`;
+    - `app/Http/Controllers/Api/V1/Auth/VerificationController.php`;
+    - `app/Http/Controllers/Api/V1/Account/AccountOrdersController.php`.
+  - added architecture guardrail:
+    - `tests/Unit/Architecture/ApiControllerAuthenticatedUserBoundaryTest.php`,
+    enforcing that API V1 controllers do not inline authenticated-user resolution or duplicate raw `Authentication is required.` responses.
+  - added deterministic feature coverage in:
+    - `tests/Feature/AuthFlowTest.php` for current-token revocation on logout;
+    - `tests/Feature/AccountOrdersApiTest.php` for unauthenticated account-orders rejection.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="AuthFlowTest|AccountOrdersApiTest|EmailVerificationTest|ProfileUpdateTest|ApiControllerAuthenticatedUserBoundaryTest|PublicApiControllerArchitectureTest"`.
+  - mandatory sequential quality gate and route smoke-check executed after this block:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 22` batch: frontend price formatting and utility consolidation):
+  - added canonical currency-aware formatter:
+    - `resources/js/utils/format.ts` (`formatPrice(value, currency?, locale?)`).
+  - normalized legacy formatter path:
+    - `resources/js/utils/order-presentation.ts` `formatMoney(...)` now delegates to the canonical formatter instead of keeping a second implementation.
+  - removed raw `Number(value).toFixed(2)` duplication from:
+    - `resources/js/components/cart/CartSummaryHeader.vue`;
+    - `resources/js/components/cart/CartItemsTable.vue`;
+    - `resources/js/pages/CatalogPage.vue`;
+    - `resources/js/pages/ProductPage.vue`.
+  - aligned cart/catalog/product UI contracts with currency-aware formatting:
+    - `resources/js/pages/CartPage.vue` now passes cart currency into cart presentational components;
+    - `resources/js/components/catalog/CatalogProductCard.vue` and `resources/js/components/product/ProductPurchaseCard.vue` no longer append duplicate currency text outside the shared formatter.
+  - normalized view-model formatting call sites to use the canonical utility:
+    - `resources/js/composables/account/profile/useAccountProfileViewModel.ts`;
+    - `resources/js/composables/account/orders/useAccountOrdersViewModel.ts`;
+    - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`.
+  - added test seams for catalog composables by allowing injected route/router adapters:
+    - `resources/js/composables/useCatalogProducts.ts`;
+    - `resources/js/composables/useCatalogProduct.ts`.
+  - added deterministic frontend regression coverage:
+    - `resources/js/tests/utils/format.spec.ts`;
+    - `resources/js/tests/composables/use-catalog-products.spec.ts`;
+    - `resources/js/tests/composables/use-catalog-product.spec.ts`;
+    - extended `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`;
+    - extended `resources/js/tests/composables/use-auth-page-view-model.spec.ts`;
+    - extended cart/catalog/product component contract tests for canonical price rendering.
+  - assessed `CartItemsTable` / `OrderItemsTable` extraction and explicitly deferred it because current responsibilities still diverge materially:
+    - cart table owns quantity mutation controls, removal actions, and checkout CTA;
+    - order table remains read-only detail presentation.
+  - targeted regression checks executed before the full gate:
+    - `npm run test -- resources/js/tests/utils/format.spec.ts resources/js/tests/composables/use-catalog-products.spec.ts resources/js/tests/composables/use-catalog-product.spec.ts resources/js/tests/composables/use-checkout-page-view-model.spec.ts resources/js/tests/composables/use-auth-page-view-model.spec.ts resources/js/tests/components/cart/cart-component-contracts.spec.ts resources/js/tests/components/catalog/catalog-component-contracts.spec.ts resources/js/tests/components/product/product-component-contracts.spec.ts`;
+    - `npm run type-check`.
+  - mandatory sequential quality gate and route smoke-check executed after this block:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 23` batch: static analysis hardening):
+  - eliminated the PHPStan level 6 baseline completely:
+    - removed `phpstan-baseline.neon`;
+    - `phpstan.neon` now includes only Larastan extension wiring and level-6 paths.
+  - fixed source typing instead of carrying suppressions:
+    - webhook gateway contracts and fake drivers now document typed payload arrays;
+    - Eloquent model relation/factory/key-type generics tightened across the model layer;
+    - dead `instanceof` branches removed from strongly typed service/repository paths;
+    - `Order::hasCapturedPayment()` introduced so payment-state checks stop relying on loose transport strings.
+  - removed dead transport/testing artifacts that no longer belong after DTO transport migration:
+    - `app/Http/Resources/OrderResource.php`;
+    - `app/Http/Resources/OrderSummaryResource.php`;
+    - `app/Http/Resources/ProductResource.php`;
+    - `app/Http/Resources/PromotionResource.php`;
+    - `tests/Unit/ExampleTest.php`.
+  - added architecture guardrail:
+    - `tests/Unit/Architecture/LegacyTransportResourceArtifactGuardrailTest.php`,
+    asserting `app/Http/Resources` stays empty of PHP artifacts.
+  - PHPStan level 7 feasibility snapshot recorded after level-6 cleanup:
+    - remaining blocker set: `55` errors;
+    - dominant identifiers:
+      - `method.nonObject` (`35`);
+      - `property.notFound` (`6`);
+      - `method.notFound` (`5`);
+      - `return.type` (`5`);
+      - `argument.type` (`3`);
+      - `assign.propertyType` (`1`).
+    - dominant files:
+      - `tests/Feature/ObservabilityReportCommandTest.php` (`11`);
+      - `tests/Feature/ObservabilityAlertCheckCommandTest.php` (`8`);
+      - `tests/Feature/PaymentWebhookTest.php` (`5`);
+      - `tests/Feature/WebhookFlowSmokeCommandTest.php` (`4`);
+      - `tests/Feature/ApiContractSmokeCommandTest.php` (`4`);
+      - `tests/Feature/PerformanceSmokeCommandTest.php` (`3`);
+      - `tests/Feature/AppMaintenanceCleanupCommandTest.php` (`3`);
+      - `tests/Feature/MaintenanceCleanupSchemaSupportTest.php` (`3`);
+      - `tests/Feature/OncallDrillSmokeCommandTest.php` (`3`).
+  - targeted regression checks executed before closing the block:
+    - `php artisan test --filter="LegacyTransportResourceArtifactGuardrailTest|CartResultMapperTest|GatewayDriverBindingTest|PaymentWebhookTest|ShippingWebhookTest|AppMaintenanceCleanupCommandTest|MaintenanceCleanupSchemaSupportTest|ObservabilityReportCommandTest|ObservabilityAlertCheckCommandTest|WebhookFlowSmokeCommandTest|ApiContractSmokeCommandTest|PerformanceSmokeCommandTest|OncallDrillSmokeCommandTest"`;
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+  - mandatory sequential quality gate executed after this block:
+    - `composer run lint` (initially failed on four local style regressions in `DispatchShipmentJob`, `User`, `CartResultMapper`, `CheckoutCartPreparer`; fixed via `vendor/bin/pint` and rerun green);
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 24` batch: architecture guardrail expansion):
+  - expanded repository boundary guardrails with:
+    - `tests/Unit/Architecture/RepositoryBusinessDecisionBoundaryTest.php`,
+    asserting read repositories:
+      - do not depend on authorization, transition-policy, or business-outcome boundaries;
+      - do not return boolean business decisions.
+  - added queued side-effect safety guardrail:
+    - `tests/Unit/Architecture/QueuedJobSafetyGuardrailTest.php`,
+    asserting:
+      - committed side-effect dispatch paths use `afterCommit()`;
+      - queued jobs keep scalar-or-array constructor payloads instead of Eloquent models/services;
+      - webhook processing jobs preserve prevalidated `eventId` identity across the queue boundary.
+  - added policy completeness guardrail:
+    - `tests/Unit/Architecture/PolicyCompletenessMatrixGuardrailTest.php`,
+    asserting:
+      - all route-bound policy models resolve to registered Gate mappings;
+      - policies implement the actions currently exercised by routes and FormRequests;
+      - those policy methods keep explicit `bool` return types.
+  - active roadmap synchronized to mark `Wave 24` completed and close the former repository/jobs/policy guardrail gap:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+  - targeted regression checks executed before closing the block:
+    - `php artisan test --filter="RepositoryBusinessDecisionBoundaryTest|QueuedJobSafetyGuardrailTest|PolicyCompletenessMatrixGuardrailTest|RepositoryReadBoundaryTest|RepositoryStatusInterpretationGuardrailTest|AfterCommitDispatchSafetyTest|AdminPolicyMatrixTest"`.
+  - mandatory sequential quality gate executed after this block:
+    - `composer run lint` (initially failed on two unused imports in the new guardrail tests; fixed and rerun green);
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+- `2026-03-01` — post-wave type-safety hardening (`PHPStan level 7 upgrade`):
+  - added shared typed console helper in `tests/TestCase.php`:
+    - `artisanCommand(...)` now returns `Illuminate\Testing\PendingCommand`, removing `PendingCommand|int` ambiguity from fluent command assertions.
+  - migrated command-heavy feature tests to the typed helper:
+    - `tests/Feature/ObservabilityReportCommandTest.php`;
+    - `tests/Feature/ObservabilityAlertCheckCommandTest.php`;
+    - `tests/Feature/ApiContractSmokeCommandTest.php`;
+    - `tests/Feature/WebhookFlowSmokeCommandTest.php`;
+    - `tests/Feature/PerformanceSmokeCommandTest.php`;
+    - `tests/Feature/OncallDrillSmokeCommandTest.php`;
+    - `tests/Feature/AppMaintenanceCleanupCommandTest.php`.
+  - tightened remaining level 7 typing gaps across tests and support code:
+    - typed `AnonymousNotifiable` route assertion in `tests/Feature/ObservabilityAlertCheckCommandTest.php`;
+    - deterministic model retrieval/narrowing in `tests/Feature/PaymentWebhookTest.php` and `tests/Feature/ShippingWebhookTest.php`;
+    - typed row-value access in `tests/Feature/MaintenanceCleanupSchemaSupportTest.php`;
+    - class-string narrowing in `tests/Unit/Architecture/ApplicationDtoBoundaryTest.php` and `tests/Unit/Architecture/ServiceDtoBoundaryTest.php`;
+    - list normalization in `tests/Unit/Architecture/OperationalSchedulerWiringGuardrailTest.php`;
+    - positive-id policy test typing in `tests/Unit/Policies/AdminPolicyMatrixTest.php`.
+  - tightened remaining application-level object-shape spots:
+    - route-model narrowing helpers in:
+      - `app/Http/Requests/Admin/CategoryUpdateRequest.php`;
+      - `app/Http/Requests/Admin/ProductUpdateRequest.php`;
+      - `app/Http/Requests/Admin/PromotionUpdateRequest.php`.
+    - payload merge normalization in:
+      - `app/Services/Payment/PaymentWebhookTransitionApplier.php`;
+      - `app/Services/Shipping/ShippingWebhookTransitionApplier.php`.
+    - list return normalization in:
+      - `app/Support/Maintenance/Resources/AbstractBatchedMaintenanceCleanupResource.php`.
+  - static-analysis baseline raised:
+    - `phpstan.neon` upgraded from level `6` to level `7`.
+  - verification snapshot after fixes:
+    - `php vendor/bin/phpstan analyse --memory-limit=1G --level=7 --error-format=json` returned `EXIT=0` and `TOTAL_ERRORS=0`.
+  - targeted regression checks executed before the full gate:
+    - `php artisan test --filter="ObservabilityReportCommandTest|ObservabilityAlertCheckCommandTest|ApiContractSmokeCommandTest|WebhookFlowSmokeCommandTest|PerformanceSmokeCommandTest|OncallDrillSmokeCommandTest|AppMaintenanceCleanupCommandTest|PaymentWebhookTest|ShippingWebhookTest|MaintenanceCleanupSchemaSupportTest|ApplicationDtoBoundaryTest|ServiceDtoBoundaryTest|OperationalSchedulerWiringGuardrailTest|AdminPolicyMatrixTest"`;
+    - `php vendor/bin/phpstan analyse --memory-limit=1G --level=7 --error-format=json`.
+  - mandatory sequential quality gate executed after this block:
+    - `composer run lint`;
+    - `composer run analyse` (now green at PHPStan level `7`);
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-01` — post-wave strict type hardening (`PHPStan level 8 upgrade`):
+  - tightened remaining level 8 nullable/return-type gaps in application and service code:
+    - `app/Application/Auth/Support/AuthUserDtoMapper.php`;
+    - `app/Application/Checkout/Dto/CheckoutPaymentResultDto.php`;
+    - `app/Services/Admin/AdminCatalogService.php`;
+    - `app/Services/Admin/AdminCategoryService.php`;
+    - `app/Services/Admin/AdminOrderService.php`;
+    - `app/Services/Cart/CartMutationService.php`;
+    - `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`.
+  - tightened remaining level 8 unit-test typing gap in:
+    - `tests/Unit/Admin/AdminVariantPriceSyncServiceTest.php`.
+  - static-analysis baseline raised again:
+    - `phpstan.neon` upgraded from level `7` to level `8`.
+  - verification snapshot after fixes:
+    - `php vendor/bin/phpstan analyse --memory-limit=1G --level=8 --error-format=json` returned `EXIT=0` and `TOTAL_ERRORS=0`.
+  - targeted regression slice passed for:
+    - `php artisan test --filter="AuthFlowTest|CartCheckoutTest|AdminProductVariantsTest|AdminPromotionCouponFlowTest|AdminCategoryCrudTest|AdminOrderSummaryContractTest|AdminVariantPriceSyncServiceTest|WebhookFlowSmokeCommandTest|PaymentWebhookTest|ShippingWebhookTest|ApiContractSmokeCommandTest|PerformanceSmokeCommandTest|OncallDrillSmokeCommandTest|ObservabilityReportCommandTest|ObservabilityAlertCheckCommandTest|AppMaintenanceCleanupCommandTest"`.
+  - full sequential quality gate passed:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-01` — post-wave strict type hardening (`PHPStan level 9 upgrade`):
+  - introduced shared strict-typing normalization in:
+    - `app/Support/Data/TypedValue.php`;
+    - `tests/TestCase.php`.
+  - tightened remaining mixed-cast, payload-shape, config, repository eager-load, smoke-scenario, and guardrail typing gaps across:
+    - `app/Application/*` DTO read/write boundaries;
+    - `app/Http/Requests/*` transport normalization;
+    - `app/Infrastructure/*` fake gateway adapters;
+    - `app/Repositories/*` eager-load relation typing;
+    - `app/Services/*` checkout/payment/shipping/catalog strict-value resolution;
+    - `app/Support/*` maintenance, observability, smoke, and scheduler helpers;
+    - `routes/console.php`;
+    - `tests/Feature/*`, `tests/Unit/*`, and architecture guardrails.
+  - static-analysis baseline raised again:
+    - `phpstan.neon` upgraded from level `8` to level `9`.
+  - verification snapshot after fixes:
+    - `php vendor/bin/phpstan analyse --memory-limit=1G --level=9 --error-format=json` returned `EXIT=0` and `TOTAL_ERRORS=0`.
+  - final post-verification hardening restored nullable transport/config boundaries without weakening the shared helper globally:
+    - `app/Services/Cart/CartResultMapper.php`;
+    - `app/Support/Smoke/SmokeExecutionOptionsResolver.php`;
+    - `app/Support/Observability/ObservabilityReportOptionsResolver.php`;
+    - `app/Support/Observability/ObservabilityReportCommandInvocationFactory.php`.
+  - targeted regression slice passed after the nullable-boundary fix:
+    - `php artisan test --filter="CartResultMapperTest|ObservabilityReportCommandTest|ApiContractSmokeCommandTest|OncallDrillSmokeCommandTest"`.
+  - full mandatory sequential quality gate passed after the final fix:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`;
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-01` — phpstan config alignment correction:
+  - investigated a mismatch between docs/log claims and the actual working-tree config:
+    - `phpstan.neon` was still pinned at level `8`;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` and this execution log already claimed level `9`;
+    - direct verification with `php vendor/bin/phpstan analyse --memory-limit=1G --level=9 --error-format=table` returned `0` errors.
+  - root cause:
+    - the codebase had been hardened to pass level `9`, but the config file itself had not been persisted from level `8` to level `9`.
+  - corrective action:
+    - `phpstan.neon` updated from level `8` to level `9` so the checked-in config now matches the validated and documented state.

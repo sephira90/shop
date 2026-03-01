@@ -20,11 +20,11 @@ Runbook for production incidents affecting checkout flow and webhook processing:
 
 1. Baseline health:
 ```bash
-php artisan app:healthcheck
+composer run ops:healthcheck
 ```
 2. API contract sanity:
 ```bash
-php artisan app:api-contract-smoke
+composer run ops:api-contract-smoke
 ```
 Targeted contract isolation:
 ```bash
@@ -32,7 +32,7 @@ php artisan app:api-contract-smoke --only=payment_webhook
 ```
 3. End-to-end webhook chain:
 ```bash
-php artisan app:webhook-flow-smoke
+composer run ops:webhook-flow-smoke
 ```
 Persistent production-safe write validation (only with explicit approval):
 ```bash
@@ -40,7 +40,7 @@ php artisan app:webhook-flow-smoke --persist
 ```
 4. SLO snapshot (blocking thresholds):
 ```bash
-php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples
+composer run ops:observability-report
 ```
 5. Targeted performance localization:
 ```bash
@@ -63,8 +63,8 @@ If steps 2-4 fail, incident is `SEV-1/SEV-2` for checkout/webhooks.
 2. Verify DB/queue/cache connectivity.
 3. Re-run `app:api-contract-smoke` after infra mitigation.
 4. Use `app:api-contract-smoke --only=payment_webhook` or `--only=shipping_webhook` to isolate transport-contract regressions faster.
-4. Validate order placement path manually with one safe test checkout.
-5. Keep checkout open only after smoke checks are green.
+5. Validate order placement path manually with one safe test checkout.
+6. Keep checkout open only after smoke checks are green.
 
 ## Webhook Incident Flow
 
@@ -133,6 +133,8 @@ Execute cleanup:
 ```bash
 php artisan app:maintenance-cleanup
 ```
+
+Cleanup output reports per-resource `matched`, `batches`, and deleted/would-delete totals. Batch size is config-driven via `config/cleanup.php` (`cleanup.batch_size`, default `500`).
 
 Override retention only as incident mitigation (with approval):
 ```bash

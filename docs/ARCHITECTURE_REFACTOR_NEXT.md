@@ -1,6 +1,6 @@
 # Architecture Refactor Next (Architecture-First)
 
-Date: `2026-02-27`
+Date: `2026-03-01`
 Status: `Active`
 Priority mode: `Architecture-first`
 
@@ -12,13 +12,29 @@ Priority mode: `Architecture-first`
 
 ## Summary
 
-DTO migration is completed, but architecture still has critical structural gaps:
+DTO migration and the first refactor waves are completed, and the March 1 execution program is now materially closed for the current wave set:
 
-- high business-logic concentration in large services,
-- frontend structural duplication and composable layering debt remain in admin flows,
-- incomplete architectural guardrails against regressions.
+- PHPStan now runs clean at level 9 without `phpstan-baseline.neon`;
+- repository, queued side-effect, and policy completeness guardrails now protect the intended architecture boundaries for the current codebase.
 
 Goal of this program: close those gaps without breaking `/api/v1/*` response envelope (`data/meta/error`) and with strict quality-gate enforcement after each logical block.
+
+## Architectural Strengths To Preserve
+
+1. Application layer already follows CQRS with typed DTO return boundaries; handlers must not regress to ORM, paginator, or resource return types.
+2. API V1 controllers are transport-only shells; business logic must not move back into controllers.
+3. Checkout and cart orchestration has already been decomposed into focused collaborators and should evolve by composition, not by re-collapsing into larger services.
+4. Admin frontend flows already use decomposed composables and shared mutation pipelines; new work should extend those primitives instead of reintroducing page-local logic.
+5. Payment and shipping webhooks already follow a unified ingress -> transition -> orchestration pattern; future changes must preserve parity.
+6. Architecture guardrails are a first-class mechanism in this repository; each new boundary introduced by Waves 15-24 must extend guardrail coverage instead of relying on convention only.
+
+## Audit Snapshot (`2026-03-01`)
+
+1. CQRS boundaries are established across the application layer and typed DTO returns are already the dominant contract style.
+2. API V1 controllers are consistently thin and transport-focused; no controller currently acts as a business-logic sink.
+3. Checkout/cart decomposition is already at orchestration level, with focused collaborators for discounting, idempotency, inventory, writing, and finalization.
+4. Frontend admin pages already operate on decomposed filter/list/detail/form/mutation responsibilities with shared mutation pipelines.
+5. Webhook processing, transition policies, CI quality gates, and production smoke flows are already materially stronger than typical Laravel baselines.
 
 ## Execution Progress
 
@@ -422,13 +438,266 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
      - release/CI guardrails added:
        - `tests/Unit/Architecture/ReleaseCommandScriptGuardrailTest`,
        - `tests/Unit/Architecture/ReleaseDocsWorkflowGuardrailTest`.
+16. Deep audit completed (`2026-03-01`):
+   - full-project architecture audit covering backend (`app/`), frontend (`resources/js/`), tests (`tests/`), CI/DevOps, PHPStan baseline, and configuration;
+   - active roadmap reprioritized around four tiers:
+     - tier 1 (domain boundary): account orders extraction, category selector decoupling, maintenance cleanup resource strategy, provider boundary split;
+     - tier 2 (transport/convention): `CatalogController` inline validation;
+     - tier 3 (frontend parity): `formatPrice` 7+ location duplication, missing catalog/checkout/auth composable tests;
+     - tier 4 (safety/guardrails): PHPStan 562-line baseline reduction, repository/jobs/policy architecture guardrail expansion;
+   - new waves added: Wave 21 (transport validation consistency), Wave 22 (frontend price formatting and utility consolidation), Wave 23 (static analysis hardening), Wave 24 (architecture guardrail expansion);
+   - targeted regression checks confirmed current behavior remains green before planning the next execution block:
+     - `php artisan test --filter="AppMaintenanceCleanupCommandTest|AccountOrdersApiTest|AdminCategoryCrudTest"`;
+     - `npm run test -- resources/js/tests/composables/use-account-orders.spec.ts resources/js/tests/queries/account-orders-query.spec.ts resources/js/tests/queries/admin/categories-query.spec.ts resources/js/tests/composables/admin/use-admin-categories-list-state.spec.ts`.
 
 ## Confirmed Findings
 
-1. Critical large-service overloads tracked by the active roadmap are now closed.
-2. Frontend structural debt in admin flows is now reduced below primary architectural concern; remaining items are governance/guardrail level, not boundary-rescue work.
-3. Operational command boundaries and source-of-truth drift now have automated guardrails.
-4. No large command-shell concentration remains in active operational tooling; remaining work is documentation/archive hygiene and residual operational cleanup, not boundary-rescue work.
+1. PHPStan now runs clean at level 9 without a baseline file; any further static-analysis tightening is a separate level 10 feasibility decision, not current roadmap debt.
+2. Architecture guardrails now cover repositories, queued side-effect dispatch paths, and policy completeness; the former roadmap gaps for repository/jobs/policy boundary protection are closed.
+
+8. Wave 15 completed (account orders module extraction and read-model split):
+   - account-order read transport extracted from `CheckoutController` into `App\Http\Controllers\Api\V1\Account\AccountOrdersController`;
+   - canonical account endpoints added:
+     - `GET /api/v1/account/orders`,
+     - `GET /api/v1/account/orders/{order}`,
+     - `GET /api/v1/account/orders/summary`;
+   - legacy aliases preserved:
+     - `GET /api/v1/orders/me`,
+     - `GET /api/v1/orders/me/summary`;
+   - account read application layer moved into `App\Application\Account\Orders\*` with explicit query handlers, DTOs, and `AccountOrderReadRepository` contract;
+   - account read persistence extracted to `App\Repositories\AccountOrderReadRepository`;
+   - account list payload now uses summary-only canonical read-model with explicit detail endpoint;
+   - frontend account orders migrated to summary list + lazy detail loading with stale-response suppression and shared route-query schema helper;
+   - duplicated authenticated-user resolution extracted into shared controller concern;
+   - deterministic backend/frontend coverage added for:
+     - canonical summary list shape,
+     - owner-scoped detail loading,
+     - stale detail response suppression,
+     - legacy alias backward compatibility.
+9. Wave 16 completed (category selector decoupling and shared option query):
+   - dedicated selector endpoint added:
+     - `GET /api/v1/admin/categories/options`;
+   - selector-specific backend read-model introduced via:
+     - `AdminCategoryOptionListFilterDto`,
+     - `AdminCategoryOptionResultDto`,
+     - `AdminCategoryOptionsResultDto`,
+     - `ListAdminCategoryOptionsQuery/Handler`,
+     - `CategoryRepository::listOptionsForAdmin()`;
+   - frontend category selector loading centralized into shared:
+     - `resources/js/api/admin/categories.ts` (`listAdminCategoryOptions`);
+     - `resources/js/composables/admin/categories/useAdminCategoryOptionsState.ts`;
+   - admin category parent selector and admin product category selector now share the same options source and no longer depend on paginated management-list payloads or all-pages traversal;
+   - deterministic backend/frontend coverage added for:
+     - selector ordering,
+     - `exclude_id` handling,
+     - stale options response suppression,
+     - shared reuse across category and product admin flows.
+10. Wave 17 completed (maintenance cleanup resource strategy and scale safety):
+   - cleanup plan and resource boundaries introduced:
+     - `MaintenanceCleanupPlanFactory`,
+     - `MaintenanceCleanupResource` contract,
+     - `CheckoutIdempotencyCleanupResource`,
+     - `WebhookReceiptCleanupResource`,
+     - `ActiveCartCleanupResource`,
+     - `InactiveCartCleanupResource`;
+   - `MaintenanceCleanupExecutor` reduced to orchestration over typed cleanup plan/resources;
+   - cleanup execution now uses deterministic batched deletion with config-driven `cleanup.batch_size`;
+   - cleanup result reporting expanded with per-resource batch counts and aggregate totals;
+   - additive index support added for cleanup predicates:
+     - `carts(status, updated_at)`,
+     - `webhook_receipts(created_at)`;
+   - deterministic coverage added for:
+     - cleanup plan order/cutoffs,
+     - batched execution accounting,
+     - cleanup schema index support,
+     - command output/reporting contract.
+11. Wave 18 completed (read repository boundary split and product write decomposition):
+   - mixed read repositories split into bounded read paths:
+     - `AdminOrderReadRepository`,
+     - `AdminProductReadRepository`,
+     - `CatalogProductReadRepository`;
+   - legacy mixed-context repository classes removed:
+     - `OrderRepository`,
+     - `ProductRepository`;
+   - account-order summary status interpretation extracted out of repository layer into:
+     - `AccountOrderSummaryAggregateDto`,
+     - `AccountOrderSummaryStatusGroupDto`,
+     - `AccountOrderSummaryProjector`;
+   - duplicated admin/account order search filter logic centralized into shared repository concern:
+     - `App\Repositories\Concerns\AppliesOrderSearch`;
+   - `AdminCatalogService` reduced to transaction orchestration over explicit collaborators:
+     - `AdminProductVariantResolver`,
+     - `AdminProductVariantSyncService`,
+     - `AdminVariantInventorySyncService`,
+     - `AdminVariantPriceSyncService`;
+   - repository architecture guardrails added for:
+     - bounded read-context file split,
+     - no derived account-order status semantics inside repositories;
+   - deterministic unit coverage added for:
+     - account-order summary projection,
+     - admin product variant resolution and SKU collision rules,
+     - variant sync stale-deletion behavior,
+     - inventory and price upsert collaborators.
+12. Wave 19 completed (infrastructure provider hygiene and container guardrails):
+   - `AppServiceProvider` reduced to boot-only application bootstrap responsibilities (policies + rate limiters);
+   - container bindings split into dedicated provider modules:
+     - `ApplicationBindingsServiceProvider`,
+     - `AuthBindingsServiceProvider`,
+     - `GatewayServiceProvider`,
+     - `MaintenanceServiceProvider`,
+     - `ObservabilityServiceProvider`;
+   - gateway driver resolution moved into `GatewayServiceProvider` with existing `payment.driver` / `shipping.driver` semantics preserved;
+   - observability alert-router binding moved into `ObservabilityServiceProvider` with existing channel and cooldown wiring preserved;
+   - provider bootstrap registration normalized in `bootstrap/providers.php` so concern-specific providers load explicitly rather than accumulating in one global provider;
+   - infrastructure architecture guardrail added:
+     - `tests/Unit/Architecture/InfrastructureProviderBoundaryTest`,
+     covering:
+       - specialized provider registration,
+       - `AppServiceProvider` bootstrap-only constraint,
+       - ownership of `register()` logic by specialized providers.
+13. Wave 20 completed (archive and documentation hygiene):
+   - archived plan documents normalized with explicit non-authoritative banners that point back to `docs/ARCHITECTURE_REFACTOR_NEXT.md`:
+     - `docs/ARCHITECTURE_REFACTOR_PLAN.md`,
+     - `docs/DEEP_REFACTORING_PLAN.md`,
+     - `docs/DTO_IMPLEMENTATION_PLAN.md`,
+     - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md`;
+   - release and operational docs normalized toward canonical aliases:
+     - `README.md`,
+     - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md`,
+     - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
+   - residual docs drift fixed:
+     - stale numbering in checkout incident flow,
+     - duplicate raw quality/smoke command examples reduced in favor of canonical composer aliases,
+     - release checklist now references `ops:clear`, `ops:routes-smoke`, and `ops:observability-report`;
+   - documentation authority guardrails added:
+     - `tests/Unit/Architecture/DocumentationAuthorityGuardrailTest`,
+     covering:
+       - explicit archival banners on historical plan files,
+       - non-authoritative banner on `docs/REFACTORING_EXECUTION_PLAN.md`;
+   - existing docs guardrails expanded so release/operational docs stay aligned with:
+     - the active roadmap,
+     - canonical release/ops aliases.
+14. Wave 21 completed (transport validation consistency):
+   - `CatalogController::index()` migrated from inline `$request->validate()` to dedicated `CatalogIndexRequest`;
+   - catalog list transport parsing now lives behind:
+     - `app/Http/Requests/Catalog/CatalogIndexRequest.php`,
+     with typed `filter()` and `perPage()` accessors;
+   - checkout `Idempotency-Key` enforcement extracted out of `CheckoutController::placeOrder()` into:
+     - `app/Http/Middleware/EnsureIdempotencyKeyMiddleware.php`,
+     wired via `bootstrap/app.php` alias and applied on `POST /api/v1/checkout/place-order`;
+   - `PlaceOrderRequest` now exposes normalized header parsing through a typed accessor instead of controller-level inline header validation;
+   - architecture guardrail added:
+     - `tests/Unit/Architecture/ApiControllerValidationBoundaryTest`,
+     forbidding inline `->validate()` calls inside API V1 controllers;
+   - deterministic feature coverage added for:
+     - invalid catalog filter rejection through FormRequest validation,
+     - missing `Idempotency-Key` rejection before checkout controller execution.
+15. Shared authenticated-user transport boundary hardened:
+   - `app/Http/Controllers/Concerns/ResolvesAuthenticatedUser.php` now exposes:
+     - `resolveAuthenticatedUser()` for guest-capable flows,
+     - `requireAuthenticatedUser()` for auth-required controller actions with centralized `401` API response handling;
+   - auth-required API V1 controllers migrated away from raw `$request->user()` and repeated inline unauthenticated responses:
+     - `app/Http/Controllers/Api/V1/Auth/AuthController.php`,
+     - `app/Http/Controllers/Api/V1/Auth/VerificationController.php`,
+     - `app/Http/Controllers/Api/V1/Account/AccountOrdersController.php`;
+   - architecture guardrail added:
+     - `tests/Unit/Architecture/ApiControllerAuthenticatedUserBoundaryTest`,
+     forbidding inline authenticated-user resolution and repeated raw `Authentication is required.` transport responses inside API V1 controllers;
+   - deterministic regression coverage added for:
+     - account orders auth requirement,
+     - auth logout token revocation.
+16. Wave 22 completed (frontend price formatting and utility consolidation):
+   - canonical frontend money formatting centralized in:
+     - `resources/js/utils/format.ts` (`formatPrice(value, currency?, locale?)`);
+   - legacy `formatMoney(...)` now delegates to the canonical formatter, keeping existing order/account/admin callers backward-compatible while removing duplicate formatter implementations;
+   - raw `Number(value).toFixed(2)` duplication removed from:
+     - `resources/js/components/cart/CartSummaryHeader.vue`,
+     - `resources/js/components/cart/CartItemsTable.vue`,
+     - `resources/js/pages/CatalogPage.vue`,
+     - `resources/js/pages/ProductPage.vue`;
+   - catalog/product presentational contracts aligned with canonical currency-aware formatting so price labels no longer duplicate trailing currency codes in the template layer;
+   - catalog composables gained explicit test seams via injected route/router adapters:
+     - `useCatalogProducts({ route, router })`,
+     - `useCatalogProduct({ route })`;
+   - deterministic composable coverage added for:
+     - `useCatalogProducts`,
+     - `useCatalogProduct`,
+     - additional error-path coverage in `useCheckoutPageViewModel`,
+     - additional error-path coverage in `useAuthPageViewModel`;
+   - `CartItemsTable` / `OrderItemsTable` structural extraction was assessed and intentionally deferred because the shared surface is currently smaller than their divergent interaction responsibilities (editable cart controls vs read-only order presentation).
+17. Wave 23 completed (static analysis hardening):
+   - PHPStan level 6 baseline eliminated completely:
+     - `phpstan.neon` no longer includes `phpstan-baseline.neon`;
+     - `phpstan-baseline.neon` removed from the repository.
+   - stale suppression debt removed by fixing source typing instead of carrying ignores:
+     - gateway webhook payload contracts documented as typed payload arrays;
+     - model relation, factory, and key-type generics tightened across Eloquent models;
+     - repository and service branches simplified after stronger typing made dead `instanceof` guards obsolete;
+     - `Order::hasCapturedPayment()` introduced so payment-state checks stop relying on loose string access.
+   - dead transport artifacts removed:
+     - legacy `app/Http/Resources/*Resource.php` files deleted;
+     - low-value `tests/Unit/ExampleTest.php` removed.
+   - new architecture guardrail added:
+     - `tests/Unit/Architecture/LegacyTransportResourceArtifactGuardrailTest`,
+     preventing `app/Http/Resources` drift from reappearing after the DTO transport migration.
+   - PHPStan level 7 feasibility explicitly assessed:
+     - current blocker set measured at `55` errors;
+     - dominant cluster is feature-command test typing (`Observability*`, smoke-command, webhook, and cleanup command tests);
+     - secondary cluster is a small number of object-shape/non-object access spots in requests, maintenance batching, and a few architecture tests.
+18. Wave 24 completed (architecture guardrail expansion):
+   - repository boundary protection expanded with:
+     - `tests/Unit/Architecture/RepositoryBusinessDecisionBoundaryTest`,
+     forbidding read repositories from depending on authorization, transition-policy, or business-outcome boundaries and from returning boolean business decisions.
+   - queued side-effect safety guardrail added:
+     - `tests/Unit/Architecture/QueuedJobSafetyGuardrailTest`,
+     covering:
+       - `afterCommit()` usage on committed side-effect dispatch paths;
+       - scalar-or-array queue payload discipline for queued jobs;
+       - preservation of prevalidated webhook event identity across the queue boundary.
+   - policy completeness matrix guardrail added:
+     - `tests/Unit/Architecture/PolicyCompletenessMatrixGuardrailTest`,
+     covering:
+       - Gate registration for all route-bound policy models;
+       - presence of the actions currently exercised by routes and FormRequests;
+       - explicit `bool` return types on those policy methods.
+   - existing repository and policy tests remain complementary:
+     - `RepositoryReadBoundaryTest`,
+     - `RepositoryStatusInterpretationGuardrailTest`,
+     - `AdminPolicyMatrixTest`.
+19. Post-wave type-safety hardening completed:
+   - test console typing hardened through a shared typed command helper in `tests/TestCase.php`, removing `PendingCommand|int` ambiguity from command feature tests;
+   - feature and unit tests tightened for:
+     - webhook order/shipment retrieval return shapes,
+     - anonymous notification routing typing,
+     - scheduler command list typing,
+     - architecture allowlist class-string extraction,
+     - maintenance schema row access.
+   - request and service narrowings completed for remaining level 7 object-shape spots:
+     - typed route-model helpers in admin update FormRequests;
+     - normalized persisted webhook payload merge inputs in payment/shipping transition appliers;
+     - list normalization in batched maintenance cleanup resources.
+   - static-analysis config upgraded:
+     - `phpstan.neon` raised from level `6` to level `7`.
+   - verification result:
+     - PHPStan level 7 now reports `0` errors across `app/`, `routes/`, and `tests/`.
+20. Post-wave strict type hardening completed:
+   - remaining level 8 nullable/return-type gaps closed across application and service paths:
+     - `AuthUserDtoMapper` string normalization for nullable profile fields;
+     - `CheckoutPaymentResultDto` transaction-id normalization;
+     - non-null refresh/load return paths in admin catalog/category/order services and cart mutation service;
+     - explicit smoke-scenario guards for payment transaction and shipment tracking identifiers;
+     - strict unit-test narrowing in admin variant price sync coverage.
+   - static-analysis config upgraded again:
+     - `phpstan.neon` raised from level `7` to level `8`.
+   - verification result:
+     - PHPStan level 8 now reports `0` errors across `app/`, `routes/`, and `tests/`.
+21. Post-wave strict type hardening continued:
+   - remaining level 9 mixed-cast, payload-shape, config, repository eager-load, smoke, and test helper gaps were closed across application, support, and test layers;
+   - shared strict-typing helpers now centralize scalar and payload normalization in `App\Support\Data\TypedValue`;
+   - static-analysis config upgraded again:
+     - `phpstan.neon` raised from level `8` to level `9`.
+   - verification result:
+     - PHPStan level 9 now reports `0` errors across `app/`, `routes/`, and `tests/`.
 
 ## Locked Constraints
 
@@ -442,6 +711,20 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
    - add deterministic tests for transition/rule matrix,
    - update execution log with checks run.
 
+## Program Posture
+
+1. This roadmap is a strengthening program, not a rescue rewrite.
+2. Completed waves are presumed correct unless concrete regression evidence appears.
+3. New waves must preserve current strong patterns and extend them into lagging layers.
+4. Simplification that removes explicit boundaries, DTOs, handlers, orchestration shells, or guardrails is out of scope.
+
+## Non-Goals
+
+1. Do not reopen completed CQRS, controller-purity, webhook, or smoke-command refactors without explicit defect evidence.
+2. Do not replace typed DTO boundaries with ad-hoc arrays, resources, or ORM leakage.
+3. Do not merge account, admin, and catalog contexts into shared repositories unless the abstraction is demonstrably context-neutral.
+4. Do not reintroduce page-local frontend query, formatting, or mutation helpers where shared primitives already exist.
+
 ## Interface/Contract Changes
 
 1. Gateway webhook methods migrate from `array` payloads to typed payload boundaries (`JsonPayload` / typed DTO).
@@ -449,6 +732,21 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
 3. `UpdateAdminOrderStatusInputDto` migrates from raw strings to enum-based fields.
 4. Application handlers gradually migrate from ORM returns to typed result DTO.
 5. Shipping webhook gets async ingestion parity (`ProcessShippingWebhookJob`).
+6. Additive canonical account read routes are allowed if `/api/v1/*` envelope stays `data/meta/error`.
+7. Additive selector/read-model endpoints are allowed for admin forms when they remove coupling to management-list payloads.
+8. Cleanup execution may adopt additive config and index changes if existing command semantics stay backward-compatible.
+9. `CatalogIndexRequest` FormRequest introduced for `CatalogController` catalog list validation (replaces inline `$request->validate()`).
+10. `ResolvesAuthenticatedUser` trait introduced for shared `resolveCurrentUser()` in API V1 controllers.
+11. Canonical `formatPrice` frontend utility centralized in `resources/js/utils/format.ts` (replaces 4+ divergent raw implementations).
+12. Internal read-model boundaries split into `AdminOrderReadRepository`, `AdminProductReadRepository`, and `CatalogProductReadRepository`; account-order summary semantics move to `AccountOrderSummaryProjector`.
+
+## Wave Dependency Notes
+
+1. Wave 15 should precede Wave 18 because account-order extraction defines the correct account read boundary before repository splitting.
+2. Wave 16 should precede further admin product/category form cleanup because selector decoupling creates the shared primitive those flows should consume.
+3. Wave 24 repository guardrails must encode the bounded repositories introduced by Wave 18 rather than transitional wrappers.
+4. Waves 21 and 22 are secondary strengthening waves and should not block Waves 15-19 while domain-boundary work is active.
+5. Wave 23 should start after the major boundary splits stabilize; otherwise static-analysis hardening will churn around moving targets.
 
 ## Implementation Waves
 
@@ -655,7 +953,128 @@ DoD:
 - quality-gate and production-smoke instructions are regression-guarded;
 - remaining operational documentation debt is reduced below architectural concern.
 
-### Wave 15 (1-2 days) - Archive and Documentation Hygiene
+### Wave 15 (4-6 days) - Account Orders Module Extraction And Read-Model Split
+
+1. Extract authenticated account-order transport from `CheckoutController` into a dedicated account orders controller namespace.
+2. Extract `resolveCurrentUser()` from `CheckoutController` and `CartController` into a shared `ResolvesAuthenticatedUser` trait reused by both controllers and the new account controller.
+3. Add additive canonical account routes:
+   - `GET /api/v1/account/orders`,
+   - `GET /api/v1/account/orders/{order}`,
+   - `GET /api/v1/account/orders/summary`;
+   while preserving legacy aliases:
+   - `GET /api/v1/orders/me`,
+   - `GET /api/v1/orders/me/summary`.
+4. Create explicit account order query handlers and repository contract:
+   - `ListAccountOrdersQuery/Handler`,
+   - `GetAccountOrderDetailQuery/Handler`,
+   - `GetAccountOrdersSummaryQuery/Handler`,
+   - `AccountOrderReadRepository`.
+5. Split account payloads into summary/detail DTO boundaries instead of returning detail-heavy list items from checkout DTOs.
+6. Migrate frontend account orders to:
+   - summary list + lazy detail loading,
+   - explicit account order status types,
+   - shared schema-driven route query helpers instead of bespoke account-only parsing.
+7. Add deterministic tests for:
+   - summary list payload shape,
+   - lazy detail ownership/auth checks,
+   - stale detail response suppression,
+   - legacy alias backward compatibility,
+   - `useAccountOrdersViewModel` composable coverage.
+
+DoD:
+
+- account order read concerns no longer live in checkout transport/application namespaces;
+- list payload is summary-only and detail is explicit;
+- `resolveCurrentUser` duplication eliminated via shared trait;
+- account route query and route sync use shared abstractions instead of bespoke copies.
+
+### Wave 16 (3-4 days) - Category Selector Decoupling And Shared Option Query
+
+1. Add dedicated selector endpoint for admin category options:
+   - `GET /api/v1/admin/categories/options`.
+2. Introduce `AdminCategoryOptionResultDto` and a selector-specific query handler instead of reusing paginated management-list payloads.
+3. Create a shared frontend category-options API/composable used by:
+   - admin category parent selector,
+   - admin product category selector.
+4. Remove dependency on page-local list data for `parentOptions`.
+5. Remove implicit selector coupling to `per_page=200` management-list behavior.
+6. Add deterministic tests for:
+   - selector option ordering,
+   - `exclude_id` handling,
+   - parent/self-exclusion behavior,
+   - shared reuse across category and product forms.
+
+DoD:
+
+- admin form selectors no longer depend on paginated list contracts;
+- category option loading is centralized and context-specific.
+
+### Wave 17 (3-5 days) - Maintenance Cleanup Resource Strategy And Scale Safety
+
+1. Split cleanup internals into resource-specific boundaries:
+   - `CheckoutIdempotencyCleanupResource`,
+   - `WebhookReceiptCleanupResource`,
+   - `ActiveCartCleanupResource`,
+   - `InactiveCartCleanupResource`.
+2. Add `MaintenanceCleanupPlanFactory` so retention/cutoff policy and ordered cleanup plan are explicit.
+3. Reduce `MaintenanceCleanupExecutor` to orchestration-only execution over typed resources/plan.
+4. Add additive cleanup config:
+   - `cleanup.batch_size`.
+5. Replace unbounded destructive deletes with deterministic batched deletion.
+6. Add additive index support for cleanup predicates:
+   - `carts(status, updated_at)`,
+   - `webhook_receipts(created_at)`.
+7. Expand tests for:
+   - dry-run vs apply,
+   - batched deletion accounting,
+   - cutoff policy correctness,
+   - index/config guardrails.
+
+DoD:
+
+- adding a new cleanup resource does not require modifying core executor logic;
+- cleanup predicates are supported by explicit indexes and bounded execution strategy.
+
+### Wave 18 (4-6 days) - Read Repository Boundary Split And Product Write Decomposition
+
+1. Split mixed read repositories by context:
+   - `OrderRepository` into account/admin read boundaries,
+   - `ProductRepository` into catalog/admin read boundaries.
+2. Extract `OrderRepository::summaryForUser()` domain-semantic logic ("paid" status interpretation, "in delivery" status interpretation) into an explicit account-order summary policy or service so the repository contains only data retrieval.
+3. Extract duplicated search filter logic (`order_number LIKE / email LIKE`) into a shared order search scope or builder method reused by both account and admin repositories.
+4. Keep shared helpers only when they are truly context-neutral; otherwise preserve explicit duplication over hidden coupling.
+5. Decompose `AdminCatalogService` into explicit collaborators for:
+   - variant resolution,
+   - variant sync,
+   - inventory sync,
+   - price sync,
+   while keeping transaction orchestration explicit.
+6. Add architecture tests forbidding mixed account/admin/catalog read responsibilities in one repository class.
+7. Add architecture guardrail for repository layer: no domain-semantic status interpretation inside repository methods.
+8. Add unit coverage for the extracted admin product write collaborators and SKU collision rules.
+
+DoD:
+
+- read repositories are bounded by domain context;
+- repository layer contains no business-logic status interpretation;
+- admin product writes are orchestration over explicit collaborators, not a single mixed service.
+
+### Wave 19 (2-3 days) - Infrastructure Provider Hygiene And Container Guardrails
+
+1. Split `AppServiceProvider` by concern into dedicated provider modules for:
+   - auth bindings,
+   - gateway bindings,
+   - observability bindings.
+2. Keep the remaining app-level provider narrow and bootstrap-only.
+3. Add container/architecture guardrails so heterogeneous bindings do not silently drift back into one global provider.
+4. Preserve existing driver resolution and alert-router semantics while moving them behind specialized providers.
+
+DoD:
+
+- infrastructure bindings are grouped by concern;
+- the global app provider no longer acts as a mixed container hotspot.
+
+### Wave 20 (1-2 days) - Archive And Documentation Hygiene
 
 1. Add guardrails so archived plans keep explicit archival banners and cannot silently become active source references again.
 2. Normalize residual operational docs issues:
@@ -671,24 +1090,114 @@ DoD:
 - operational/release docs have deterministic parity guardrails;
 - residual documentation drift drops below roadmap significance.
 
+### Wave 21 (2-3 days) - Transport Validation Consistency
+
+1. Create `CatalogIndexRequest` FormRequest for `CatalogController::index()` to achieve parity with all other API V1 controllers that already use dedicated FormRequest classes.
+2. Evaluate extraction of `Idempotency-Key` header validation from `CheckoutController::placeOrder()` into a dedicated middleware or FormRequest concern so idempotency-key enforcement is not inline transport logic.
+3. Add architecture guardrail: forbid inline `$request->validate()` calls in API V1 controllers; enforce dedicated FormRequest usage.
+
+DoD:
+
+- all API V1 controllers use dedicated FormRequest classes for validation;
+- architecture guardrail prevents regression to inline validation.
+
+### Wave 22 (2-3 days) - Frontend Price Formatting And Utility Consolidation
+
+1. Extract canonical `formatPrice(value, currency?)` utility into `resources/js/utils/format.ts` based on existing `formatMoney` function.
+2. Replace raw `Number(value).toFixed(2)` duplication with the shared utility in:
+   - `resources/js/components/cart/CartSummaryHeader.vue`,
+   - `resources/js/pages/CatalogPage.vue`,
+   - `resources/js/pages/ProductPage.vue`,
+   - `resources/js/components/cart/CartItemsTable.vue`.
+3. Normalize `formatPrice` usage in view-models that already use `formatMoney` to go through the shared utility for consistency.
+4. Add missing composable test coverage for:
+   - `useCatalogProducts`,
+   - `useCatalogProduct`,
+   - `useCheckoutPageViewModel`,
+   - `useAuthPageViewModel`.
+5. Assess `CartItemsTable` / `OrderItemsTable` structural similarity for potential shared table component extraction (extract only if shared component is net-positive).
+
+DoD:
+
+- `formatPrice` has a single canonical definition;
+- raw `toFixed(2)` duplication eliminated from components and pages;
+- catalog/checkout/auth composable test coverage added.
+
+### Wave 23 (3-5 days) - Static Analysis Hardening
+
+1. Audit and categorize the static-analysis debt by source group (model generics, dead transport resources, gateway contracts, command-feature assertions, object-shape access).
+2. Remove stale suppression debt by fixing or deleting resolved code paths instead of maintaining ignores.
+3. Tighten resolvable type issues incrementally by domain group (model generics, transport artifacts, gateway contracts, typed helpers for payment and order state checks).
+4. Remove `phpstan-baseline.neon` entirely if level 6 can be kept green without it.
+5. Evaluate PHPStan level 7 feasibility and document the remaining blocker set for a future upgrade.
+
+DoD:
+
+- PHPStan level 6 runs green without `phpstan-baseline.neon`;
+- stale suppression debt is removed rather than re-baselined;
+- level 7 blockers are measured and explicitly documented.
+
+### Wave 24 (2-3 days) - Architecture Guardrail Expansion
+
+1. Add repository layer boundary guardrail:
+   - forbid domain-semantic status interpretation, aggregate computation, or business-rule evaluation inside repository methods;
+   - enforce that repository methods return data structures, not business decisions.
+2. Add jobs/listeners afterCommit discipline guardrail:
+   - verify that side-effect listeners dispatching jobs use `afterCommit` or queue-safe patterns;
+   - verify that job classes implement idempotency-safe patterns where applicable.
+3. Add policy completeness matrix guardrail:
+   - assert all models with route model binding have corresponding Gate policy mappings;
+   - assert policy matrix covers expected CRUD actions.
+
+DoD:
+
+- three new architecture guardrail tests are enforced;
+- repository, job/listener, and policy boundaries are protected from silent regression.
+
+## Program Exit Targets
+
+1. No mixed-context repositories remain across account, admin, and catalog read paths.
+2. No inline validation remains in API V1 controllers.
+3. Shared authenticated-user resolution is centralized for API V1 controllers that need it.
+4. Category selectors are decoupled from management-list contracts.
+5. Account orders follow explicit summary/detail read-model parity with admin patterns.
+6. Maintenance cleanup uses explicit resource strategy and bounded execution.
+7. A single canonical frontend price-formatting utility is used across catalog, cart, account, and admin flows.
+8. PHPStan runs clean at level 9 without a baseline file.
+9. Architecture guardrails cover controllers, handlers, repositories, jobs/listeners afterCommit discipline, and policy completeness.
+
 ## Mandatory Test Matrix
 
 1. Architecture tests:
    - full API V1 controller boundary coverage,
    - no regression to array-based contracts,
-   - no ORM return leakage in handlers (after Wave 5).
+   - no ORM return leakage in handlers (after Wave 5),
+   - no inline `$request->validate()` in API V1 controllers (after Wave 21),
+   - repository layer boundary: no domain-semantic status interpretation (after Wave 18/24),
+   - jobs/listeners afterCommit discipline (after Wave 24),
+   - policy completeness matrix for route-bound models (after Wave 24).
 2. Feature tests:
    - webhook parity and idempotency,
    - admin status transition validation,
+   - account order summary/detail contract parity,
+   - category selector endpoint behavior,
+   - maintenance cleanup dry-run/apply behavior,
    - payload hash mismatch and signature failures.
 3. Unit tests:
    - transition policies,
    - decomposed checkout/cart components,
-   - observability modules.
+   - observability modules,
+   - cleanup resource strategy,
+   - repository/provider guardrails,
+   - account order summary policy (domain-semantic status interpretation),
+   - `formatPrice` shared utility.
 4. Frontend tests:
    - route-query schema helpers,
    - composable race/cancellation guarantees,
-   - API contract assertions.
+   - API contract assertions,
+   - account lazy detail loading,
+   - shared category option reuse,
+   - catalog/checkout/auth composable coverage (`useCatalogProducts`, `useCatalogProduct`, `useCheckoutPageViewModel`, `useAuthPageViewModel`).
 5. Smoke tests:
    - `app:api-contract-smoke` includes shipping webhook contract,
    - `app:webhook-flow-smoke` remains green with idempotent replay.
@@ -715,3 +1224,5 @@ DoD:
 3. Any webhook status-code normalization is an explicit later migration.
 4. Each completed logical block updates `docs/REFACTORING_EXECUTION_PLAN.md` with executed checks.
 5. No block is considered complete until full quality gate is green.
+6. Additive API/read-model endpoints are allowed if the public envelope stays backward-compatible.
+7. Legacy account aliases remain until a separate approved deprecation/removal plan exists.

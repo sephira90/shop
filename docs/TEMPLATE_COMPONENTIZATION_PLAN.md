@@ -1,6 +1,6 @@
 # Template Componentization Plan
 
-> Historical plan (completed; archived). Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
+> Historical plan (completed; archived). Do not use as the active execution authority. Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
 
 ## Цель
 

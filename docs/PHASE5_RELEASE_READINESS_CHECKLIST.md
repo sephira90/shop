@@ -38,27 +38,17 @@ Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.
 
 - [x] Backend quality gates are green:
   - canonical alias: `composer run quality:backend`
-  - `composer run lint`
-  - `composer run analyse`
-  - `php artisan test`
+  - expands to: lint + static analysis + backend test suite
 - [x] Frontend quality gates are green:
   - canonical alias: `composer run quality:frontend`
-  - `npm run lint`
-  - `npm run lint:ox`
-  - `npm run format:ox:check`
-  - `npm run type-check`
-  - `npm run test`
-  - `npm run build`
+  - expands to: lint + oxlint + format check + type-check + frontend test suite + production build
 - [x] Production-oriented smoke/ops checks are green:
+  - cache clear alias: `composer run ops:clear`
+  - route smoke alias: `composer run ops:routes-smoke`
+  - observability report alias: `composer run ops:observability-report`
   - CI alias: `composer run ops:ci-production-smoke`
   - deploy alias: `composer run ops:production-smoke-core`
-  - `php artisan optimize:clear`
-  - `php artisan route:list --path=api/v1/admin/promotions`
-  - `php artisan app:healthcheck`
-  - `php artisan app:performance-smoke`
-  - `php artisan app:webhook-flow-smoke`
-  - `php artisan app:api-contract-smoke`
-  - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
+  - deploy alias expands to: `app:healthcheck`, `app:performance-smoke`, `app:webhook-flow-smoke`, `app:api-contract-smoke`, `app:observability-report`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`
 
