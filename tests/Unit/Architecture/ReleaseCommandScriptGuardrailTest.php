@@ -17,6 +17,11 @@ class ReleaseCommandScriptGuardrailTest extends TestCase
         $scripts = TypedValue::associativeArray($composer['scripts'] ?? []);
 
         $this->assertSame([
+            '@analyse:phpstan',
+            '@analyse:psalm',
+        ], $scripts['analyse'] ?? null);
+
+        $this->assertSame([
             '@lint',
             '@analyse',
             '@test',

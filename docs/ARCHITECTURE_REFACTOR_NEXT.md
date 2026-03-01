@@ -14,7 +14,8 @@ Priority mode: `Architecture-first`
 
 DTO migration and the first refactor waves are completed, and the March 1 execution program is now materially closed for the current wave set:
 
-- PHPStan now runs clean at level 9 without `phpstan-baseline.neon`;
+- PHPStan now runs clean at level 10 without `phpstan-baseline.neon`;
+- canonical backend static analysis now runs through `composer run analyse` as `PHPStan + Psalm`;
 - repository, queued side-effect, and policy completeness guardrails now protect the intended architecture boundaries for the current codebase.
 
 Goal of this program: close those gaps without breaking `/api/v1/*` response envelope (`data/meta/error`) and with strict quality-gate enforcement after each logical block.
@@ -452,7 +453,7 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
 
 ## Confirmed Findings
 
-1. PHPStan now runs clean at level 9 without a baseline file; any further static-analysis tightening is a separate level 10 feasibility decision, not current roadmap debt.
+1. PHPStan now runs clean at level 10 without a baseline file; static-analysis hardening no longer remains as active roadmap debt for the current execution program.
 2. Architecture guardrails now cover repositories, queued side-effect dispatch paths, and policy completeness; the former roadmap gaps for repository/jobs/policy boundary protection are closed.
 
 8. Wave 15 completed (account orders module extraction and read-model split):
@@ -692,12 +693,18 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
    - verification result:
      - PHPStan level 8 now reports `0` errors across `app/`, `routes/`, and `tests/`.
 21. Post-wave strict type hardening continued:
-   - remaining level 9 mixed-cast, payload-shape, config, repository eager-load, smoke, and test helper gaps were closed across application, support, and test layers;
-   - shared strict-typing helpers now centralize scalar and payload normalization in `App\Support\Data\TypedValue`;
-   - static-analysis config upgraded again:
-     - `phpstan.neon` raised from level `8` to level `9`.
-   - verification result:
-     - PHPStan level 9 now reports `0` errors across `app/`, `routes/`, and `tests/`.
+    - remaining level 9 mixed-cast, payload-shape, config, repository eager-load, smoke, and test helper gaps were closed across application, support, and test layers;
+     - shared strict-typing helpers now centralize scalar and payload normalization in `App\Support\Data\TypedValue`;
+     - static-analysis config upgraded again:
+       - `phpstan.neon` raised from level `8` to level `9`.
+     - verification result:
+       - PHPStan level 9 now reports `0` errors across `app/`, `routes/`, and `tests/`.
+22. Post-wave strict type hardening completed:
+    - remaining level 10 `mixed`/generic variance gaps were closed across webhook transport, middleware return boundaries, maintenance resource resolution, eager-load closures, smoke helpers, and schema/test helpers;
+    - static-analysis config upgraded again:
+      - `phpstan.neon` raised from level `9` to level `10`;
+    - verification result:
+      - PHPStan level 10 now reports `0` errors across `app/`, `routes/`, and `tests/`.
 
 ## Locked Constraints
 
@@ -1163,7 +1170,7 @@ DoD:
 5. Account orders follow explicit summary/detail read-model parity with admin patterns.
 6. Maintenance cleanup uses explicit resource strategy and bounded execution.
 7. A single canonical frontend price-formatting utility is used across catalog, cart, account, and admin flows.
-8. PHPStan runs clean at level 9 without a baseline file.
+8. PHPStan runs clean at level 10 without a baseline file.
 9. Architecture guardrails cover controllers, handlers, repositories, jobs/listeners afterCommit discipline, and policy completeness.
 
 ## Mandatory Test Matrix

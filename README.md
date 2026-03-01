@@ -148,6 +148,8 @@ It runs a full blocking pipeline:
 
 - backend alias: `composer run quality:backend`
 - expands to: `composer run lint`, `composer run analyse`, `php artisan test`
+- static-analysis alias: `composer run analyse`
+- expands to: `composer run analyse:phpstan`, `composer run analyse:psalm`
 - frontend alias: `composer run quality:frontend`
 - expands to: `npm run lint`, `npm run lint:ox`, `npm run format:ox:check`, `npm run type-check`, `npm run test`, `npm run build`
 - support aliases:

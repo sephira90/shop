@@ -4827,3 +4827,79 @@
     - the codebase had been hardened to pass level `9`, but the config file itself had not been persisted from level `8` to level `9`.
   - corrective action:
     - `phpstan.neon` updated from level `8` to level `9` so the checked-in config now matches the validated and documented state.
+- `2026-03-01` — post-wave strict type hardening (`PHPStan level 10 upgrade`):
+  - closed remaining level 10 strictness gaps around transport payload normalization, middleware return boundaries, provider resource resolution, relation eager-load closures, and schema/test helper typing:
+    - `app/Application/Checkout/Dto/CheckoutPaymentResultDto.php`;
+    - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
+    - `app/Http/Controllers/Api/V1/Webhook/ShippingWebhookController.php`;
+    - `app/Http/Middleware/EnsureIdempotencyKeyMiddleware.php`;
+    - `app/Http/Middleware/EnsureRoleMiddleware.php`;
+    - `app/Http/Requests/Admin/PromotionUpdateRequest.php`;
+    - `app/Providers/MaintenanceServiceProvider.php`;
+    - `app/Repositories/CatalogProductReadRepository.php`;
+    - `app/Repositories/PromotionRepository.php`;
+    - `app/Support/Smoke/Api/ApiSmokeHttpClient.php`;
+    - `tests/Feature/AccountOrdersApiTest.php`;
+    - `tests/Feature/MaintenanceCleanupSchemaSupportTest.php`.
+  - static-analysis config upgraded again:
+    - `phpstan.neon` raised from level `9` to level `10`.
+  - verification snapshot after fixes:
+    - `php vendor/bin/phpstan analyse --memory-limit=1G --level=10 --error-format=table` returned `0` errors.
+  - full mandatory sequential quality gate passed on the checked-in level 10 config:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`;
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-01` — Psalm integrated into the canonical backend analysis gate:
+  - installed `vimeo/psalm` and pinned it to `6.4.1`, which is the latest version verified runnable on the current local CLI runtime (`PHP 8.4.1`);
+  - newer upstream Psalm releases were not adopted in this repository state because they require a newer PHP 8.4 patch level at runtime, which would break local parity for the checked-in toolchain;
+  - versioned `psalm.xml` added with an initial strict-but-green configuration:
+    - `errorLevel="6"`;
+    - `findUnusedCode="false"`;
+    - app/database static analysis scope kept active without introducing a Psalm baseline;
+  - closed remaining Psalm blockers across paginator DTO factories, auth password command handlers, user Sanctum typing, and repository/catalog paginator boundaries:
+    - `app/Application/Account/Orders/Contracts/AccountOrderReadRepository.php`;
+    - `app/Application/Account/Orders/Dto/AccountOrderLegacyPaginatedResultDto.php`;
+    - `app/Application/Account/Orders/Dto/AccountOrderPaginatedResultDto.php`;
+    - `app/Application/Admin/Categories/Dto/AdminCategoryPaginatedResultDto.php`;
+    - `app/Application/Admin/Orders/Dto/AdminOrderPaginatedResultDto.php`;
+    - `app/Application/Admin/Products/Dto/AdminProductPaginatedResultDto.php`;
+    - `app/Application/Admin/Promotions/Dto/AdminPromotionPaginatedResultDto.php`;
+    - `app/Application/Auth/Commands/ForgotAuthPasswordHandler.php`;
+    - `app/Application/Auth/Commands/ResetAuthPasswordHandler.php`;
+    - `app/Application/Catalog/Dto/CatalogProductPaginatedResultDto.php`;
+    - `app/Models/User.php`;
+    - `app/Repositories/AccountOrderReadRepository.php`;
+    - `app/Repositories/AdminOrderReadRepository.php`;
+    - `app/Repositories/AdminProductReadRepository.php`;
+    - `app/Repositories/CatalogProductReadRepository.php`;
+    - `app/Repositories/CategoryRepository.php`;
+    - `app/Repositories/PromotionRepository.php`;
+    - `app/Services/Catalog/CatalogService.php`;
+  - canonical composer script graph now includes Psalm in every backend analysis run:
+    - `composer run analyse:phpstan`;
+    - `composer run analyse:psalm`;
+    - `composer run analyse` -> `@analyse:phpstan`, `@analyse:psalm`;
+    - `composer run quality:backend` continues to expand to `@lint`, `@analyse`, `@test`, so CI inherited Psalm automatically without workflow-specific branching;
+  - README/release checklist/architecture guardrails synchronized:
+    - `README.md`;
+    - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md`;
+    - `tests/Unit/Architecture/ReleaseCommandScriptGuardrailTest.php`;
+    - `tests/Unit/Architecture/ReleaseDocsWorkflowGuardrailTest.php`;
+  - full mandatory sequential quality gate passed on the final integrated state:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.

@@ -39,6 +39,8 @@ Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.
 - [x] Backend quality gates are green:
   - canonical alias: `composer run quality:backend`
   - expands to: lint + static analysis + backend test suite
+  - static analysis alias: `composer run analyse`
+  - static analysis expands to: `composer run analyse:phpstan` + `composer run analyse:psalm`
 - [x] Frontend quality gates are green:
   - canonical alias: `composer run quality:frontend`
   - expands to: lint + oxlint + format check + type-check + frontend test suite + production build

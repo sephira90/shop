@@ -22,7 +22,8 @@
         "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^11.5.3"
+        "phpunit/phpunit": "^11.5.3",
+        "vimeo/psalm": "6.4.1"
     },
     "autoload": {
         "psr-4": {
@@ -74,8 +75,15 @@
         "lint": [
             "./vendor/bin/pint --test"
         ],
-        "analyse": [
+        "analyse:phpstan": [
             "./vendor/bin/phpstan analyse --memory-limit=1G"
+        ],
+        "analyse:psalm": [
+            "./vendor/bin/psalm --no-progress"
+        ],
+        "analyse": [
+            "@analyse:phpstan",
+            "@analyse:psalm"
         ],
         "quality:backend": [
             "@lint",
