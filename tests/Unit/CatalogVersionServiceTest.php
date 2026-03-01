@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Services\Catalog\CatalogVersionService;
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
@@ -34,7 +35,7 @@ class CatalogVersionServiceTest extends TestCase
         $nextVersion = $service->bump();
 
         $this->assertSame(8, $nextVersion);
-        $this->assertSame(8, (int) Cache::get('catalog:version'));
+        $this->assertSame(8, TypedValue::int(Cache::get('catalog:version')));
     }
 
     /**
@@ -49,7 +50,7 @@ class CatalogVersionServiceTest extends TestCase
         $nextVersion = $service->bump();
 
         $this->assertSame(2, $nextVersion);
-        $this->assertSame(2, (int) Cache::get('catalog:version'));
+        $this->assertSame(2, TypedValue::int(Cache::get('catalog:version')));
     }
 
     /**
@@ -63,6 +64,6 @@ class CatalogVersionServiceTest extends TestCase
 
         $this->assertSame(4, $service->bump());
         $this->assertSame(5, $service->bump());
-        $this->assertSame(5, (int) Cache::get('catalog:version'));
+        $this->assertSame(5, TypedValue::int(Cache::get('catalog:version')));
     }
 }

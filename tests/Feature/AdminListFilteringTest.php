@@ -167,6 +167,39 @@ class AdminListFilteringTest extends TestCase
     }
 
     /**
+     * Ensure admin promotions list accepts string boolean query values used by browser query strings.
+     */
+    public function test_promotions_index_accepts_string_boolean_active_filter(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        Promotion::query()->create([
+            'name' => 'Visible Campaign',
+            'code' => null,
+            'type' => 'percent',
+            'value' => 10,
+            'is_active' => true,
+        ]);
+
+        Promotion::query()->create([
+            'name' => 'Hidden Campaign',
+            'code' => null,
+            'type' => 'percent',
+            'value' => 10,
+            'is_active' => false,
+        ]);
+
+        $this->getJson('/api/v1/admin/promotions?is_active=true')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Visible Campaign');
+    }
+
+    /**
      * Ensure admin categories list applies typed filters.
      */
     public function test_categories_index_applies_query_and_active_filters(): void
@@ -197,6 +230,37 @@ class AdminListFilteringTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'Shoes')
             ->assertJsonPath('data.0.slug', 'shoes');
+    }
+
+    /**
+     * Ensure admin categories list accepts string boolean query values used by browser query strings.
+     */
+    public function test_categories_index_accepts_string_boolean_active_filter(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        Category::query()->create([
+            'name' => 'Published',
+            'slug' => 'published',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        Category::query()->create([
+            'name' => 'Archived',
+            'slug' => 'archived',
+            'is_active' => false,
+            'sort_order' => 2,
+        ]);
+
+        $this->getJson('/api/v1/admin/categories?is_active=true')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Published');
     }
 
     /**

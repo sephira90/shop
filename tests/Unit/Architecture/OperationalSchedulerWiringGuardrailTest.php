@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Tests\TestCase;
@@ -15,17 +16,17 @@ class OperationalSchedulerWiringGuardrailTest extends TestCase
         $schedule = $this->app->make(Schedule::class);
 
         $maintenanceCleanup = $this->findEvent($schedule, 'app:maintenance-cleanup');
-        $this->assertSame((string) config('cleanup.schedule.cron', '17 * * * *'), $maintenanceCleanup->expression);
+        $this->assertSame(TypedValue::string(config('cleanup.schedule.cron', '17 * * * *')), $maintenanceCleanup->expression);
         $this->assertTrue($maintenanceCleanup->withoutOverlapping);
         $this->assertFalse($maintenanceCleanup->runInBackground);
 
         $observabilityAlertCheck = $this->findEvent($schedule, 'app:observability-alert-check');
-        $this->assertSame((string) config('observability.alerts.cron', '*/30 * * * *'), $observabilityAlertCheck->expression);
+        $this->assertSame(TypedValue::string(config('observability.alerts.cron', '*/30 * * * *')), $observabilityAlertCheck->expression);
         $this->assertTrue($observabilityAlertCheck->withoutOverlapping);
         $this->assertFalse($observabilityAlertCheck->runInBackground);
 
         $oncallDrill = $this->findEvent($schedule, 'app:oncall-drill-smoke');
-        $this->assertSame((string) config('oncall.drill.cron', '45 3 * * *'), $oncallDrill->expression);
+        $this->assertSame(TypedValue::string(config('oncall.drill.cron', '45 3 * * *')), $oncallDrill->expression);
         $this->assertTrue($oncallDrill->withoutOverlapping);
         $this->assertFalse($oncallDrill->runInBackground);
         $this->assertStringNotContainsString('--with-write-smokes', (string) $oncallDrill->command);
@@ -35,10 +36,10 @@ class OperationalSchedulerWiringGuardrailTest extends TestCase
     public function test_write_smokes_and_observability_report_are_not_directly_scheduled(): void
     {
         $schedule = $this->app->make(Schedule::class);
-        $commands = array_map(
+        $commands = array_values(array_map(
             static fn (Event $event): string => (string) ($event->command ?? ''),
             $schedule->events(),
-        );
+        ));
 
         foreach ([
             'app:api-contract-smoke',

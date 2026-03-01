@@ -39,7 +39,7 @@ class AdminPromotionCouponFlowTest extends TestCase
             'ends_at' => now()->addDay()->toAtomString(),
         ])->assertCreated();
 
-        $promotionId = (int) $promotionResponse->json('data.id');
+        $promotionId = $this->jsonInt($promotionResponse, 'data.id');
 
         $this->assertDatabaseHas('coupons', [
             'promotion_id' => $promotionId,
@@ -76,7 +76,7 @@ class AdminPromotionCouponFlowTest extends TestCase
             ])
             ->assertCreated();
 
-        $this->assertGreaterThan(0, (float) $checkoutResponse->json('data.discount_total'));
+        $this->assertGreaterThan(0, $this->jsonFloat($checkoutResponse, 'data.discount_total'));
     }
 
     /**
@@ -99,15 +99,15 @@ class AdminPromotionCouponFlowTest extends TestCase
 
         $couponResponse = $this->postJson("/api/v1/admin/promotions/{$promotion->id}/coupons", [
             'code' => 'SECOND5',
-            'is_active' => true,
+            'is_active' => 'true',
             'max_redemptions' => 20,
             'expires_at' => now()->addDays(7)->toAtomString(),
         ])->assertCreated();
 
-        $couponId = (int) $couponResponse->json('data.id');
+        $couponId = $this->jsonInt($couponResponse, 'data.id');
 
         $this->patchJson("/api/v1/admin/coupons/{$couponId}", [
-            'is_active' => false,
+            'is_active' => 'false',
             'max_redemptions' => 10,
             'expires_at' => null,
         ])->assertOk();
@@ -122,6 +122,45 @@ class AdminPromotionCouponFlowTest extends TestCase
 
         $coupon = Coupon::query()->findOrFail($couponId);
         $this->assertNull($coupon->expires_at);
+    }
+
+    /**
+     * Ensure promotion create accepts string boolean payloads for campaign and nested coupon flags.
+     */
+    public function test_manager_can_create_promotion_with_string_boolean_flags(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/v1/admin/promotions', [
+            'name' => 'String Flag Campaign',
+            'type' => 'fixed',
+            'value' => 12,
+            'is_active' => 'false',
+            'coupon' => [
+                'code' => 'STRING12',
+                'is_active' => 'false',
+                'max_redemptions' => 12,
+            ],
+        ])->assertCreated();
+
+        $promotionId = $this->jsonInt($response, 'data.id');
+        $couponId = $this->jsonInt($response, 'data.coupons.0.id');
+
+        $this->assertDatabaseHas('promotions', [
+            'id' => $promotionId,
+            'is_active' => 0,
+        ]);
+
+        $this->assertDatabaseHas('coupons', [
+            'id' => $couponId,
+            'promotion_id' => $promotionId,
+            'code' => 'STRING12',
+            'is_active' => 0,
+        ]);
     }
 
     /**
@@ -188,14 +227,14 @@ class AdminPromotionCouponFlowTest extends TestCase
             'is_active' => true,
         ])->assertCreated();
 
-        $promotionId = (int) $promotionResponse->json('data.id');
+        $promotionId = $this->jsonInt($promotionResponse, 'data.id');
 
         $this->patchJson("/api/v1/admin/promotions/{$promotionId}", [
             'name' => 'Spring deal updated',
             'code' => 'SPRING20',
             'type' => 'fixed',
             'value' => 7.5,
-            'is_active' => false,
+            'is_active' => 'false',
             'starts_at' => null,
             'ends_at' => null,
             'usage_limit' => 100,
@@ -239,10 +278,10 @@ class AdminPromotionCouponFlowTest extends TestCase
             'is_active' => true,
         ])->assertCreated();
 
-        $promotionId = (int) $promotionResponse->json('data.id');
-        $couponId = (int) Coupon::query()
+        $promotionId = $this->jsonInt($promotionResponse, 'data.id');
+        $couponId = \App\Support\Data\TypedValue::int(Coupon::query()
             ->where('promotion_id', $promotionId)
-            ->value('id');
+            ->value('id'));
 
         $this->deleteJson("/api/v1/admin/promotions/{$promotionId}")
             ->assertOk()

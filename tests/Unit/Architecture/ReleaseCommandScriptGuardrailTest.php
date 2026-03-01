@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
+use App\Support\Data\TypedValue;
 use Tests\TestCase;
 
 class ReleaseCommandScriptGuardrailTest extends TestCase
 {
     public function test_composer_release_and_quality_aliases_are_defined_with_expected_sequences(): void
     {
-        $composer = json_decode((string) file_get_contents(base_path('composer.json')), true, 512, JSON_THROW_ON_ERROR);
-        $scripts = $composer['scripts'] ?? [];
+        /** @var array<string, mixed> $composer */
+        $composer = TypedValue::associativeArray(json_decode((string) file_get_contents(base_path('composer.json')), true, 512, JSON_THROW_ON_ERROR));
+        /** @var array<string, mixed> $scripts */
+        $scripts = TypedValue::associativeArray($composer['scripts'] ?? []);
 
         $this->assertSame([
             '@lint',

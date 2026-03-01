@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Notifications\ObservabilitySloFailureNotification;
 use App\Support\Observability\ObservabilityService;
 use Illuminate\Http\Client\Request;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -29,7 +30,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
             'https://events.pagerduty.com/v2/enqueue' => Http::response(['status' => 'success'], 202),
         ]);
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertFailed()
             ->expectsOutputToContain('Observability alerts sent via: email, slack, pagerduty.');
 
@@ -42,6 +43,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
                 object $notifiable,
             ): bool {
                 return in_array('mail', $channels, true)
+                    && $notifiable instanceof AnonymousNotifiable
                     && $notifiable->routeNotificationFor('mail') === 'ops@example.com';
             },
         );
@@ -67,7 +69,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
         $observability->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0);
         $observability->webhook('payment', 'evt-ob-alert-success', 'processed', 15.0, 100.0);
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertSuccessful()
             ->expectsOutputToContain('Observability alert check passed.');
 
@@ -92,7 +94,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
         $observability->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0, 'smoke');
         $observability->webhook('payment', 'evt-ob-alert-smoke', 'processed', 15.0, 100.0, 'smoke');
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertSuccessful()
             ->expectsOutputToContain('Observability alert check passed.');
 
@@ -114,11 +116,11 @@ class ObservabilityAlertCheckCommandTest extends TestCase
         Cache::flush();
         Notification::fake();
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertFailed()
             ->expectsOutputToContain('Observability alerts sent via: email.');
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertFailed()
             ->expectsOutputToContain('Observability alert routing suppressed by cooldown window.');
 
@@ -140,7 +142,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
             'https://events.pagerduty.com/v2/enqueue' => Http::response(['error' => 'failed'], 500),
         ]);
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertFailed()
             ->expectsOutputToContain('Observability alerts sent via: email.');
 
@@ -166,7 +168,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
         config()->set('observability.alerts.pagerduty.enabled', false);
         config()->set('observability.alerts.pagerduty.integration_key', '');
 
-        $this->artisan('app:observability-alert-check')
+        $this->artisanCommand('app:observability-alert-check')
             ->assertFailed()
             ->expectsOutputToContain('Observability alert routing skipped: no channels configured or delivery failed.');
 

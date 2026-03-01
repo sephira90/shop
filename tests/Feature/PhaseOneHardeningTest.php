@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Support\Data\TypedValue;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -48,8 +49,7 @@ class PhaseOneHardeningTest extends TestCase
         $response = $this->getJson('/api/v1/catalog/products/'.$product->slug)
             ->assertOk();
 
-        $variants = $response->json('data.variants');
-        $this->assertIsArray($variants);
+        $variants = $this->jsonArrayList($response, 'data.variants');
         $this->assertCount(1, $variants);
         $this->assertSame(true, $variants[0]['is_active']);
     }
@@ -166,9 +166,9 @@ class PhaseOneHardeningTest extends TestCase
 
         $freshOrder = Order::query()->findOrFail($order->id);
 
-        $this->assertSame('processing', (string) $freshOrder->getRawOriginal('status'));
+        $this->assertSame('processing', TypedValue::string($freshOrder->getRawOriginal('status')));
         $this->assertNotNull($freshOrder->getRawOriginal('cancelled_at'));
-        $this->assertSame($cancelledAt->toDateTimeString(), (string) $freshOrder->getRawOriginal('cancelled_at'));
+        $this->assertSame($cancelledAt->toDateTimeString(), TypedValue::string($freshOrder->getRawOriginal('cancelled_at')));
     }
 
     /**
@@ -246,7 +246,7 @@ class PhaseOneHardeningTest extends TestCase
             ->assertJsonPath('error.message', 'Payment status transition is not allowed.');
 
         $freshOrder = Order::query()->findOrFail($order->id);
-        $this->assertSame('paid', (string) $freshOrder->getRawOriginal('status'));
-        $this->assertSame('captured', (string) $freshOrder->getRawOriginal('payment_status'));
+        $this->assertSame('paid', TypedValue::string($freshOrder->getRawOriginal('status')));
+        $this->assertSame('captured', TypedValue::string($freshOrder->getRawOriginal('payment_status')));
     }
 }

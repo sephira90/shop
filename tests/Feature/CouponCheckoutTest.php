@@ -69,9 +69,9 @@ class CouponCheckoutTest extends TestCase
             ])
             ->assertCreated();
 
-        $subtotal = (float) $response->json('data.subtotal');
-        $discount = (float) $response->json('data.discount_total');
-        $total = (float) $response->json('data.total');
+        $subtotal = $this->jsonFloat($response, 'data.subtotal');
+        $discount = $this->jsonFloat($response, 'data.discount_total');
+        $total = $this->jsonFloat($response, 'data.total');
 
         $this->assertSame(round($subtotal * 0.1, 2), $discount);
         $this->assertSame(round($subtotal - $discount, 2), $total);

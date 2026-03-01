@@ -93,6 +93,13 @@ class ApplicationDtoBoundaryTest extends TestCase
             return null;
         }
 
-        return trim($namespaceMatch[1]).'\\'.trim($classMatch[1]);
+        $className = trim($namespaceMatch[1]).'\\'.trim($classMatch[1]);
+
+        if (! class_exists($className)) {
+            return null;
+        }
+
+        /** @var class-string $className */
+        return $className;
     }
 }

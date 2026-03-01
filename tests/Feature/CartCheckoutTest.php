@@ -209,4 +209,42 @@ class CartCheckoutTest extends TestCase
 
         $this->assertSame(0, Order::query()->count());
     }
+
+    /**
+     * Ensure checkout place-order requires the Idempotency-Key header before controller execution.
+     */
+    public function test_checkout_requires_idempotency_key_header(): void
+    {
+        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        Sanctum::actingAs($user);
+
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertOk();
+
+        $this->postJson('/api/v1/checkout/place-order', [
+            'email' => $user->email,
+            'billing_address' => [
+                'line1' => '1 Main Street',
+                'city' => 'New York',
+                'country' => 'US',
+                'postcode' => '10001',
+            ],
+            'shipping_address' => [
+                'line1' => '1 Main Street',
+                'city' => 'New York',
+                'country' => 'US',
+                'postcode' => '10001',
+            ],
+        ])->assertStatus(400)
+            ->assertJsonPath('error.message', 'Idempotency-Key header is required.');
+
+        $this->assertSame(0, Order::query()->count());
+    }
 }

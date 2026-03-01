@@ -77,10 +77,11 @@ class AppMaintenanceCleanupCommandTest extends TestCase
         $freshInactiveCart = $this->createCart(CartStatus::ABANDONED, null);
         $this->touchCart($freshInactiveCart, 2);
 
-        $this->artisan(
+        $this->artisanCommand(
             'app:maintenance-cleanup --idempotency-retain-hours=24 --webhook-retain-hours=24 --active-cart-retain-hours=24 --inactive-cart-retain-hours=24',
         )
             ->assertSuccessful()
+            ->expectsOutputToContain('batches')
             ->expectsOutputToContain('Maintenance cleanup completed.');
 
         $this->assertDatabaseMissing('checkout_idempotencies', ['id' => $staleIdempotency->id]);
@@ -119,10 +120,11 @@ class AppMaintenanceCleanupCommandTest extends TestCase
         $cart = $this->createCart(CartStatus::CHECKED_OUT, null);
         $this->touchCart($cart, 80);
 
-        $this->artisan(
+        $this->artisanCommand(
             'app:maintenance-cleanup --dry-run --idempotency-retain-hours=24 --webhook-retain-hours=24 --active-cart-retain-hours=24 --inactive-cart-retain-hours=24',
         )
             ->assertSuccessful()
+            ->expectsOutputToContain('Totals:')
             ->expectsOutputToContain('Dry run: no records deleted.');
 
         $this->assertDatabaseHas('checkout_idempotencies', ['id' => $idempotency->id]);
@@ -135,7 +137,7 @@ class AppMaintenanceCleanupCommandTest extends TestCase
      */
     public function test_maintenance_cleanup_rejects_invalid_retention_override(): void
     {
-        $this->artisan('app:maintenance-cleanup --idempotency-retain-hours=0')
+        $this->artisanCommand('app:maintenance-cleanup --idempotency-retain-hours=0')
             ->assertFailed()
             ->expectsOutputToContain('Option --idempotency-retain-hours must be a positive integer.');
     }

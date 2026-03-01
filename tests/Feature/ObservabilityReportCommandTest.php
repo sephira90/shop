@@ -30,7 +30,7 @@ class ObservabilityReportCommandTest extends TestCase
         $service->catalogCache('products_list', false, 15.0, 12);
         $service->webhook('payment', 'evt-test-payment', 'processed', 30.0, 200.0);
 
-        $this->artisan('app:observability-report --minutes=60')
+        $this->artisanCommand('app:observability-report --minutes=60')
             ->assertSuccessful()
             ->expectsOutputToContain('api_request_count')
             ->expectsOutputToContain('snapshot_source')
@@ -44,7 +44,7 @@ class ObservabilityReportCommandTest extends TestCase
      */
     public function test_observability_report_command_rejects_invalid_minutes_option(): void
     {
-        $this->artisan('app:observability-report --minutes=0')
+        $this->artisanCommand('app:observability-report --minutes=0')
             ->assertFailed()
             ->expectsOutputToContain('Option --minutes must be between 1 and 1440.');
     }
@@ -64,7 +64,7 @@ class ObservabilityReportCommandTest extends TestCase
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 5.0);
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 5.0);
 
-        $this->artisan('app:observability-report --minutes=60 --max-api-slow-rate=0.5')
+        $this->artisanCommand('app:observability-report --minutes=60 --max-api-slow-rate=0.5')
             ->assertFailed()
             ->expectsOutputToContain('API slow rate exceeded')
             ->expectsOutputToContain('Observability threshold checks failed.');
@@ -75,7 +75,7 @@ class ObservabilityReportCommandTest extends TestCase
      */
     public function test_observability_report_command_rejects_invalid_threshold_option(): void
     {
-        $this->artisan('app:observability-report --max-api-slow-rate=foo')
+        $this->artisanCommand('app:observability-report --max-api-slow-rate=foo')
             ->assertFailed()
             ->expectsOutputToContain('Option --max-api-slow-rate must be a number in [0..1].');
     }
@@ -93,7 +93,7 @@ class ObservabilityReportCommandTest extends TestCase
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0, 'smoke');
         $service->webhook('payment', 'evt-test-smoke', 'processed', 30.0, 200.0, 'smoke');
 
-        $this->artisan('app:observability-report --minutes=60 --require-api-samples --require-webhook-samples')
+        $this->artisanCommand('app:observability-report --minutes=60 --require-api-samples --require-webhook-samples')
             ->assertFailed()
             ->expectsOutputToContain('Required API samples are missing in selected window.')
             ->expectsOutputToContain('Required webhook samples are missing in selected window.')
@@ -113,7 +113,7 @@ class ObservabilityReportCommandTest extends TestCase
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0, 'smoke');
         $service->webhook('payment', 'evt-test-smoke-source', 'processed', 30.0, 200.0, 'smoke');
 
-        $this->artisan('app:observability-report --minutes=60 --source=smoke --require-api-samples --require-webhook-samples')
+        $this->artisanCommand('app:observability-report --minutes=60 --source=smoke --require-api-samples --require-webhook-samples')
             ->assertSuccessful()
             ->expectsOutputToContain('snapshot_source')
             ->expectsOutputToContain('Observability report generated.');
@@ -131,7 +131,7 @@ class ObservabilityReportCommandTest extends TestCase
         $service = app(ObservabilityService::class);
         $service->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0);
 
-        $this->artisan('app:observability-report --minutes=60 --json')
+        $this->artisanCommand('app:observability-report --minutes=60 --json')
             ->assertSuccessful()
             ->expectsOutputToContain('"minutes": 60')
             ->expectsOutputToContain('Observability report generated.');
@@ -142,7 +142,7 @@ class ObservabilityReportCommandTest extends TestCase
      */
     public function test_observability_report_command_rejects_invalid_source_option(): void
     {
-        $this->artisan('app:observability-report --source=invalid-source')
+        $this->artisanCommand('app:observability-report --source=invalid-source')
             ->assertFailed()
             ->expectsOutputToContain('Option --source must be one of: runtime, smoke.');
     }
@@ -156,7 +156,7 @@ class ObservabilityReportCommandTest extends TestCase
         config()->set('observability.channel', 'null');
         Cache::flush();
 
-        $this->artisan('app:observability-report --minutes=60 --require-api-samples')
+        $this->artisanCommand('app:observability-report --minutes=60 --require-api-samples')
             ->assertFailed()
             ->expectsOutputToContain('Required API samples are missing in selected window.')
             ->expectsOutputToContain('Observability threshold checks failed.');
@@ -171,7 +171,7 @@ class ObservabilityReportCommandTest extends TestCase
         config()->set('observability.channel', 'null');
         Cache::flush();
 
-        $this->artisan('app:observability-report --minutes=60 --require-webhook-samples')
+        $this->artisanCommand('app:observability-report --minutes=60 --require-webhook-samples')
             ->assertFailed()
             ->expectsOutputToContain('Required webhook samples are missing in selected window.')
             ->expectsOutputToContain('Observability threshold checks failed.');
@@ -186,7 +186,7 @@ class ObservabilityReportCommandTest extends TestCase
         config()->set('observability.channel', 'null');
         Cache::flush();
 
-        $this->artisan('app:observability-report --minutes=60')
+        $this->artisanCommand('app:observability-report --minutes=60')
             ->assertSuccessful()
             ->expectsOutputToContain('Observability hooks are disabled (OBSERVABILITY_ENABLED=false). Snapshot may be empty.')
             ->expectsOutputToContain('Observability report generated.');

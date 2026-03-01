@@ -30,26 +30,28 @@ class AdminCategoryCrudTest extends TestCase
             'name' => 'Electronics',
             'slug' => 'electronics',
             'description' => 'Electronics category',
-            'is_active' => true,
+            'is_active' => 'false',
             'sort_order' => 10,
         ])->assertCreated();
 
-        $categoryId = (int) $create->json('data.id');
+        $categoryId = $this->jsonInt($create, 'data.id');
 
         $this->putJson('/api/v1/admin/categories/'.$categoryId, [
             'name' => 'Electronics and gadgets',
             'slug' => 'electronics-gadgets',
             'description' => 'Updated description',
-            'is_active' => true,
+            'is_active' => 'true',
             'sort_order' => 20,
         ])->assertOk()
             ->assertJsonPath('data.name', 'Electronics and gadgets')
-            ->assertJsonPath('data.sort_order', 20);
+            ->assertJsonPath('data.sort_order', 20)
+            ->assertJsonPath('data.is_active', true);
 
         $this->assertDatabaseHas('categories', [
             'id' => $categoryId,
             'name' => 'Electronics and gadgets',
             'slug' => 'electronics-gadgets',
+            'is_active' => 1,
         ]);
     }
 
@@ -98,5 +100,60 @@ class AdminCategoryCrudTest extends TestCase
         $this->assertDatabaseMissing('categories', [
             'id' => $category->id,
         ]);
+    }
+
+    /**
+     * Ensure admin category selector options are minimal, ordered, and support exclusion.
+     */
+    public function test_manager_can_list_category_options_with_exclusion(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $parent = Category::query()->create([
+            'name' => 'Parent',
+            'slug' => 'parent',
+            'is_active' => true,
+            'sort_order' => 10,
+        ]);
+
+        Category::query()->create([
+            'parent_id' => $parent->id,
+            'name' => 'Winter',
+            'slug' => 'winter',
+            'is_active' => false,
+            'sort_order' => 20,
+        ]);
+
+        $excluded = Category::query()->create([
+            'name' => 'Autumn',
+            'slug' => 'autumn',
+            'is_active' => true,
+            'sort_order' => 30,
+        ]);
+
+        $response = $this->getJson('/api/v1/admin/categories/options?exclude_id='.$excluded->id)
+            ->assertOk();
+
+        $response->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.name', 'Parent')
+            ->assertJsonPath('data.1.name', 'Winter')
+            ->assertJsonMissingPath('data.0.parent')
+            ->assertJsonMissingPath('data.0.children_count')
+            ->assertJsonMissingPath('data.0.products_count');
+
+        $this->assertSame(
+            [$parent->id, Category::query()->where('slug', 'winter')->value('id')],
+            array_column($this->jsonArrayList($response, 'data'), 'id'),
+        );
+
+        $this->getJson('/api/v1/admin/categories/options?q=win')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Winter')
+            ->assertJsonPath('data.0.slug', 'winter');
     }
 }

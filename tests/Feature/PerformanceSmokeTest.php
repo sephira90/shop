@@ -8,6 +8,7 @@ use App\Enums\ProductStatus;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Support\Data\TypedValue;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -203,6 +204,6 @@ class PerformanceSmokeTest extends TestCase
 
         $this->assertNotNull($variantId, 'Performance budget precondition failed: no available variant found.');
 
-        return (int) $variantId;
+        return TypedValue::int($variantId);
     }
 }

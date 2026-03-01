@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 class AuthFlowTest extends TestCase
@@ -28,11 +30,33 @@ class AuthFlowTest extends TestCase
         ]);
 
         $register->assertCreated();
-        $token = $register->json('data.token');
+        $token = $this->jsonString($register, 'data.token');
 
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/auth/me')
             ->assertOk()
             ->assertJsonPath('data.email', 'john@example.com');
+    }
+
+    /**
+     * Ensure logout revokes only the current bearer token.
+     */
+    public function test_logout_revokes_current_access_token(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('browser')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('data.message', 'Logged out successfully.');
+
+        $this->assertNull(PersonalAccessToken::findToken($token));
+
+        $this->refreshApplication();
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/auth/me')
+            ->assertUnauthorized();
     }
 }

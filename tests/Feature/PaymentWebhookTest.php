@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\WebhookReceipt;
+use App\Support\Data\TypedValue;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,7 +68,7 @@ class PaymentWebhookTest extends TestCase
             ],
         ])->assertCreated();
 
-        $orderId = $orderResponse->json('data.id');
+        $orderId = $this->jsonString($orderResponse, 'data.id');
 
         $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertOk();
@@ -86,9 +87,9 @@ class PaymentWebhookTest extends TestCase
             ->postJson('/api/v1/webhooks/payment', $payload)
             ->assertAccepted();
 
-        $order = Order::query()->findOrFail($orderId);
-        $this->assertSame('paid', (string) $order->getRawOriginal('status'));
-        $this->assertSame('captured', (string) $order->getRawOriginal('payment_status'));
+        $order = Order::query()->whereKey($orderId)->firstOrFail();
+        $this->assertSame('paid', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('captured', TypedValue::string($order->getRawOriginal('payment_status')));
     }
 
     /**
@@ -118,13 +119,13 @@ class PaymentWebhookTest extends TestCase
 
         $this->assertInstanceOf(Order::class, $order);
         $this->assertInstanceOf(Payment::class, $payment);
-        $this->assertSame('paid', (string) $order->getRawOriginal('status'));
-        $this->assertSame('captured', (string) $order->getRawOriginal('payment_status'));
-        $this->assertSame('captured', (string) $payment->getRawOriginal('status'));
+        $this->assertSame('paid', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('captured', TypedValue::string($order->getRawOriginal('payment_status')));
+        $this->assertSame('captured', TypedValue::string($payment->getRawOriginal('status')));
         $this->assertSame(
             1,
             WebhookReceipt::query()
-                ->where('provider', (string) config('payment.driver', 'fake-payment'))
+                ->where('provider', TypedValue::string(config('payment.driver', 'fake-payment')))
                 ->where('event_id', $eventId)
                 ->count()
         );
@@ -166,7 +167,7 @@ class PaymentWebhookTest extends TestCase
             ])
             ->assertCreated();
 
-        $orderId = $orderResponse->json('data.id');
+        $orderId = $this->jsonString($orderResponse, 'data.id');
 
         $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertOk();
@@ -195,13 +196,13 @@ class PaymentWebhookTest extends TestCase
             ->postJson('/api/v1/webhooks/payment', $failedPayload)
             ->assertAccepted();
 
-        $order = Order::query()->findOrFail($orderId);
+        $order = Order::query()->whereKey($orderId)->firstOrFail();
         $payment = $payment->fresh();
 
-        $this->assertSame('paid', (string) $order->getRawOriginal('status'));
-        $this->assertSame('captured', (string) $order->getRawOriginal('payment_status'));
+        $this->assertSame('paid', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('captured', TypedValue::string($order->getRawOriginal('payment_status')));
         $this->assertInstanceOf(Payment::class, $payment);
-        $this->assertSame('captured', (string) $payment->getRawOriginal('status'));
+        $this->assertSame('captured', TypedValue::string($payment->getRawOriginal('status')));
     }
 
     /**
@@ -256,7 +257,7 @@ class PaymentWebhookTest extends TestCase
             ])
             ->assertCreated();
 
-        $orderId = $orderResponse->json('data.id');
+        $orderId = $this->jsonString($orderResponse, 'data.id');
         $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertOk();
 
@@ -325,12 +326,12 @@ class PaymentWebhookTest extends TestCase
             ])
             ->assertCreated();
 
-        $orderId = $orderResponse->json('data.id');
+        $orderId = $this->jsonString($orderResponse, 'data.id');
 
         $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertOk();
 
-        $order = Order::query()->findOrFail($orderId);
+        $order = Order::query()->whereKey($orderId)->firstOrFail();
         $payment = Payment::query()
             ->whereHas('order', static fn ($query) => $query->where('id', $orderId))
             ->firstOrFail();

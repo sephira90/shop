@@ -138,7 +138,7 @@ class AdminPolicyMatrixTest extends TestCase
         $otherCustomer = $this->makeUserWithRoles(4, RoleName::CUSTOMER);
 
         $order = new Order;
-        $order->user_id = $owner->id;
+        $order->user_id = 3;
 
         $this->assertTrue($policy->viewAny($admin));
         $this->assertTrue($policy->viewAny($manager));
@@ -156,6 +156,8 @@ class AdminPolicyMatrixTest extends TestCase
 
     /**
      * Build in-memory user with attached role relation for policy checks.
+     *
+     * @param  positive-int  $id
      */
     private function makeUserWithRoles(int $id, RoleName ...$roles): User
     {

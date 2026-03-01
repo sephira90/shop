@@ -15,12 +15,18 @@ class ReleaseDocsWorkflowGuardrailTest extends TestCase
 
         $this->assertStringContainsString('composer run quality:backend', $readme);
         $this->assertStringContainsString('composer run quality:frontend', $readme);
+        $this->assertStringContainsString('composer run ops:clear', $readme);
+        $this->assertStringContainsString('composer run ops:routes-smoke', $readme);
+        $this->assertStringContainsString('composer run ops:observability-report', $readme);
         $this->assertStringContainsString('composer run ops:ci-production-smoke', $readme);
         $this->assertStringContainsString('composer run ops:production-smoke-core', $readme);
 
         $this->assertStringContainsString('docs/ARCHITECTURE_REFACTOR_NEXT.md', $checklist);
         $this->assertStringContainsString('composer run quality:backend', $checklist);
         $this->assertStringContainsString('composer run quality:frontend', $checklist);
+        $this->assertStringContainsString('composer run ops:clear', $checklist);
+        $this->assertStringContainsString('composer run ops:routes-smoke', $checklist);
+        $this->assertStringContainsString('composer run ops:observability-report', $checklist);
         $this->assertStringContainsString('composer run ops:ci-production-smoke', $checklist);
         $this->assertStringContainsString('composer run ops:production-smoke-core', $checklist);
     }

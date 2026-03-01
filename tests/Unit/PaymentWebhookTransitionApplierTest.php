@@ -15,6 +15,7 @@ use App\Services\Payment\PaymentWebhookIngressResolver;
 use App\Services\Payment\PaymentWebhookTransitionApplier;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,7 @@ class PaymentWebhookTransitionApplierTest extends TestCase
         $outcome = DB::transaction(
             fn (): WebhookProcessingOutcome => app(PaymentWebhookTransitionApplier::class)->apply(
                 $resolvedPayload,
-                (string) config('payment.driver', 'fake-payment'),
+                TypedValue::string(config('payment.driver', 'fake-payment')),
             ),
         );
 
@@ -57,7 +58,9 @@ class PaymentWebhookTransitionApplierTest extends TestCase
         $this->assertNotNull($freshPayment->processed_at);
         $paymentPayload = $freshPayment->getAttribute('payload');
         $this->assertIsArray($paymentPayload);
-        $this->assertSame('evt-payment-captured', $paymentPayload['webhook']['event_id'] ?? null);
+        $normalizedPaymentPayload = TypedValue::associativeArray($paymentPayload);
+        $webhookPayload = TypedValue::associativeArray($normalizedPaymentPayload['webhook'] ?? []);
+        $this->assertSame('evt-payment-captured', $webhookPayload['event_id'] ?? null);
         $this->assertSame(OrderStatus::PAID, $freshOrder->status);
         $this->assertSame(PaymentStatus::CAPTURED, $freshOrder->payment_status);
 
@@ -90,7 +93,7 @@ class PaymentWebhookTransitionApplierTest extends TestCase
         $outcome = DB::transaction(
             fn (): WebhookProcessingOutcome => app(PaymentWebhookTransitionApplier::class)->apply(
                 $resolvedPayload,
-                (string) config('payment.driver', 'fake-payment'),
+                TypedValue::string(config('payment.driver', 'fake-payment')),
             ),
         );
 
@@ -135,7 +138,7 @@ class PaymentWebhookTransitionApplierTest extends TestCase
         $payment = Payment::query()->create([
             'order_id' => $order->id,
             'idempotency_key' => 'payment-webhook-test-key-'.$paymentStatus->value,
-            'gateway' => (string) config('payment.driver', 'fake-payment'),
+            'gateway' => TypedValue::string(config('payment.driver', 'fake-payment')),
             'transaction_id' => 'txn-payment-webhook-test-'.$paymentStatus->value,
             'amount' => 100,
             'currency' => 'USD',

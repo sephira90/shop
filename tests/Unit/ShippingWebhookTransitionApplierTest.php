@@ -13,6 +13,7 @@ use App\Services\Shipping\ShippingWebhookIngressResolver;
 use App\Services\Shipping\ShippingWebhookTransitionApplier;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             $outcome = DB::transaction(
                 fn (): WebhookProcessingOutcome => app(ShippingWebhookTransitionApplier::class)->apply(
                     $resolvedPayload,
-                    (string) config('shipping.driver', 'fake-shipping'),
+                    TypedValue::string(config('shipping.driver', 'fake-shipping')),
                 ),
             );
 
@@ -57,14 +58,16 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             $this->assertSame(ShipmentStatus::DELIVERED, $freshShipment->status);
             $shipmentPayload = $freshShipment->getAttribute('payload');
             $this->assertIsArray($shipmentPayload);
-            $this->assertSame('evt-shipping-delivered', $shipmentPayload['webhook']['event_id'] ?? null);
+            $normalizedShipmentPayload = TypedValue::associativeArray($shipmentPayload);
+            $webhookPayload = TypedValue::associativeArray($normalizedShipmentPayload['webhook'] ?? []);
+            $this->assertSame('evt-shipping-delivered', $webhookPayload['event_id'] ?? null);
             $this->assertSame(
                 $now->toDateTimeString(),
-                Carbon::parse((string) $freshShipment->getRawOriginal('shipped_at'))->toDateTimeString(),
+                Carbon::parse(TypedValue::string($freshShipment->getRawOriginal('shipped_at')))->toDateTimeString(),
             );
             $this->assertSame(
                 $now->toDateTimeString(),
-                Carbon::parse((string) $freshShipment->getRawOriginal('delivered_at'))->toDateTimeString(),
+                Carbon::parse(TypedValue::string($freshShipment->getRawOriginal('delivered_at')))->toDateTimeString(),
             );
             $this->assertSame(OrderStatus::COMPLETED, $freshOrder->status);
             $this->assertSame(ShipmentStatus::DELIVERED, $freshOrder->shipment_status);
@@ -97,7 +100,7 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             $outcome = DB::transaction(
                 fn (): WebhookProcessingOutcome => app(ShippingWebhookTransitionApplier::class)->apply(
                     $resolvedPayload,
-                    (string) config('shipping.driver', 'fake-shipping'),
+                    TypedValue::string(config('shipping.driver', 'fake-shipping')),
                 ),
             );
 
@@ -110,11 +113,11 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             $this->assertSame(ShipmentStatus::DELIVERED, $freshShipment->status);
             $this->assertSame(
                 $now->copy()->subHour()->toDateTimeString(),
-                Carbon::parse((string) $freshShipment->getRawOriginal('shipped_at'))->toDateTimeString(),
+                Carbon::parse(TypedValue::string($freshShipment->getRawOriginal('shipped_at')))->toDateTimeString(),
             );
             $this->assertSame(
                 $now->copy()->subMinutes(30)->toDateTimeString(),
-                Carbon::parse((string) $freshShipment->getRawOriginal('delivered_at'))->toDateTimeString(),
+                Carbon::parse(TypedValue::string($freshShipment->getRawOriginal('delivered_at')))->toDateTimeString(),
             );
             $this->assertSame(OrderStatus::COMPLETED, $freshOrder->status);
             $this->assertSame(ShipmentStatus::DELIVERED, $freshOrder->shipment_status);
@@ -153,7 +156,7 @@ class ShippingWebhookTransitionApplierTest extends TestCase
 
         $shipment = Shipment::query()->create([
             'order_id' => $order->id,
-            'provider' => (string) config('shipping.driver', 'fake-shipping'),
+            'provider' => TypedValue::string(config('shipping.driver', 'fake-shipping')),
             'tracking_number' => 'trk-shipping-webhook-test-'.$shipmentStatus->value,
             'status' => $shipmentStatus->value,
             'cost' => 7.50,

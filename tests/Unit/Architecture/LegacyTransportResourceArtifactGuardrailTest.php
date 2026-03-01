@@ -10,22 +10,22 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tests\TestCase;
 
-final class LegacyFilterArtifactGuardrailTest extends TestCase
+final class LegacyTransportResourceArtifactGuardrailTest extends TestCase
 {
-    public function test_legacy_filter_namespace_directory_has_no_php_artifacts(): void
+    public function test_legacy_http_resource_namespace_has_no_php_artifacts(): void
     {
-        $filterRoot = app_path('Filters');
-        if (! is_dir($filterRoot)) {
-            $this->assertDirectoryDoesNotExist($filterRoot);
+        $resourceRoot = app_path('Http/Resources');
+        if (! is_dir($resourceRoot)) {
+            $this->assertDirectoryDoesNotExist($resourceRoot);
 
             return;
         }
 
         $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($filterRoot, FilesystemIterator::SKIP_DOTS)
+            new RecursiveDirectoryIterator($resourceRoot, FilesystemIterator::SKIP_DOTS)
         );
 
-        $legacyFilterPhpFiles = [];
+        $resourcePhpFiles = [];
 
         foreach ($iterator as $file) {
             if (! $file instanceof SplFileInfo) {
@@ -36,9 +36,9 @@ final class LegacyFilterArtifactGuardrailTest extends TestCase
                 continue;
             }
 
-            $legacyFilterPhpFiles[] = $file->getPathname();
+            $resourcePhpFiles[] = $file->getPathname();
         }
 
-        $this->assertSame([], $legacyFilterPhpFiles);
+        $this->assertSame([], $resourcePhpFiles);
     }
 }

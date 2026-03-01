@@ -21,7 +21,7 @@ class ApiContractSmokeCommandTest extends TestCase
      */
     public function test_api_contract_smoke_command_passes(): void
     {
-        $this->artisan('app:api-contract-smoke')
+        $this->artisanCommand('app:api-contract-smoke')
             ->expectsOutputToContain('shipping_webhook_missing_signature')
             ->assertSuccessful()
             ->expectsOutputToContain('API contract smoke checks passed.');
@@ -34,7 +34,7 @@ class ApiContractSmokeCommandTest extends TestCase
     {
         config()->set('app.env', 'production');
 
-        $this->artisan('app:api-contract-smoke')
+        $this->artisanCommand('app:api-contract-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('Production safeguard: smoke data rolled back.');
 
@@ -71,7 +71,7 @@ class ApiContractSmokeCommandTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->artisan('app:api-contract-smoke')
+        $this->artisanCommand('app:api-contract-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('API contract smoke checks passed.');
     }
@@ -91,7 +91,7 @@ class ApiContractSmokeCommandTest extends TestCase
 
     public function test_api_contract_smoke_command_fails_for_unknown_selected_scenario(): void
     {
-        $this->artisan('app:api-contract-smoke --only=missing_scenario')
+        $this->artisanCommand('app:api-contract-smoke --only=missing_scenario')
             ->assertFailed()
             ->expectsOutputToContain('API contract smoke failed: Option --only contains unknown api smoke scenario "missing_scenario".');
     }

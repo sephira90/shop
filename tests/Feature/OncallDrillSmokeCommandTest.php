@@ -25,7 +25,7 @@ class OncallDrillSmokeCommandTest extends TestCase
         $observability->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0);
         $observability->webhook('payment', 'evt-oncall-pass', 'processed', 15.0, 120.0);
 
-        $this->artisan('app:oncall-drill-smoke')
+        $this->artisanCommand('app:oncall-drill-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('oncall_healthcheck')
             ->expectsOutputToContain('oncall_observability_slo_report')
@@ -40,7 +40,7 @@ class OncallDrillSmokeCommandTest extends TestCase
     {
         $this->configureObservabilityForDrill();
 
-        $this->artisan('app:oncall-drill-smoke')
+        $this->artisanCommand('app:oncall-drill-smoke')
             ->assertFailed()
             ->expectsOutputToContain('oncall_observability_slo_report');
     }
@@ -69,7 +69,7 @@ class OncallDrillSmokeCommandTest extends TestCase
         $observability->apiRequest('GET', '/api/v1/catalog/products', 200, 20.0);
         $observability->webhook('payment', 'evt-oncall-write-pass', 'processed', 15.0, 120.0);
 
-        $this->artisan('app:oncall-drill-smoke --with-write-smokes')
+        $this->artisanCommand('app:oncall-drill-smoke --with-write-smokes')
             ->assertSuccessful()
             ->expectsOutputToContain('oncall_api_contract_smoke')
             ->expectsOutputToContain('oncall_webhook_flow_smoke')

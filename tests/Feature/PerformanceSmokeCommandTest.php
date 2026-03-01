@@ -28,7 +28,7 @@ class PerformanceSmokeCommandTest extends TestCase
 
     public function test_performance_smoke_command_aggregates_budget_violations(): void
     {
-        $this->artisan('app:performance-smoke', [
+        $this->artisanCommand('app:performance-smoke', [
             '--only' => 'admin_orders_summary,admin_products_list',
             '--max-orders-ms' => '999999',
             '--max-orders-queries' => '0',
@@ -44,7 +44,7 @@ class PerformanceSmokeCommandTest extends TestCase
     {
         config()->set('app.env', 'production');
 
-        $this->artisan('app:performance-smoke', [
+        $this->artisanCommand('app:performance-smoke', [
             '--only' => 'checkout_place_order',
         ])
             ->assertSuccessful()
@@ -56,7 +56,7 @@ class PerformanceSmokeCommandTest extends TestCase
 
     public function test_performance_smoke_command_fails_for_unknown_selected_scenario(): void
     {
-        $this->artisan('app:performance-smoke --only=missing_scenario')
+        $this->artisanCommand('app:performance-smoke --only=missing_scenario')
             ->assertFailed()
             ->expectsOutputToContain('Performance smoke failed: Option --only contains unknown performance smoke scenario "missing_scenario".');
     }

@@ -14,6 +14,7 @@ use App\Models\Order;
 use App\Services\Payment\Dto\PaymentCreationResultDto;
 use App\Services\Shipping\Dto\ShipmentCreationResultDto;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use InvalidArgumentException;
 use Tests\TestCase;
 
@@ -81,7 +82,7 @@ final class TestPaymentGateway implements PaymentGatewayInterface
      */
     public function extractEventId(array $payload): string
     {
-        return (string) ($payload['event_id'] ?? 'test-payment-event');
+        return TypedValue::string($payload['event_id'] ?? 'test-payment-event');
     }
 
     /**
@@ -89,7 +90,7 @@ final class TestPaymentGateway implements PaymentGatewayInterface
      */
     public function extractTransactionId(array $payload): string
     {
-        return (string) ($payload['transaction_id'] ?? 'test_txn_1');
+        return TypedValue::string($payload['transaction_id'] ?? 'test_txn_1');
     }
 
     /**
@@ -126,7 +127,7 @@ final class TestShippingGateway implements ShippingGatewayInterface
      */
     public function extractEventId(array $payload): string
     {
-        return (string) ($payload['event_id'] ?? 'test-shipping-event');
+        return TypedValue::string($payload['event_id'] ?? 'test-shipping-event');
     }
 
     /**
@@ -134,7 +135,7 @@ final class TestShippingGateway implements ShippingGatewayInterface
      */
     public function extractTrackingNumber(array $payload): string
     {
-        return (string) ($payload['tracking_number'] ?? 'TRKTEST123456');
+        return TypedValue::string($payload['tracking_number'] ?? 'TRKTEST123456');
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Shipment;
+use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,7 +24,7 @@ class WebhookFlowSmokeCommandTest extends TestCase
      */
     public function test_webhook_flow_smoke_command_passes(): void
     {
-        $this->artisan('app:webhook-flow-smoke')
+        $this->artisanCommand('app:webhook-flow-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('Webhook flow smoke checks passed.');
 
@@ -32,10 +33,10 @@ class WebhookFlowSmokeCommandTest extends TestCase
 
         $this->assertInstanceOf(Order::class, $order);
         $this->assertInstanceOf(Shipment::class, $shipment);
-        $this->assertSame('completed', (string) $order->getRawOriginal('status'));
-        $this->assertSame('captured', (string) $order->getRawOriginal('payment_status'));
-        $this->assertSame('delivered', (string) $order->getRawOriginal('shipment_status'));
-        $this->assertSame('delivered', (string) $shipment->getRawOriginal('status'));
+        $this->assertSame('completed', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('captured', TypedValue::string($order->getRawOriginal('payment_status')));
+        $this->assertSame('delivered', TypedValue::string($order->getRawOriginal('shipment_status')));
+        $this->assertSame('delivered', TypedValue::string($shipment->getRawOriginal('status')));
     }
 
     /**
@@ -45,7 +46,7 @@ class WebhookFlowSmokeCommandTest extends TestCase
     {
         config()->set('app.env', 'production');
 
-        $this->artisan('app:webhook-flow-smoke')
+        $this->artisanCommand('app:webhook-flow-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('Production safeguard: smoke data rolled back.');
 
@@ -91,7 +92,7 @@ class WebhookFlowSmokeCommandTest extends TestCase
             'low_stock_threshold' => 1,
         ]);
 
-        $this->artisan('app:webhook-flow-smoke')
+        $this->artisanCommand('app:webhook-flow-smoke')
             ->assertSuccessful()
             ->expectsOutputToContain('Webhook flow smoke checks passed.');
     }
@@ -100,7 +101,7 @@ class WebhookFlowSmokeCommandTest extends TestCase
     {
         config()->set('app.env', 'production');
 
-        $this->artisan('app:webhook-flow-smoke', [
+        $this->artisanCommand('app:webhook-flow-smoke', [
             '--persist' => true,
         ])
             ->assertSuccessful()

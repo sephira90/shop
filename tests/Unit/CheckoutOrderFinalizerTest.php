@@ -18,6 +18,7 @@ use App\Models\Promotion;
 use App\Services\Checkout\CheckoutOrderFinalizer;
 use App\Services\Checkout\Dto\CheckoutDiscountContextDto;
 use App\Services\Checkout\Dto\CheckoutOrderFinalizationInputDto;
+use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
@@ -108,7 +109,7 @@ class CheckoutOrderFinalizerTest extends TestCase
             $this->assertSame(str_repeat('b', 64), $freshIdempotency->request_hash);
             $this->assertSame(
                 $now->copy()->addHours(24)->toDateTimeString(),
-                Carbon::parse((string) $freshIdempotency->getRawOriginal('expires_at'))->toDateTimeString(),
+                Carbon::parse(TypedValue::string($freshIdempotency->getRawOriginal('expires_at')))->toDateTimeString(),
             );
             $this->assertSame($order->id, $finalizedOrder->id);
             $this->assertTrue($finalizedOrder->relationLoaded('items'));

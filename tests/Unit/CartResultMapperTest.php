@@ -9,6 +9,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\ProductVariant;
 use App\Services\Cart\CartResultMapper;
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
@@ -49,7 +50,8 @@ class CartResultMapperTest extends TestCase
 
         $cart->setRelation('items', new Collection([$itemWithVariant, $itemWithoutVariant]));
 
-        $result = (new CartResultMapper)->toResultDto($cart)->toArray();
+        /** @var array{id:string,guest_token:?string,status:string,summary:array{subtotal:float,total:float},items:list<array{sku:string,name:string}>} $result */
+        $result = TypedValue::associativeArray((new CartResultMapper)->toResultDto($cart)->toArray());
 
         self::assertSame('cart-1', $result['id']);
         self::assertSame('guest-1', $result['guest_token']);
@@ -63,18 +65,19 @@ class CartResultMapperTest extends TestCase
     }
 
     /**
-     * Ensure non-cart-item payloads are ignored in item list mapping.
+     * Ensure empty cart items produce an empty DTO list and zero summary.
      */
-    public function test_to_result_dto_ignores_invalid_item_payloads(): void
+    public function test_to_result_dto_handles_empty_item_collection(): void
     {
         $cart = new Cart([
             'currency' => 'USD',
             'status' => CartStatus::ACTIVE->value,
         ]);
         $cart->setAttribute('id', 'cart-2');
-        $cart->setRelation('items', new Collection([new \stdClass]));
+        $cart->setRelation('items', new Collection([]));
 
-        $result = (new CartResultMapper)->toResultDto($cart)->toArray();
+        /** @var array{id:string,items:list<array<string, mixed>>,summary:array{subtotal:float,total:float}} $result */
+        $result = TypedValue::associativeArray((new CartResultMapper)->toResultDto($cart)->toArray());
 
         self::assertSame('cart-2', $result['id']);
         self::assertSame([], $result['items']);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\Data\TypedValue;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -33,7 +34,7 @@ class AdminCacheRefreshTest extends TestCase
             ->assertJsonPath('data.refreshed', true)
             ->assertJsonPath('data.catalog_version', 12);
 
-        $this->assertSame(12, (int) Cache::get('catalog:version'));
+        $this->assertSame(12, TypedValue::int(Cache::get('catalog:version')));
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Models\ProductVariant;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Models\WebhookReceipt;
+use App\Support\Data\TypedValue;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,9 +67,9 @@ class ShippingWebhookTest extends TestCase
 
         $this->assertInstanceOf(Shipment::class, $shipment);
         $this->assertInstanceOf(Order::class, $order);
-        $this->assertSame('delivered', (string) $shipment->getRawOriginal('status'));
-        $this->assertSame('completed', (string) $order->getRawOriginal('status'));
-        $this->assertSame('delivered', (string) $order->getRawOriginal('shipment_status'));
+        $this->assertSame('delivered', TypedValue::string($shipment->getRawOriginal('status')));
+        $this->assertSame('completed', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('delivered', TypedValue::string($order->getRawOriginal('shipment_status')));
     }
 
     /**
@@ -98,13 +99,13 @@ class ShippingWebhookTest extends TestCase
 
         $this->assertInstanceOf(Shipment::class, $shipment);
         $this->assertInstanceOf(Order::class, $order);
-        $this->assertSame('shipped', (string) $shipment->getRawOriginal('status'));
-        $this->assertSame('paid', (string) $order->getRawOriginal('status'));
-        $this->assertSame('shipped', (string) $order->getRawOriginal('shipment_status'));
+        $this->assertSame('shipped', TypedValue::string($shipment->getRawOriginal('status')));
+        $this->assertSame('paid', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('shipped', TypedValue::string($order->getRawOriginal('shipment_status')));
         $this->assertSame(
             1,
             WebhookReceipt::query()
-                ->where('provider', (string) config('shipping.driver', 'fake-shipping'))
+                ->where('provider', TypedValue::string(config('shipping.driver', 'fake-shipping')))
                 ->where('event_id', $eventId)
                 ->count()
         );
@@ -178,7 +179,7 @@ class ShippingWebhookTest extends TestCase
             ])
             ->assertCreated();
 
-        $orderId = $orderResponse->json('data.id');
+        $orderId = $this->jsonString($orderResponse, 'data.id');
 
         $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertOk();
@@ -197,7 +198,7 @@ class ShippingWebhookTest extends TestCase
             ->postJson('/api/v1/webhooks/payment', $paymentPayload)
             ->assertAccepted();
 
-        $order = Order::query()->findOrFail($orderId);
+        $order = Order::query()->whereKey($orderId)->firstOrFail();
         $shipment = Shipment::query()->where('order_id', $orderId)->firstOrFail();
 
         return [$order, $shipment];
