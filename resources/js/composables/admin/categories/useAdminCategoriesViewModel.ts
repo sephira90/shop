@@ -1,11 +1,11 @@
-import { computed } from "vue";
+import { computed, watch } from "vue";
 
 import type { AdminRouteSyncOptions } from "@/composables/admin/adminRouteSync";
 import type { AdminUiEffectsAdapter } from "@/composables/admin/adminUiEffects";
 import { useAdminUiMutationContext } from "@/composables/admin/useAdminUiMutationContext";
 import { useAuthStore } from "@/stores/auth";
-import type { AdminCategory } from "@/types/admin-categories";
 
+import { useAdminCategoryOptionsState } from "./useAdminCategoryOptionsState";
 import { useAdminCategoriesMutations } from "./useAdminCategoriesMutations";
 import { useAdminCategoriesQuery } from "./useAdminCategoriesQuery";
 
@@ -26,16 +26,28 @@ export const useAdminCategoriesViewModel = (options: UseAdminCategoriesOptions =
         notice: mutationContext.mutationNotice,
         uiEffects,
     });
-    const parentOptions = computed<AdminCategory[]>(() => {
-        return query.categories.value.filter(
-            (category) => category.id !== mutations.editingId.value,
-        );
+    const {
+        categoryOptions: parentOptions,
+        isLoadingCategoryOptions: isLoadingParentOptions,
+        loadCategoryOptions,
+    } = useAdminCategoryOptionsState(mutationContext.queryNotice);
+
+    const loadParentOptions = async (): Promise<void> => {
+        await loadCategoryOptions({
+            exclude_id: mutations.editingId.value ?? undefined,
+        });
+    };
+
+    watch(mutations.editingId, () => {
+        void loadParentOptions();
     });
 
     return {
         notice: mutationContext.notice,
         canDeleteCategories,
         parentOptions,
+        isLoadingParentOptions,
+        loadParentOptions,
         ...query,
         ...mutations,
     };

@@ -16,10 +16,10 @@
 import OrderItemsTable from "@/components/orders/OrderItemsTable.vue";
 import AppDetailBox from "@/components/ui/data-display/AppDetailBox.vue";
 import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
-import type { AccountOrder, AccountOrderAddress } from "@/types/account-orders";
+import type { AccountOrderAddress, AccountOrderDetail } from "@/types/account-orders";
 
 defineProps<{
-    order: AccountOrder;
+    order: AccountOrderDetail;
     formatPrice: (value: number, currency?: string) => string;
     formatAddress: (address: AccountOrderAddress | null) => string;
 }>();

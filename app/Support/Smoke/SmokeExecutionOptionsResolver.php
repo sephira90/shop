@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke;
 
+use App\Support\Data\TypedValue;
 use App\Support\Smoke\Dto\SmokeExecutionOptionsDto;
 
 final class SmokeExecutionOptionsResolver
@@ -13,7 +14,7 @@ final class SmokeExecutionOptionsResolver
      */
     public function resolve(array $options): SmokeExecutionOptionsDto
     {
-        $only = trim((string) $options['only']);
+        $only = TypedValue::nullableTrimmedString($options['only']) ?? '';
 
         return new SmokeExecutionOptionsDto(
             persist: (bool) $options['persist'],

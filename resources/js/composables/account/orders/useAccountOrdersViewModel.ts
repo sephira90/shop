@@ -1,9 +1,13 @@
 import { computed, ref, watch } from "vue";
 
 import type { RouteQueryLike, RouteQueryRouterLike } from "@/composables/useRouteSyncedPagination";
-import type { AccountOrder, AccountOrderAddress } from "@/types/account-orders";
+import type {
+    AccountOrderAddress,
+    AccountOrderDetail,
+    AccountOrderSummary,
+} from "@/types/account-orders";
+import { formatPrice as formatCurrency } from "@/utils/format";
 import {
-    formatMoney,
     formatOrderAddress,
     formatOrderDate,
     orderStatusTone as resolveOrderStatusTone,
@@ -12,6 +16,7 @@ import {
     type StatusTone,
 } from "@/utils/order-presentation";
 
+import { useAccountOrderDetailsState } from "./useAccountOrderDetailsState";
 import { useAccountOrdersQuery } from "./useAccountOrdersQuery";
 
 interface UseAccountOrdersOptions {
@@ -21,13 +26,15 @@ interface UseAccountOrdersOptions {
 
 export const useAccountOrdersViewModel = (options: UseAccountOrdersOptions = {}) => {
     const query = useAccountOrdersQuery(options);
+    const detailsState = useAccountOrderDetailsState();
     const expandedOrderIds = ref<string[]>([]);
 
     watch(query.orders, () => {
         expandedOrderIds.value = [];
+        detailsState.resetDetails();
     });
 
-    const filteredOrders = computed<AccountOrder[]>(() => query.orders.value);
+    const filteredOrders = computed<AccountOrderSummary[]>(() => query.orders.value);
     const loadedTotal = computed<number>(() =>
         query.orders.value.reduce((sum, order) => sum + Number(order.total ?? 0), 0),
     );
@@ -50,19 +57,21 @@ export const useAccountOrdersViewModel = (options: UseAccountOrdersOptions = {})
 
     const isExpanded = (orderId: string): boolean => expandedOrderIds.value.includes(orderId);
 
-    const toggleDetails = (orderId: string): void => {
+    const toggleDetails = async (orderId: string): Promise<void> => {
         if (isExpanded(orderId)) {
             expandedOrderIds.value = expandedOrderIds.value.filter((id) => id !== orderId);
             return;
         }
 
         expandedOrderIds.value = [...expandedOrderIds.value, orderId];
+        await detailsState.loadOrderDetail(orderId);
     };
 
-    const totalItems = (order: AccountOrder): number =>
-        order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalItems = (order: AccountOrderDetail | null): number =>
+        order?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
 
-    const formatPrice = (value: number, currency = "USD"): string => formatMoney(value, currency);
+    const formatPrice = (value: number, currency = "USD"): string =>
+        formatCurrency(value, currency);
     const formatDate = (value: string | null): string => formatOrderDate(value, "Unknown date");
     const formatAddress = (address: AccountOrderAddress | null): string =>
         formatOrderAddress(address);
@@ -74,6 +83,7 @@ export const useAccountOrdersViewModel = (options: UseAccountOrdersOptions = {})
         orders: query.orders,
         filteredOrders,
         expandedOrderIds,
+        orderDetails: detailsState.orderDetails,
         searchQuery: query.searchQuery,
         statusFilter: query.statusFilter,
         page: query.page,
@@ -86,6 +96,10 @@ export const useAccountOrdersViewModel = (options: UseAccountOrdersOptions = {})
         loadOrders: query.loadOrders,
         applyFilters,
         isExpanded,
+        isDetailLoading: detailsState.isDetailLoading,
+        getOrderDetail: detailsState.getOrderDetail,
+        getDetailError: detailsState.getDetailError,
+        loadOrderDetail: detailsState.loadOrderDetail,
         toggleDetails,
         totalItems,
         formatPrice,

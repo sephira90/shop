@@ -9,9 +9,9 @@ use App\Application\Checkout\Dto\CheckoutCartPreparationDto;
 use App\Enums\CartStatus;
 use App\Enums\ProductStatus;
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Support\Data\TypedValue;
 use DomainException;
 
 final class CheckoutCartPreparer
@@ -22,7 +22,7 @@ final class CheckoutCartPreparer
             throw new DomainException('Cart is empty.');
         }
 
-        if ((string) $lockedCart->getRawOriginal('status') !== CartStatus::ACTIVE->value) {
+        if (TypedValue::string($lockedCart->getRawOriginal('status')) !== CartStatus::ACTIVE->value) {
             throw new DomainException('Cart is not active for checkout.');
         }
 
@@ -31,10 +31,6 @@ final class CheckoutCartPreparer
         $requiredQuantityByVariant = [];
 
         foreach ($lockedCart->items as $item) {
-            if (! $item instanceof CartItem) {
-                throw new DomainException('Cart item payload is invalid.');
-            }
-
             $variant = $item->variant;
             if (! $variant instanceof ProductVariant) {
                 throw new DomainException('Cart contains unavailable items.');
@@ -42,7 +38,7 @@ final class CheckoutCartPreparer
 
             $product = $variant->product;
             if (! $product instanceof Product || ! $variant->is_active
-                || (string) $product->getRawOriginal('status') !== ProductStatus::ACTIVE->value
+                || TypedValue::string($product->getRawOriginal('status')) !== ProductStatus::ACTIVE->value
                 || $product->published_at === null) {
                 throw new DomainException('Cart contains unavailable items.');
             }

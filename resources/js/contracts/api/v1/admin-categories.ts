@@ -18,3 +18,11 @@ export interface AdminCategoryWireDto {
     children_count: number;
     products_count: number;
 }
+
+export interface AdminCategoryOptionWireDto {
+    id: number;
+    parent_id: number | null;
+    name: string;
+    slug: string;
+    is_active: boolean;
+}

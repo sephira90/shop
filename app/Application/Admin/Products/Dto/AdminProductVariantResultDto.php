@@ -6,6 +6,7 @@ namespace App\Application\Admin\Products\Dto;
 
 use App\Models\Inventory;
 use App\Models\ProductVariant;
+use App\Support\Data\TypedValue;
 
 final readonly class AdminProductVariantResultDto
 {
@@ -100,6 +101,6 @@ final readonly class AdminProductVariantResultDto
             return null;
         }
 
-        return $attributes;
+        return TypedValue::associativeArray($attributes);
     }
 }

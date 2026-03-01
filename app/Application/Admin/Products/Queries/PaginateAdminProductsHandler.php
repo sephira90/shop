@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Admin\Products\Queries;
 
 use App\Application\Admin\Products\Dto\AdminProductPaginatedResultDto;
-use App\Repositories\ProductRepository;
+use App\Repositories\AdminProductReadRepository;
 
 final class PaginateAdminProductsHandler
 {
@@ -13,7 +13,7 @@ final class PaginateAdminProductsHandler
      * Create query handler instance.
      */
     public function __construct(
-        private readonly ProductRepository $productRepository,
+        private readonly AdminProductReadRepository $adminProductReadRepository,
     ) {}
 
     /**
@@ -21,7 +21,7 @@ final class PaginateAdminProductsHandler
      */
     public function handle(PaginateAdminProductsQuery $query): AdminProductPaginatedResultDto
     {
-        $paginator = $this->productRepository->paginateForAdmin($query->filter);
+        $paginator = $this->adminProductReadRepository->paginateForAdmin($query->filter);
 
         return AdminProductPaginatedResultDto::fromPaginator($paginator);
     }

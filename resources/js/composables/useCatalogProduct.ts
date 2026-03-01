@@ -5,6 +5,14 @@ import { getCatalogProductBySlug } from "@/api/catalog";
 import { useApiError } from "@/composables/useApiError";
 import type { CatalogProduct, CatalogProductVariant } from "@/types/catalog";
 
+interface CatalogProductRouteLike {
+    params: Record<string, unknown>;
+}
+
+interface UseCatalogProductOptions {
+    route?: CatalogProductRouteLike;
+}
+
 const resolveRouteSlug = (value: unknown): string => {
     if (Array.isArray(value)) {
         const first = value.find((item) => typeof item === "string");
@@ -15,8 +23,8 @@ const resolveRouteSlug = (value: unknown): string => {
     return typeof value === "string" ? value.trim() : "";
 };
 
-export const useCatalogProduct = () => {
-    const route = useRoute();
+export const useCatalogProduct = (options: UseCatalogProductOptions = {}) => {
+    const route = options.route ?? useRoute();
     const { parseApiError } = useApiError();
     const product = ref<CatalogProduct | null>(null);
     const selectedVariantId = ref<number | null>(null);

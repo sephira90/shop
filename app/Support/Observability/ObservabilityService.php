@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Observability;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\Log;
 use Psr\Log\LoggerInterface;
 
@@ -196,7 +197,7 @@ final class ObservabilityService
      */
     private function logger(): LoggerInterface
     {
-        return Log::channel((string) config('observability.channel', config('logging.default', 'stack')));
+        return Log::channel(TypedValue::string(config('observability.channel', config('logging.default', 'stack'))));
     }
 
     /**
@@ -204,7 +205,7 @@ final class ObservabilityService
      */
     private function apiSlowThresholdMs(): int
     {
-        return (int) config('observability.api.slow_ms', 800);
+        return TypedValue::int(config('observability.api.slow_ms', 800));
     }
 
     /**
@@ -212,7 +213,7 @@ final class ObservabilityService
      */
     private function catalogSlowThresholdMs(): int
     {
-        return (int) config('observability.catalog.slow_ms', 400);
+        return TypedValue::int(config('observability.catalog.slow_ms', 400));
     }
 
     /**
@@ -220,7 +221,7 @@ final class ObservabilityService
      */
     private function webhookSlowThresholdMs(): int
     {
-        return (int) config('observability.webhook.slow_ms', 500);
+        return TypedValue::int(config('observability.webhook.slow_ms', 500));
     }
 
     /**
@@ -228,6 +229,6 @@ final class ObservabilityService
      */
     private function webhookLagWarnThresholdMs(): int
     {
-        return (int) config('observability.webhook.lag_warn_ms', 1500);
+        return TypedValue::int(config('observability.webhook.lag_warn_ms', 1500));
     }
 }

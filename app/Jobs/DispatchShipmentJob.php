@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Services\Shipping\ShippingService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +29,7 @@ class DispatchShipmentJob implements ShouldQueue
             return;
         }
 
-        if ($order->payment_status !== PaymentStatus::CAPTURED) {
+        if (! $order->hasCapturedPayment()) {
             return;
         }
 

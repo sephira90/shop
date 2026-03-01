@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class ForgotAuthPasswordInputDto
 {
     /**
@@ -12,7 +14,7 @@ final readonly class ForgotAuthPasswordInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            email: trim((string) ($validated['email'] ?? '')),
+            email: TypedValue::trimmedString($validated['email'] ?? ''),
         );
     }
 

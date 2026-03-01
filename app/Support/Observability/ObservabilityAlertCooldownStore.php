@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Observability;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\Cache;
 
 final class ObservabilityAlertCooldownStore
@@ -12,14 +13,14 @@ final class ObservabilityAlertCooldownStore
 
     public function isSuppressed(): bool
     {
-        $cooldownMinutes = max(0, (int) config('observability.alerts.cooldown_minutes', 30));
+        $cooldownMinutes = max(0, TypedValue::int(config('observability.alerts.cooldown_minutes', 30)));
 
         return $cooldownMinutes > 0 && Cache::has(self::CACHE_KEY);
     }
 
     public function remember(): void
     {
-        $cooldownMinutes = max(0, (int) config('observability.alerts.cooldown_minutes', 30));
+        $cooldownMinutes = max(0, TypedValue::int(config('observability.alerts.cooldown_minutes', 30)));
         if ($cooldownMinutes <= 0) {
             return;
         }

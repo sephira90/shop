@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class ResetAuthPasswordInputDto
 {
     /**
@@ -12,9 +14,9 @@ final readonly class ResetAuthPasswordInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            token: trim((string) ($validated['token'] ?? '')),
-            email: trim((string) ($validated['email'] ?? '')),
-            password: (string) ($validated['password'] ?? ''),
+            token: TypedValue::trimmedString($validated['token'] ?? ''),
+            email: TypedValue::trimmedString($validated['email'] ?? ''),
+            password: TypedValue::string($validated['password'] ?? ''),
         );
     }
 

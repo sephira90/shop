@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke;
 
+use App\Support\Data\TypedValue;
+
 final class SmokeRollbackPolicy
 {
     public function shouldRollback(bool $persist): bool
     {
-        return (string) config('app.env') === 'production' && ! $persist;
+        return TypedValue::string(config('app.env')) === 'production' && ! $persist;
     }
 
     public function warningMessage(bool $rolledBack): ?string

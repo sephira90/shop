@@ -8,6 +8,7 @@ use App\Services\Webhook\Dto\WebhookIngressMetadataDto;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Services\Webhook\WebhookProcessorAdapterInterface;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 
 final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterInterface
 {
@@ -24,7 +25,7 @@ final readonly class ShippingWebhookAdapter implements WebhookProcessorAdapterIn
      */
     public function receiptProvider(): string
     {
-        return (string) config('shipping.driver', 'fake-shipping');
+        return TypedValue::string(config('shipping.driver', 'fake-shipping'));
     }
 
     /**

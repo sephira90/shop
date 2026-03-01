@@ -8,14 +8,12 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    use HasFactory;
     use HasUuids;
 
     /**
@@ -41,7 +39,7 @@ class Order extends Model
     ];
 
     /**
-     * @var list<string>
+     * @var string
      */
     protected $keyType = 'string';
 
@@ -73,6 +71,8 @@ class Order extends Model
 
     /**
      * Order customer relation.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -81,6 +81,8 @@ class Order extends Model
 
     /**
      * Order items relation.
+     *
+     * @return HasMany<OrderItem, $this>
      */
     public function items(): HasMany
     {
@@ -89,6 +91,8 @@ class Order extends Model
 
     /**
      * Related payments.
+     *
+     * @return HasMany<Payment, $this>
      */
     public function payments(): HasMany
     {
@@ -97,9 +101,31 @@ class Order extends Model
 
     /**
      * Related shipments.
+     *
+     * @return HasMany<Shipment, $this>
      */
     public function shipments(): HasMany
     {
         return $this->hasMany(Shipment::class);
+    }
+
+    public function hasCapturedPayment(): bool
+    {
+        return $this->normalizedPaymentStatus() === PaymentStatus::CAPTURED;
+    }
+
+    private function normalizedPaymentStatus(): ?PaymentStatus
+    {
+        $paymentStatus = $this->getAttributeValue('payment_status');
+
+        if ($paymentStatus instanceof PaymentStatus) {
+            return $paymentStatus;
+        }
+
+        if (is_string($paymentStatus)) {
+            return PaymentStatus::tryFrom($paymentStatus);
+        }
+
+        return null;
     }
 }

@@ -11,18 +11,19 @@ use App\Application\Cart\Commands\UpsertCartItemHandler;
 use App\Application\Cart\Dto\RemoveCartItemInputDto;
 use App\Application\Cart\Queries\GetCurrentCartHandler;
 use App\Application\Cart\Queries\GetCurrentCartQuery;
+use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\UpsertCartItemRequest;
-use App\Models\User;
 use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class CartController extends Controller
 {
+    use ResolvesAuthenticatedUser;
+
     /**
      * Create controller instance.
      */
@@ -38,7 +39,7 @@ class CartController extends Controller
     public function show(Request $request): JsonResponse
     {
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
-        $currentUser = $this->resolveCurrentUser($request);
+        $currentUser = $this->resolveAuthenticatedUser($request);
         $payload = $this->getCurrentCartHandler->handle(
             new GetCurrentCartQuery($currentUser, is_string($guestToken) ? $guestToken : null)
         );
@@ -52,7 +53,7 @@ class CartController extends Controller
     public function upsertItem(UpsertCartItemRequest $request): JsonResponse
     {
         $input = $request->toDto();
-        $currentUser = $this->resolveCurrentUser($request);
+        $currentUser = $this->resolveAuthenticatedUser($request);
 
         try {
             $cartPayload = $this->upsertCartItemHandler->handle(
@@ -74,7 +75,7 @@ class CartController extends Controller
     public function removeItem(Request $request, int $variantId): JsonResponse
     {
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
-        $currentUser = $this->resolveCurrentUser($request);
+        $currentUser = $this->resolveAuthenticatedUser($request);
         $cartPayload = $this->removeCartItemHandler->handle(
             new RemoveCartItemCommand(
                 $currentUser,
@@ -83,15 +84,5 @@ class CartController extends Controller
         );
 
         return ApiResponse::data($cartPayload->toArray());
-    }
-
-    /**
-     * Resolve currently authenticated user if it is app User model.
-     */
-    private function resolveCurrentUser(Request $request): ?User
-    {
-        $authenticated = $request->user() ?? Auth::guard('sanctum')->user();
-
-        return $authenticated instanceof User ? $authenticated : null;
     }
 }

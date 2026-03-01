@@ -3,6 +3,7 @@
         <AdminCategoriesFormCard
             v-model:form="form"
             :parent-options="parentOptions"
+            :is-loading-parent-options="isLoadingParentOptions"
             :is-submitting="isSubmitting"
             :editing-id="editingId"
             :notice-type="notice.type"
@@ -20,11 +21,11 @@
             :meta="meta"
             :is-deleting-id="isDeletingId"
             :can-delete-categories="canDeleteCategories"
-            @refresh="loadCategories(page)"
+            @refresh="loadCategoriesPage(page)"
             @edit="startEdit"
             @remove="removeCategory"
-            @load-prev="loadCategories(page - 1)"
-            @load-next="loadCategories(page + 1)"
+            @load-prev="loadCategoriesPage(page - 1)"
+            @load-next="loadCategoriesPage(page + 1)"
         />
     </section>
 </template>
@@ -56,8 +57,10 @@ const {
     form,
     filteredCategories,
     parentOptions,
+    isLoadingParentOptions,
     resetForm,
     loadCategories,
+    loadParentOptions,
     submitCategory,
     startEdit,
     removeCategory,
@@ -69,7 +72,11 @@ const {
     },
 });
 
+const loadCategoriesPage = async (targetPage?: number): Promise<void> => {
+    await Promise.all([loadCategories(targetPage), loadParentOptions()]);
+};
+
 onMounted(async () => {
-    await loadCategories();
+    await loadCategoriesPage();
 });
 </script>

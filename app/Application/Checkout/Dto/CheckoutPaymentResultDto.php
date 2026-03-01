@@ -12,6 +12,8 @@ final readonly class CheckoutPaymentResultDto
     {
         $statusRaw = $payment->getRawOriginal('status');
         $status = is_string($statusRaw) && trim($statusRaw) !== '' ? $statusRaw : null;
+        $transactionIdRaw = $payment->getRawOriginal('transaction_id');
+        $transactionId = is_string($transactionIdRaw) ? $transactionIdRaw : (string) $payment->transaction_id;
         $rawPayload = $payment->getRawOriginal('payload');
         $paymentPayload = [];
 
@@ -26,7 +28,7 @@ final readonly class CheckoutPaymentResultDto
 
         return new self(
             paymentId: $payment->id,
-            transactionId: $payment->transaction_id,
+            transactionId: $transactionId,
             status: $status,
             paymentPayload: $paymentPayload,
         );

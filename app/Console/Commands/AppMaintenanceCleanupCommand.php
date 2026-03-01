@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\Maintenance\Dto\MaintenanceCleanupResourceResultDto;
 use App\Support\Maintenance\MaintenanceCleanupExecutor;
 use App\Support\Maintenance\MaintenanceCleanupRetentionResolver;
 use Illuminate\Console\Command;
@@ -61,14 +62,23 @@ class AppMaintenanceCleanupCommand extends Command
         );
 
         $this->table(
-            ['resource', 'cutoff_utc', 'matched', $result->dryRun ? 'would_delete' : 'deleted'],
-            array_map(static fn ($resource): array => [
+            ['resource', 'cutoff_utc', 'matched', 'batches', $result->dryRun ? 'would_delete' : 'deleted'],
+            array_map(static fn (MaintenanceCleanupResourceResultDto $resource): array => [
                 $resource->resource,
                 $resource->cutoffUtc,
                 (string) $resource->matched,
+                (string) $resource->batches,
                 (string) $resource->affected,
             ], $result->resources),
         );
+
+        $this->line(sprintf(
+            'Totals: matched=%d batches=%d %s=%d',
+            $result->totalMatched,
+            $result->totalBatches,
+            $result->dryRun ? 'would_delete' : 'deleted',
+            $result->totalAffected,
+        ));
 
         if ($result->dryRun) {
             $this->info('Dry run: no records deleted.');

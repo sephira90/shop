@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Payment\Dto;
 
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 
 final readonly class PaymentWebhookPayloadDto
 {
@@ -26,7 +27,7 @@ final readonly class PaymentWebhookPayloadDto
 
         $status = null;
         if (array_key_exists('status', $rawPayloadData)) {
-            $statusValue = trim((string) $rawPayloadData['status']);
+            $statusValue = TypedValue::trimmedString($rawPayloadData['status']);
             $status = $statusValue !== '' ? $statusValue : null;
         }
 

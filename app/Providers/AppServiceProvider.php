@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Application\Auth\Contracts\AuthPasswordBrokerRepository as AuthPasswordBrokerRepositoryContract;
-use App\Application\Auth\Contracts\AuthUserRepository as AuthUserRepositoryContract;
-use App\Contracts\PaymentGatewayInterface;
-use App\Contracts\ShippingGatewayInterface;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Order;
@@ -18,55 +14,14 @@ use App\Policies\CouponPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\PromotionPolicy;
-use App\Repositories\AuthPasswordBrokerRepository;
-use App\Repositories\AuthUserRepository;
-use App\Support\Observability\Channels\EmailObservabilityAlertChannel;
-use App\Support\Observability\Channels\PagerDutyObservabilityAlertChannel;
-use App\Support\Observability\Channels\SlackObservabilityAlertChannel;
-use App\Support\Observability\ObservabilityAlertCooldownStore;
-use App\Support\Observability\ObservabilityAlertMessageBuilder;
-use App\Support\Observability\ObservabilityAlertRouter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use InvalidArgumentException;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        $this->app->bind(AuthUserRepositoryContract::class, AuthUserRepository::class);
-        $this->app->bind(AuthPasswordBrokerRepositoryContract::class, AuthPasswordBrokerRepository::class);
-
-        $this->app->bind(
-            PaymentGatewayInterface::class,
-            fn (): PaymentGatewayInterface => $this->resolveGatewayDriver('payment', PaymentGatewayInterface::class),
-        );
-
-        $this->app->bind(
-            ShippingGatewayInterface::class,
-            fn (): ShippingGatewayInterface => $this->resolveGatewayDriver('shipping', ShippingGatewayInterface::class),
-        );
-
-        $this->app->bind(
-            ObservabilityAlertRouter::class,
-            fn (): ObservabilityAlertRouter => new ObservabilityAlertRouter(
-                $this->app->make(ObservabilityAlertCooldownStore::class),
-                $this->app->make(ObservabilityAlertMessageBuilder::class),
-                [
-                    $this->app->make(EmailObservabilityAlertChannel::class),
-                    $this->app->make(SlackObservabilityAlertChannel::class),
-                    $this->app->make(PagerDutyObservabilityAlertChannel::class),
-                ],
-            ),
-        );
-    }
-
     /**
      * Bootstrap any application services.
      */
@@ -78,51 +33,21 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Promotion::class, PromotionPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
 
-        RateLimiter::for('checkout', static fn (Request $request): Limit => Limit::perMinute(6)
-            ->by((string) ($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('checkout', static function (Request $request): Limit {
+            $user = $request->user();
+
+            return Limit::perMinute(6)
+                ->by($user === null ? $request->ip() : (string) $user->id);
+        });
 
         RateLimiter::for('webhook', static fn (Request $request): Limit => Limit::perMinute(120)
             ->by($request->ip()));
 
-        RateLimiter::for('search', static fn (Request $request): Limit => Limit::perMinute(90)
-            ->by((string) ($request->user()?->id ?? $request->ip())));
-    }
+        RateLimiter::for('search', static function (Request $request): Limit {
+            $user = $request->user();
 
-    /**
-     * Resolve configured gateway implementation from `{domain}.driver`.
-     *
-     * @template TGateway of object
-     *
-     * @param  'payment'|'shipping'  $domain
-     * @param  class-string<TGateway>  $contract
-     * @return TGateway
-     */
-    private function resolveGatewayDriver(string $domain, string $contract): object
-    {
-        $driver = (string) config($domain.'.driver');
-        $drivers = config($domain.'.drivers');
-
-        if (! is_array($drivers)) {
-            throw new InvalidArgumentException(sprintf('Invalid %s driver map configuration.', $domain));
-        }
-
-        $gatewayClass = $drivers[$driver] ?? null;
-
-        if (! is_string($gatewayClass) || $gatewayClass === '') {
-            throw new InvalidArgumentException(sprintf('Unsupported %s driver [%s].', $domain, $driver));
-        }
-
-        $gateway = $this->app->make($gatewayClass);
-
-        if (! $gateway instanceof $contract) {
-            throw new InvalidArgumentException(sprintf(
-                '%s driver [%s] must implement %s.',
-                ucfirst($domain),
-                $driver,
-                $contract,
-            ));
-        }
-
-        return $gateway;
+            return Limit::perMinute(90)
+                ->by($user === null ? $request->ip() : (string) $user->id);
+        });
     }
 }

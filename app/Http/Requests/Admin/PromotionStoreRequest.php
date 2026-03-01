@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Promotions\Dto\CreateAdminPromotionInputDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Promotion;
+use App\Support\Data\TypedValue;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PromotionStoreRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -35,7 +39,7 @@ class PromotionStoreRequest extends FormRequest
                 'numeric',
                 'min:0.01',
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($this->input('type') === 'percent' && (float) $value > 100.0) {
+                    if ($this->input('type') === 'percent' && TypedValue::float($value) > 100.0) {
                         $fail('Percent value must be less or equal to 100.');
                     }
                 },
@@ -50,6 +54,14 @@ class PromotionStoreRequest extends FormRequest
             'coupon.max_redemptions' => ['nullable', 'integer', 'min:1'],
             'coupon.expires_at' => ['nullable', 'date'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields([
+            'is_active',
+            'coupon.is_active',
+        ]);
     }
 
     /**

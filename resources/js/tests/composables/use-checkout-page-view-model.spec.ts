@@ -173,4 +173,38 @@ describe("useCheckoutPageViewModel", () => {
 
         scope.stop();
     });
+
+    it("surfaces checkout api errors and clears submitting state", async () => {
+        const authStore = useAuthStore();
+        authStore.token = "";
+        placeCheckoutOrderMock.mockRejectedValue(new Error("Gateway is unavailable."));
+
+        const scope = effectScope();
+        const vm = scope.run(() =>
+            useCheckoutPageViewModel({
+                guestTokenStorage: {
+                    getGuestToken: () => "guest-token-9",
+                    setGuestToken: () => {},
+                },
+            }),
+        );
+
+        expect(vm).not.toBeNull();
+        if (!vm) {
+            scope.stop();
+            return;
+        }
+
+        vm.form.email = "guest@example.com";
+        vm.form.billing_address.line1 = "Main 1";
+        vm.form.shipping_address.line1 = "Main 2";
+
+        await vm.submitCheckout();
+
+        expect(vm.resultMessage.value).toBe("Gateway is unavailable.");
+        expect(vm.isResultSuccess.value).toBe(false);
+        expect(vm.isSubmitting.value).toBe(false);
+
+        scope.stop();
+    });
 });

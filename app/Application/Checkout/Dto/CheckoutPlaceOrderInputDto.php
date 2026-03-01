@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class CheckoutPlaceOrderInputDto
 {
     /**
@@ -18,7 +20,7 @@ final readonly class CheckoutPlaceOrderInputDto
 
         return new self(
             guestToken: self::normalizeNullableString($validated['guest_token'] ?? null),
-            email: trim((string) $validated['email']),
+            email: TypedValue::trimmedString($validated['email']),
             currency: self::normalizeCurrency($validated['currency'] ?? null),
             couponCode: self::normalizeCouponCode($validated['coupon_code'] ?? null),
             billingAddress: CheckoutAddressInputDto::fromValidated($billingAddress),

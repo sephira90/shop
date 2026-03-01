@@ -170,4 +170,43 @@ describe("useAuthPageViewModel", () => {
 
         scope.stop();
     });
+
+    it("shows parsed error when register fails", async () => {
+        const authStore = useAuthStore();
+        authStore.register = vi.fn(async () => {
+            throw new Error("Registration is unavailable.");
+        }) as typeof authStore.register;
+        const replaceRoute = vi.fn(async () => {});
+
+        const scope = effectScope();
+        const vm = scope.run(() =>
+            useAuthPageViewModel({
+                routeRedirectQuery: null,
+                replaceRoute,
+                guestTokenStorage: {
+                    getGuestToken: () => null,
+                },
+            }),
+        );
+
+        expect(vm).not.toBeNull();
+        if (!vm) {
+            scope.stop();
+            return;
+        }
+
+        vm.toggleMode();
+        vm.registerForm.first_name = "Jane";
+        vm.registerForm.last_name = "Doe";
+        vm.registerForm.email = "jane@example.com";
+        vm.registerForm.password = "secret";
+        vm.registerForm.password_confirmation = "secret";
+        await vm.submitRegister();
+
+        expect(vm.errorMessage.value).toBe("Registration is unavailable.");
+        expect(vm.isSubmitting.value).toBe(false);
+        expect(replaceRoute).not.toHaveBeenCalled();
+
+        scope.stop();
+    });
 });

@@ -7,7 +7,7 @@ import AccountTabsNav from "@/components/account/AccountTabsNav.vue";
 import AccountOrderCard from "@/components/account/orders/AccountOrderCard.vue";
 import AccountOrdersFiltersBar from "@/components/account/orders/AccountOrdersFiltersBar.vue";
 import AccountOrdersPaginationCard from "@/components/account/orders/AccountOrdersPaginationCard.vue";
-import type { AccountOrder } from "@/types/account-orders";
+import type { AccountOrderDetail, AccountOrderSummary } from "@/types/account-orders";
 import type { PaginationMeta } from "@/types/pagination";
 
 const meta: PaginationMeta = {
@@ -17,7 +17,7 @@ const meta: PaginationMeta = {
     per_page: 30,
 };
 
-const buildOrder = (): AccountOrder => ({
+const buildSummaryOrder = (): AccountOrderSummary => ({
     id: "ord-501",
     order_number: "SO-501",
     email: "buyer@example.com",
@@ -26,6 +26,15 @@ const buildOrder = (): AccountOrder => ({
     shipment_status: "packed",
     currency: "USD",
     total: 150,
+    placed_at: "2026-02-20T10:00:00Z",
+    created_at: "2026-02-20T09:00:00Z",
+});
+
+const buildDetailOrder = (): AccountOrderDetail => ({
+    ...buildSummaryOrder(),
+    subtotal: 150,
+    discount_total: 0,
+    shipping_total: 0,
     items: [
         {
             product_variant_id: 10,
@@ -36,6 +45,8 @@ const buildOrder = (): AccountOrder => ({
             total_price: 150,
         },
     ],
+    payments: [],
+    shipments: [],
     billing_address: {
         line1: "Main st 1",
         city: "New York",
@@ -48,8 +59,6 @@ const buildOrder = (): AccountOrder => ({
         country: "US",
         postcode: "10002",
     },
-    placed_at: "2026-02-20T10:00:00Z",
-    created_at: "2026-02-20T09:00:00Z",
 });
 
 describe("account tabs nav contract", () => {
@@ -94,12 +103,17 @@ describe("account orders filters bar contract", () => {
 
 describe("account order card contract", () => {
     it("emits toggle and renders details when expanded", async () => {
-        const order = buildOrder();
+        const order = buildSummaryOrder();
+        const detail = buildDetailOrder();
         const wrapper = mount(AccountOrderCard, {
             props: {
                 order,
+                detail,
                 expanded: true,
-                totalItems: (target) => target.items.reduce((sum, item) => sum + item.quantity, 0),
+                isDetailLoading: false,
+                detailError: "",
+                totalItems: (target) =>
+                    target?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0,
                 formatPrice: (value: number, currency?: string) => `${currency ?? "USD"} ${value}`,
                 formatDate: (value: string | null) => value ?? "Unknown date",
                 formatAddress: (address) => address?.line1 ?? "Unknown address",

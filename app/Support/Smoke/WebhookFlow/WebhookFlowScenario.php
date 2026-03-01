@@ -21,6 +21,7 @@ use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
 use App\Services\Shipping\ShippingService;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use App\Support\Smoke\WebhookFlow\Dto\WebhookFlowSmokeResultDto;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
@@ -62,16 +63,22 @@ final class WebhookFlowScenario
         }
 
         $payment = $this->paymentService->initiate($order, 'smoke-pay-'.$checkoutKey);
-        $this->processPaymentWebhook($payment->transaction_id);
+        $transactionId = $payment->transaction_id;
+
+        if (! is_string($transactionId) || $transactionId === '') {
+            throw new DomainException('Payment transaction id is missing after payment initiation.');
+        }
+
+        $this->processPaymentWebhook($transactionId);
 
         $freshOrder = Order::query()->findOrFail($order->id);
         $freshPayment = Payment::query()->findOrFail($payment->id);
 
-        if ((string) $freshPayment->getRawOriginal('status') !== PaymentStatus::CAPTURED->value) {
+        if (TypedValue::string($freshPayment->getRawOriginal('status')) !== PaymentStatus::CAPTURED->value) {
             throw new DomainException('Payment webhook did not capture payment.');
         }
 
-        if ((string) $freshOrder->getRawOriginal('status') !== OrderStatus::PAID->value) {
+        if (TypedValue::string($freshOrder->getRawOriginal('status')) !== OrderStatus::PAID->value) {
             throw new DomainException('Order status did not transition to paid.');
         }
 
@@ -95,20 +102,26 @@ final class WebhookFlowScenario
             throw new DomainException('Shipment was not created after captured payment.');
         }
 
-        $this->processShippingWebhook($shipment->tracking_number);
+        $trackingNumber = $shipment->tracking_number;
+
+        if (! is_string($trackingNumber) || $trackingNumber === '') {
+            throw new DomainException('Shipment tracking number is missing after shipment creation.');
+        }
+
+        $this->processShippingWebhook($trackingNumber);
 
         $completedOrder = Order::query()->findOrFail($order->id);
         $deliveredShipment = Shipment::query()->findOrFail($shipment->id);
 
-        if ((string) $completedOrder->getRawOriginal('status') !== OrderStatus::COMPLETED->value) {
+        if (TypedValue::string($completedOrder->getRawOriginal('status')) !== OrderStatus::COMPLETED->value) {
             throw new DomainException('Order status did not transition to completed.');
         }
 
-        if ((string) $completedOrder->getRawOriginal('shipment_status') !== ShipmentStatus::DELIVERED->value) {
+        if (TypedValue::string($completedOrder->getRawOriginal('shipment_status')) !== ShipmentStatus::DELIVERED->value) {
             throw new DomainException('Order shipment status did not transition to delivered.');
         }
 
-        if ((string) $deliveredShipment->getRawOriginal('status') !== ShipmentStatus::DELIVERED->value) {
+        if (TypedValue::string($deliveredShipment->getRawOriginal('status')) !== ShipmentStatus::DELIVERED->value) {
             throw new DomainException('Shipment status did not transition to delivered.');
         }
 
@@ -116,9 +129,9 @@ final class WebhookFlowScenario
             orderId: $completedOrder->id,
             paymentId: $freshPayment->id,
             shipmentId: $deliveredShipment->id,
-            orderStatus: (string) $completedOrder->getRawOriginal('status'),
-            paymentStatus: (string) $freshPayment->getRawOriginal('status'),
-            shipmentStatus: (string) $deliveredShipment->getRawOriginal('status'),
+            orderStatus: TypedValue::string($completedOrder->getRawOriginal('status')),
+            paymentStatus: TypedValue::string($freshPayment->getRawOriginal('status')),
+            shipmentStatus: TypedValue::string($deliveredShipment->getRawOriginal('status')),
         );
     }
 

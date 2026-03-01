@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Admin\Orders\Queries;
 
 use App\Application\Admin\Orders\Dto\AdminOrderPaginatedResultDto;
-use App\Repositories\OrderRepository;
+use App\Repositories\AdminOrderReadRepository;
 
 final class PaginateAdminOrdersHandler
 {
@@ -13,7 +13,7 @@ final class PaginateAdminOrdersHandler
      * Create query handler instance.
      */
     public function __construct(
-        private readonly OrderRepository $orderRepository,
+        private readonly AdminOrderReadRepository $adminOrderReadRepository,
     ) {}
 
     /**
@@ -21,7 +21,7 @@ final class PaginateAdminOrdersHandler
      */
     public function handle(PaginateAdminOrdersQuery $query): AdminOrderPaginatedResultDto
     {
-        $paginator = $this->orderRepository->paginateSummaryForAdmin($query->filter);
+        $paginator = $this->adminOrderReadRepository->paginateSummaryForAdmin($query->filter);
 
         return AdminOrderPaginatedResultDto::fromPaginator($paginator);
     }

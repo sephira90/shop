@@ -162,11 +162,11 @@ import AppSubmitResetActions from "@/components/ui/actions/AppSubmitResetActions
 import AppTextareaInput from "@/components/ui/forms/AppTextareaInput.vue";
 import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 import type { AdminNotice } from "@/composables/useAdminNotice";
-import type { AdminProductCategory } from "@/types/admin-products";
+import type { AdminCategoryOption } from "@/types/admin-categories";
 import type { ProductFormState } from "@/validators/admin/products";
 
 defineProps<{
-    categories: AdminProductCategory[];
+    categories: AdminCategoryOption[];
     isLoadingCategories: boolean;
     isSubmitting: boolean;
     isRefreshingCatalogCache: boolean;

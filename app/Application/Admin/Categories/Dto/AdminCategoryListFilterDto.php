@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Categories\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class AdminCategoryListFilterDto
 {
     /**
@@ -24,8 +26,8 @@ final readonly class AdminCategoryListFilterDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            page: max(1, (int) ($validated['page'] ?? 1)),
-            perPage: max(1, (int) ($validated['per_page'] ?? 30)),
+            page: max(1, TypedValue::int($validated['page'] ?? 1)),
+            perPage: max(1, TypedValue::int($validated['per_page'] ?? 30)),
             search: self::normalizeSearch($validated['q'] ?? null),
             isActive: self::normalizeBoolean($validated['is_active'] ?? null),
         );

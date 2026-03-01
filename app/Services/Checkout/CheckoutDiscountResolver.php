@@ -9,6 +9,7 @@ use App\Enums\PromotionType;
 use App\Models\Coupon;
 use App\Models\Promotion;
 use App\Services\Checkout\Dto\CheckoutDiscountContextDto;
+use App\Support\Data\TypedValue;
 use DomainException;
 
 final class CheckoutDiscountResolver
@@ -36,7 +37,7 @@ final class CheckoutDiscountResolver
 
         $couponExpiresAt = $coupon->getRawOriginal('expires_at');
 
-        if ($couponExpiresAt !== null && now()->isAfter((string) $couponExpiresAt)) {
+        if ($couponExpiresAt !== null && now()->isAfter(TypedValue::string($couponExpiresAt))) {
             throw new DomainException('Coupon has expired.');
         }
 
@@ -54,12 +55,12 @@ final class CheckoutDiscountResolver
         }
 
         $promotionStartsAt = $promotion->getRawOriginal('starts_at');
-        if ($promotionStartsAt !== null && now()->isBefore((string) $promotionStartsAt)) {
+        if ($promotionStartsAt !== null && now()->isBefore(TypedValue::string($promotionStartsAt))) {
             throw new DomainException('Promotion has not started yet.');
         }
 
         $promotionEndsAt = $promotion->getRawOriginal('ends_at');
-        if ($promotionEndsAt !== null && now()->isAfter((string) $promotionEndsAt)) {
+        if ($promotionEndsAt !== null && now()->isAfter(TypedValue::string($promotionEndsAt))) {
             throw new DomainException('Promotion has ended.');
         }
 

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Performance\Scenarios;
 
-use App\Repositories\ProductRepository;
+use App\Repositories\AdminProductReadRepository;
 use App\Support\Smoke\Performance\Contracts\PerformanceSmokeScenario;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 
 final class AdminProductsListPerformanceSmokeScenario implements PerformanceSmokeScenario
 {
     public function __construct(
-        private readonly ProductRepository $productRepository,
+        private readonly AdminProductReadRepository $adminProductReadRepository,
     ) {}
 
     public function name(): string
@@ -26,6 +26,6 @@ final class AdminProductsListPerformanceSmokeScenario implements PerformanceSmok
 
     public function run(PerformanceSmokeContextDto $context): void
     {
-        $this->productRepository->paginateForAdmin($context->productFilter);
+        $this->adminProductReadRepository->paginateForAdmin($context->productFilter);
     }
 }

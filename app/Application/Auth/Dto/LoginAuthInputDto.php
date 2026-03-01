@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class LoginAuthInputDto
 {
     /**
@@ -12,8 +14,8 @@ final readonly class LoginAuthInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            email: trim((string) $validated['email']),
-            password: (string) $validated['password'],
+            email: TypedValue::trimmedString($validated['email']),
+            password: TypedValue::string($validated['password']),
             deviceName: self::normalizeNullableString($validated['device_name'] ?? null),
             guestToken: self::normalizeNullableString($validated['guest_token'] ?? null),
         );

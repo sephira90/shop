@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Catalog\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class CatalogProductListFilterDto
 {
     /**
@@ -24,15 +26,15 @@ final readonly class CatalogProductListFilterDto
      */
     public static function fromValidated(array $validated): self
     {
-        $search = isset($validated['q']) ? trim((string) $validated['q']) : null;
-        $categorySlug = isset($validated['category_slug']) ? trim((string) $validated['category_slug']) : null;
-        $sort = isset($validated['sort']) ? (string) $validated['sort'] : 'newest';
+        $search = isset($validated['q']) ? TypedValue::trimmedString($validated['q']) : null;
+        $categorySlug = isset($validated['category_slug']) ? TypedValue::trimmedString($validated['category_slug']) : null;
+        $sort = isset($validated['sort']) ? TypedValue::string($validated['sort']) : 'newest';
 
         return new self(
             search: $search !== '' ? $search : null,
             categorySlug: $categorySlug !== '' ? $categorySlug : null,
-            minPrice: isset($validated['min_price']) ? (float) $validated['min_price'] : null,
-            maxPrice: isset($validated['max_price']) ? (float) $validated['max_price'] : null,
+            minPrice: isset($validated['min_price']) ? TypedValue::float($validated['min_price']) : null,
+            maxPrice: isset($validated['max_price']) ? TypedValue::float($validated['max_price']) : null,
             sort: $sort,
         );
     }

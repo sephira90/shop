@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Api;
 
+use App\Support\Data\TypedValue;
 use DomainException;
 
 final class ApiSmokeAssertions
@@ -46,7 +47,9 @@ final class ApiSmokeAssertions
             throw new DomainException(sprintf('%s error payload is not an object.', $scope));
         }
 
-        if (! array_key_exists('message', $payload['error'])) {
+        $errorPayload = TypedValue::associativeArray($payload['error']);
+
+        if (! array_key_exists('message', $errorPayload)) {
             throw new DomainException(sprintf('%s error payload missing "message".', $scope));
         }
     }
@@ -60,6 +63,6 @@ final class ApiSmokeAssertions
             throw new DomainException(sprintf('%s meta payload is not an object.', $scope));
         }
 
-        $this->assertHasKeys($meta, ['current_page', 'last_page', 'per_page', 'total'], $scope.' meta');
+        $this->assertHasKeys(TypedValue::associativeArray($meta), ['current_page', 'last_page', 'per_page', 'total'], $scope.' meta');
     }
 }

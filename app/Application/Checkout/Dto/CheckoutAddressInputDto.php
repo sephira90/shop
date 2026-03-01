@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class CheckoutAddressInputDto
 {
     /**
@@ -12,10 +14,10 @@ final readonly class CheckoutAddressInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            line1: trim((string) $validated['line1']),
-            city: trim((string) $validated['city']),
-            country: strtoupper(trim((string) $validated['country'])),
-            postcode: trim((string) $validated['postcode']),
+            line1: TypedValue::trimmedString($validated['line1']),
+            city: TypedValue::trimmedString($validated['city']),
+            country: strtoupper(TypedValue::trimmedString($validated['country'])),
+            postcode: TypedValue::trimmedString($validated['postcode']),
         );
     }
 

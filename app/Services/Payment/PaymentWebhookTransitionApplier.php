@@ -14,6 +14,7 @@ use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Payment\Dto\PaymentWebhookPayloadDto;
 use App\Services\Webhook\WebhookIngressException;
 use App\Services\Webhook\WebhookProcessingOutcome;
+use App\Support\Data\TypedValue;
 
 final readonly class PaymentWebhookTransitionApplier
 {
@@ -37,15 +38,18 @@ final readonly class PaymentWebhookTransitionApplier
             throw WebhookIngressException::paymentNotFound();
         }
 
-        $previousPaymentStatus = PaymentStatus::from((string) $payment->getRawOriginal('status'));
+        $previousPaymentStatus = PaymentStatus::from(TypedValue::string($payment->getRawOriginal('status')));
 
         if (! $this->paymentStatusTransitionPolicy->canTransition($previousPaymentStatus, $paymentStatus)) {
             return WebhookProcessingOutcome::DUPLICATE;
         }
 
+        /** @var array<string, mixed> $existingPayload */
+        $existingPayload = (array) $payment->getAttribute('payload');
+
         $payment->update([
             'status' => $paymentStatus->value,
-            'payload' => array_merge($payment->payload ?? [], ['webhook' => $webhookPayload->rawPayload->toArray()]),
+            'payload' => array_merge($existingPayload, ['webhook' => $webhookPayload->rawPayload->toArray()]),
             'processed_at' => now(),
         ]);
 

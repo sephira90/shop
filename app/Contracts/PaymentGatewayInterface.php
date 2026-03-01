@@ -17,21 +17,29 @@ interface PaymentGatewayInterface
 
     /**
      * Verify webhook signature from provider.
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function verifyWebhookSignature(array $payload, string $signature): bool;
 
     /**
      * Resolve webhook event id.
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function extractEventId(array $payload): string;
 
     /**
      * Resolve transaction id from provider payload.
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function extractTransactionId(array $payload): string;
 
     /**
      * Map provider webhook payload to internal payment status.
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function resolveWebhookStatus(array $payload): PaymentStatus;
 }

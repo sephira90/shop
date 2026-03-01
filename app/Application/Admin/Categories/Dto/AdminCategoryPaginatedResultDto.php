@@ -21,15 +21,13 @@ final readonly class AdminCategoryPaginatedResultDto
     ) {}
 
     /**
-     * @param  LengthAwarePaginator<int, mixed>  $paginator
+     * @param  LengthAwarePaginator<int, Category>  $paginator
      */
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
         foreach ($paginator->items() as $item) {
-            if ($item instanceof Category) {
-                $items[] = AdminCategoryResultDto::fromCategory($item);
-            }
+            $items[] = AdminCategoryResultDto::fromCategory($item);
         }
 
         return new self(

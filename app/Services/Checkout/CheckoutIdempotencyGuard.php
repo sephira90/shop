@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CheckoutIdempotency;
 use App\Models\Order;
 use App\Services\Checkout\Dto\CheckoutIdempotencyResolutionDto;
+use App\Support\Data\TypedValue;
 use DomainException;
 
 final class CheckoutIdempotencyGuard
@@ -39,7 +40,7 @@ final class CheckoutIdempotencyGuard
 
         $idempotencyExpiresAt = $idempotency->getRawOriginal('expires_at');
 
-        if ($idempotencyExpiresAt !== null && now()->isAfter((string) $idempotencyExpiresAt)) {
+        if ($idempotencyExpiresAt !== null && now()->isAfter(TypedValue::string($idempotencyExpiresAt))) {
             $idempotency->update([
                 'cart_id' => $lockedCart->id,
                 'order_id' => null,

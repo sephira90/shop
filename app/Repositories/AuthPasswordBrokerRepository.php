@@ -8,6 +8,7 @@ use App\Application\Auth\Contracts\AuthPasswordBrokerRepository as AuthPasswordB
 use App\Application\Auth\Contracts\AuthUserRepository as AuthUserRepositoryContract;
 use App\Application\Auth\Dto\ResetAuthPasswordInputDto;
 use App\Models\User;
+use App\Support\Data\TypedValue;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Password;
 
@@ -26,7 +27,7 @@ final readonly class AuthPasswordBrokerRepository implements AuthPasswordBrokerR
 
     public function resetPassword(ResetAuthPasswordInputDto $input): string
     {
-        return Password::reset(
+        $status = Password::reset(
             [
                 'token' => $input->token,
                 'email' => $input->email,
@@ -39,6 +40,8 @@ final readonly class AuthPasswordBrokerRepository implements AuthPasswordBrokerR
                 event(new PasswordReset($user));
             },
         );
+
+        return TypedValue::string($status);
     }
 
     public function isResetLinkSentStatus(string $status): bool

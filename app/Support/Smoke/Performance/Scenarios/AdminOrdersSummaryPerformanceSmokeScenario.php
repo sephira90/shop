@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Performance\Scenarios;
 
-use App\Repositories\OrderRepository;
+use App\Repositories\AdminOrderReadRepository;
 use App\Support\Smoke\Performance\Contracts\PerformanceSmokeScenario;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 
 final class AdminOrdersSummaryPerformanceSmokeScenario implements PerformanceSmokeScenario
 {
     public function __construct(
-        private readonly OrderRepository $orderRepository,
+        private readonly AdminOrderReadRepository $adminOrderReadRepository,
     ) {}
 
     public function name(): string
@@ -26,6 +26,6 @@ final class AdminOrdersSummaryPerformanceSmokeScenario implements PerformanceSmo
 
     public function run(PerformanceSmokeContextDto $context): void
     {
-        $this->orderRepository->paginateSummaryForAdmin($context->orderFilter);
+        $this->adminOrderReadRepository->paginateSummaryForAdmin($context->orderFilter);
     }
 }

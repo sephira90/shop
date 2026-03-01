@@ -1,4 +1,4 @@
-import { formatMoney } from "@/utils/order-presentation";
+import { formatPrice as formatCurrency } from "@/utils/format";
 
 import { useAccountProfileMutations } from "./useAccountProfileMutations";
 import { useAccountProfileQuery } from "./useAccountProfileQuery";
@@ -9,7 +9,7 @@ export const useAccountProfileViewModel = () => {
         query,
     });
 
-    const formatPrice = (value: number): string => formatMoney(value, "USD");
+    const formatPrice = (value: number): string => formatCurrency(value, "USD");
 
     const loadProfile = async (): Promise<void> => {
         await query.authStore.ensureUserLoaded();

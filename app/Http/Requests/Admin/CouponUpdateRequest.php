@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Promotions\Dto\UpdateAdminPromotionCouponInputDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Coupon;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CouponUpdateRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -33,6 +36,11 @@ class CouponUpdateRequest extends FormRequest
             'max_redemptions' => ['nullable', 'integer', 'min:1'],
             'expires_at' => ['nullable', 'date'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields(['is_active']);
     }
 
     /**

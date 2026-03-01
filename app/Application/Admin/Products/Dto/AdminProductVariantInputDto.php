@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Products\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class AdminProductVariantInputDto
 {
     /**
@@ -12,14 +14,14 @@ final readonly class AdminProductVariantInputDto
     public static function fromValidated(array $validated): self
     {
         $attributes = $validated['attributes'] ?? [];
-        $normalizedAttributes = is_array($attributes) ? $attributes : [];
+        $normalizedAttributes = is_array($attributes) ? TypedValue::associativeArray($attributes) : [];
 
         return new self(
             id: self::normalizeNullableInteger($validated['id'] ?? null),
-            sku: trim((string) $validated['sku']),
-            name: trim((string) $validated['name']),
+            sku: TypedValue::trimmedString($validated['sku']),
+            name: TypedValue::trimmedString($validated['name']),
             attributes: $normalizedAttributes,
-            price: (float) $validated['price'],
+            price: TypedValue::float($validated['price']),
             compareAtPrice: self::normalizeNullableFloat($validated['compare_at_price'] ?? null),
             currency: self::normalizeCurrency($validated['currency'] ?? null),
             isActive: (bool) ($validated['is_active'] ?? true),

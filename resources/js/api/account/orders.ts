@@ -1,32 +1,54 @@
 import { extractData, normalizeListResponse } from "@/api/response";
 import { apiClient } from "@/api/client";
 import {
+    assertAccountOrderDetailWireDto,
+    assertAccountOrderSummaryWireDtoList,
     assertAccountOrdersSummaryWireDto,
-    assertAccountOrderWireDtoList,
 } from "@/contracts/api/v1/assertions/account-orders";
-import { mapAccountOrderListFromApi } from "@/mappers/account/orders";
+import { mapAccountOrderDetailFromApi, mapAccountOrderListFromApi } from "@/mappers/account/orders";
 import type {
-    AccountOrderListParams,
+    AccountOrderDetail,
     AccountOrderListResponse,
+    AccountOrderSummaryListParams,
     AccountOrdersSummary,
 } from "@/types/account-orders";
 
+interface ApiDetailRequestOptions {
+    signal?: AbortSignal;
+}
+
 export const listAccountOrders = async (
-    params: AccountOrderListParams,
+    params: AccountOrderSummaryListParams,
 ): Promise<AccountOrderListResponse> => {
-    const { data } = await apiClient.get("/orders/me", {
+    const { data } = await apiClient.get("/account/orders", {
         params,
     });
     const response = normalizeListResponse(data);
 
     return {
-        data: mapAccountOrderListFromApi(assertAccountOrderWireDtoList(response.data)),
+        data: mapAccountOrderListFromApi(assertAccountOrderSummaryWireDtoList(response.data)),
         meta: response.meta,
     };
 };
 
+export const getAccountOrderDetail = async (
+    orderId: string,
+    options?: ApiDetailRequestOptions,
+): Promise<AccountOrderDetail | null> => {
+    const { data } = await apiClient.get(`/account/orders/${orderId}`, {
+        signal: options?.signal,
+    });
+    const response = extractData(data);
+
+    if (response === null) {
+        return null;
+    }
+
+    return mapAccountOrderDetailFromApi(assertAccountOrderDetailWireDto(response));
+};
+
 export const getAccountOrdersSummary = async (): Promise<AccountOrdersSummary> => {
-    const { data } = await apiClient.get("/orders/me/summary");
+    const { data } = await apiClient.get("/account/orders/summary");
     const payload = assertAccountOrdersSummaryWireDto(extractData(data));
 
     return {

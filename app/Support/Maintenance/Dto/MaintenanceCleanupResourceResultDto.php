@@ -11,5 +11,6 @@ final readonly class MaintenanceCleanupResourceResultDto
         public string $cutoffUtc,
         public int $matched,
         public int $affected,
+        public int $batches,
     ) {}
 }

@@ -28,12 +28,9 @@ import AppEmptyState from "@/components/ui/feedback/AppEmptyState.vue";
 import AppGridTwoColumns from "@/components/ui/layout/AppGridTwoColumns.vue";
 import { useCatalogProduct } from "@/composables/useCatalogProduct";
 import { useCartStore } from "@/stores/cart";
+import { formatPrice } from "@/utils/format";
 const cartStore = useCartStore();
 const { product, selectedVariantId, selectedVariant, isLoading, loadError } = useCatalogProduct();
-
-const formatPrice = (price: number | undefined): string => {
-    return Number(price ?? 0).toFixed(2);
-};
 
 const addToCart = async (): Promise<void> => {
     if (!selectedVariantId.value) {

@@ -9,6 +9,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Services\Payment\Dto\PaymentCreationResultDto;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Str;
 
 final class FakePaymentGateway implements PaymentGatewayInterface
@@ -34,36 +35,44 @@ final class FakePaymentGateway implements PaymentGatewayInterface
 
     /**
      * {@inheritDoc}
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function verifyWebhookSignature(array $payload, string $signature): bool
     {
-        $expected = hash('sha256', (string) ($payload['event_id'] ?? ''));
+        $expected = hash('sha256', TypedValue::string($payload['event_id'] ?? ''));
 
         return hash_equals($expected, $signature);
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function extractEventId(array $payload): string
     {
-        return (string) ($payload['event_id'] ?? '');
+        return TypedValue::string($payload['event_id'] ?? '');
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function extractTransactionId(array $payload): string
     {
-        return (string) ($payload['transaction_id'] ?? '');
+        return TypedValue::string($payload['transaction_id'] ?? '');
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function resolveWebhookStatus(array $payload): PaymentStatus
     {
-        $status = (string) ($payload['status'] ?? 'pending');
+        $status = TypedValue::string($payload['status'] ?? 'pending');
 
         return match ($status) {
             'authorized' => PaymentStatus::AUTHORIZED,

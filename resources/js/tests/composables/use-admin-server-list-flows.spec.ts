@@ -28,6 +28,7 @@ vi.mock("@/api/admin/promotions", () => ({
 }));
 
 vi.mock("@/api/admin/categories", () => ({
+    listAdminCategoryOptions: vi.fn(),
     listAdminCategories: vi.fn(),
     createAdminCategory: vi.fn(),
     updateAdminCategory: vi.fn(),
@@ -42,7 +43,7 @@ vi.mock("@/api/admin/products", () => ({
     refreshAdminCatalogCache: vi.fn(),
 }));
 
-import { listAdminCategories } from "@/api/admin/categories";
+import { listAdminCategoryOptions, listAdminCategories } from "@/api/admin/categories";
 import { getAdminOrderDetail, listAdminOrders } from "@/api/admin/orders";
 import { listAdminProducts } from "@/api/admin/products";
 import { listPromotions } from "@/api/admin/promotions";
@@ -50,6 +51,9 @@ import { listPromotions } from "@/api/admin/promotions";
 const listAdminOrdersMock = listAdminOrders as unknown as ReturnType<typeof vi.fn>;
 const getAdminOrderDetailMock = getAdminOrderDetail as unknown as ReturnType<typeof vi.fn>;
 const listPromotionsMock = listPromotions as unknown as ReturnType<typeof vi.fn>;
+const listAdminCategoryOptionsMock = listAdminCategoryOptions as unknown as ReturnType<
+    typeof vi.fn
+>;
 const listAdminCategoriesMock = listAdminCategories as unknown as ReturnType<typeof vi.fn>;
 const listAdminProductsMock = listAdminProducts as unknown as ReturnType<typeof vi.fn>;
 
@@ -162,6 +166,7 @@ beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.useFakeTimers();
+    listAdminCategoryOptionsMock.mockResolvedValue([]);
 });
 
 afterEach(() => {

@@ -10,6 +10,7 @@ import type {
 } from "@/types/admin-categories";
 
 vi.mock("@/api/admin/categories", () => ({
+    listAdminCategoryOptions: vi.fn(),
     listAdminCategories: vi.fn(),
 }));
 

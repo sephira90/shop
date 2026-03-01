@@ -21,15 +21,13 @@ final readonly class CatalogProductPaginatedResultDto
     ) {}
 
     /**
-     * @param  LengthAwarePaginator<int, mixed>  $paginator
+     * @param  LengthAwarePaginator<int, Product>  $paginator
      */
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
         foreach ($paginator->items() as $item) {
-            if ($item instanceof Product) {
-                $items[] = CatalogProductResultDto::fromProduct($item);
-            }
+            $items[] = CatalogProductResultDto::fromProduct($item);
         }
 
         return new self(

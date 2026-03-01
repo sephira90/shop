@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Observability\Channels;
 
+use App\Support\Data\TypedValue;
 use App\Support\Observability\Contracts\ObservabilityAlertChannel;
 use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
 use App\Support\Observability\ObservabilityAlertRoutingLogger;
@@ -26,7 +27,7 @@ final readonly class SlackObservabilityAlertChannel implements ObservabilityAler
             return false;
         }
 
-        $webhookUrl = trim((string) config('observability.alerts.slack.webhook_url', ''));
+        $webhookUrl = TypedValue::trimmedString(config('observability.alerts.slack.webhook_url', ''));
         if ($webhookUrl === '') {
             $this->routingLogger->warning($this->channel(), 'Slack webhook URL is empty.');
 

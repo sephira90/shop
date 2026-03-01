@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class RegisterAuthInputDto
 {
     /**
@@ -12,11 +14,11 @@ final readonly class RegisterAuthInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            firstName: trim((string) $validated['first_name']),
-            lastName: trim((string) $validated['last_name']),
-            email: trim((string) $validated['email']),
+            firstName: TypedValue::trimmedString($validated['first_name']),
+            lastName: TypedValue::trimmedString($validated['last_name']),
+            email: TypedValue::trimmedString($validated['email']),
             phone: self::normalizeNullableString($validated['phone'] ?? null),
-            password: (string) $validated['password'],
+            password: TypedValue::string($validated['password']),
         );
     }
 

@@ -15,7 +15,7 @@ import {
     isSameAccountOrdersRouteQuery,
     parseAccountOrdersFiltersFromRouteQuery,
 } from "@/queries/account-orders";
-import type { AccountOrder, AccountOrderStatusFilter } from "@/types/account-orders";
+import type { AccountOrderStatusFilter, AccountOrderSummary } from "@/types/account-orders";
 
 interface UseAccountOrdersQueryOptions {
     route?: RouteQueryLike;
@@ -28,7 +28,7 @@ export const useAccountOrdersQuery = (options: UseAccountOrdersQueryOptions = {}
     const { parseApiError } = useApiError();
     const { meta, applyMeta, resetMeta } = usePaginationMeta();
     const initialFilters = parseAccountOrdersFiltersFromRouteQuery(route.query);
-    const orders = ref<AccountOrder[]>([]);
+    const orders = ref<AccountOrderSummary[]>([]);
     const isLoading = ref(false);
     const loadError = ref("");
     const searchQuery = ref(initialFilters.searchQuery);

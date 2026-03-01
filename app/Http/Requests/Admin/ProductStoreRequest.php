@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Products\Dto\CreateAdminProductInputDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProductStoreRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -53,6 +56,14 @@ class ProductStoreRequest extends FormRequest
             'variants.*.inventory.reserved_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
             'variants.*.inventory.low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields([
+            'is_featured',
+            'variants.*.is_active',
+        ]);
     }
 
     /**

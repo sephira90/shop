@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Catalog\Dto;
 
 use App\Models\ProductVariant;
+use App\Support\Data\TypedValue;
 
 final readonly class CatalogProductVariantResultDto
 {
@@ -91,6 +92,6 @@ final readonly class CatalogProductVariantResultDto
             return null;
         }
 
-        return $attributes;
+        return TypedValue::associativeArray($attributes);
     }
 }

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Categories\Dto\AdminCategoryListFilterDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CategoryIndexRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -30,6 +33,11 @@ class CategoryIndexRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:120'],
             'is_active' => ['nullable', 'boolean'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields(['is_active']);
     }
 
     /**

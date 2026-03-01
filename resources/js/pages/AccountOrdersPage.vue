@@ -29,7 +29,10 @@
                 v-for="order in filteredOrders"
                 :key="order.id"
                 :order="order"
+                :detail="getOrderDetail(order.id)"
                 :expanded="isExpanded(order.id)"
+                :is-detail-loading="isDetailLoading(order.id)"
+                :detail-error="getDetailError(order.id)"
                 :total-items="totalItems"
                 :format-price="formatPrice"
                 :format-date="formatDate"
@@ -80,6 +83,9 @@ const {
     loadOrders,
     applyFilters,
     isExpanded,
+    isDetailLoading,
+    getOrderDetail,
+    getDetailError,
     toggleDetails,
     totalItems,
     formatPrice,

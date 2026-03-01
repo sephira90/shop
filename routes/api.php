@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Account\AccountOrdersController;
 use App\Http\Controllers\Api\V1\Admin\CacheController as AdminCacheController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
@@ -49,12 +50,18 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('items/{variantId}', [CartController::class, 'removeItem']);
     });
 
-    Route::post('checkout/place-order', [CheckoutController::class, 'placeOrder'])->middleware('throttle:checkout');
+    Route::post('checkout/place-order', [CheckoutController::class, 'placeOrder'])
+        ->middleware(['throttle:checkout', 'idempotency.key']);
 
     Route::middleware(['auth:sanctum'])->group(function (): void {
         Route::post('checkout/orders/{order}/pay', [CheckoutController::class, 'pay'])->middleware('throttle:checkout');
-        Route::get('orders/me/summary', [CheckoutController::class, 'myOrdersSummary']);
-        Route::get('orders/me', [CheckoutController::class, 'myOrders']);
+        Route::prefix('account/orders')->group(function (): void {
+            Route::get('summary', [AccountOrdersController::class, 'summary']);
+            Route::get('{order}', [AccountOrdersController::class, 'show']);
+            Route::get('/', [AccountOrdersController::class, 'index']);
+        });
+        Route::get('orders/me/summary', [AccountOrdersController::class, 'summary']);
+        Route::get('orders/me', [AccountOrdersController::class, 'legacyIndex']);
     });
 
     Route::prefix('webhooks')->middleware('throttle:webhook')->group(function (): void {
@@ -66,6 +73,7 @@ Route::prefix('v1')->group(function (): void {
         ->middleware(['auth:sanctum', 'verified', 'role:admin,manager'])
         ->group(function (): void {
             Route::post('cache/refresh-catalog', [AdminCacheController::class, 'refreshCatalog']);
+            Route::get('categories/options', [AdminCategoryController::class, 'options']);
             Route::apiResource('categories', AdminCategoryController::class);
             Route::apiResource('products', AdminProductController::class);
             Route::get('orders', [AdminOrderController::class, 'index']);

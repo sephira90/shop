@@ -27,7 +27,7 @@ describe("cart summary header contract", () => {
         });
 
         expect(wrapper.text()).toContain("Cart");
-        expect(wrapper.text()).toContain("Total: 123.40");
+        expect(wrapper.text()).toContain("Total: $123.40");
     });
 });
 
@@ -73,6 +73,8 @@ describe("cart items table contract", () => {
         await wrapper.get('[data-testid="cart-remove-item"]').trigger("click");
 
         expect(wrapper.text()).toContain("Essential Hoodie");
+        expect(wrapper.text()).toContain("$49.90");
+        expect(wrapper.text()).toContain("$99.80");
         expect(wrapper.emitted("decreaseQuantity")?.[0]).toEqual([item]);
         expect(wrapper.emitted("increaseQuantity")?.[0]).toEqual([item]);
         expect(wrapper.emitted("updateQuantity")?.[0]).toEqual([{ item, quantity: 7 }]);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Observability\Channels;
 
 use App\Notifications\ObservabilitySloFailureNotification;
+use App\Support\Data\TypedValue;
 use App\Support\Observability\Contracts\ObservabilityAlertChannel;
 use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
 use App\Support\Observability\ObservabilityAlertRoutingLogger;
@@ -34,7 +35,7 @@ final readonly class EmailObservabilityAlertChannel implements ObservabilityAler
 
         /** @var list<string> $recipients */
         $recipients = array_values(array_filter(array_map(
-            static fn (mixed $value): string => trim((string) $value),
+            static fn (mixed $value): string => TypedValue::trimmedString($value),
             $configuredRecipients,
         )));
 

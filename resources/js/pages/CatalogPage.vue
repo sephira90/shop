@@ -30,13 +30,10 @@ import CatalogFiltersCard from "@/components/catalog/CatalogFiltersCard.vue";
 import CatalogProductGrid from "@/components/catalog/CatalogProductGrid.vue";
 import { useCatalogProducts } from "@/composables/useCatalogProducts";
 import { useCartStore } from "@/stores/cart";
+import { formatPrice } from "@/utils/format";
 
 const cartStore = useCartStore();
 const { products, filters, isLoading, loadError, applyFilters } = useCatalogProducts();
-
-const formatPrice = (price: number | undefined): string => {
-    return Number(price ?? 0).toFixed(2);
-};
 
 const addToCart = async (variantId: number): Promise<void> => {
     await cartStore.addOneItem(variantId);

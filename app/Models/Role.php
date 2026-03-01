@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\RoleName;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
-    use HasFactory;
-
     /**
      * The attributes that are mass assignable.
      *
@@ -22,6 +19,8 @@ class Role extends Model
 
     /**
      * Related users for this role.
+     *
+     * @return BelongsToMany<User, $this>
      */
     public function users(): BelongsToMany
     {

@@ -35,7 +35,13 @@
             </div>
             <div>
                 <AppMutedText tag="span">Items</AppMutedText>
-                <strong>{{ totalItems(order) }}</strong>
+                <strong>{{
+                    detail
+                        ? totalItems(detail)
+                        : expanded && isDetailLoading
+                          ? "..."
+                          : "Open details"
+                }}</strong>
             </div>
             <div>
                 <AppMutedText tag="span">Email</AppMutedText>
@@ -50,8 +56,11 @@
         </AppActionsRow>
 
         <div v-if="expanded" class="order-card__details">
+            <AppNotice v-if="detailError" class="actions--top" :message="detailError" />
+            <AppMutedText v-else-if="isDetailLoading">Loading details...</AppMutedText>
             <AccountOrderDetailsTable
-                :order="order"
+                v-else-if="detail"
+                :order="detail"
                 :format-price="formatPrice"
                 :format-address="formatAddress"
             />
@@ -63,18 +72,26 @@
 import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
 import AppButton from "@/components/ui/actions/AppButton.vue";
 import AppCard from "@/components/ui/layout/AppCard.vue";
+import AppNotice from "@/components/ui/feedback/AppNotice.vue";
 import AppMutedText from "@/components/ui/typography/AppMutedText.vue";
 import AppStackBetween from "@/components/ui/actions/AppStackBetween.vue";
 import AppStatusStack from "@/components/ui/data-display/AppStatusStack.vue";
-import type { AccountOrder, AccountOrderAddress } from "@/types/account-orders";
+import type {
+    AccountOrderAddress,
+    AccountOrderDetail,
+    AccountOrderSummary,
+} from "@/types/account-orders";
 import type { StatusTone } from "@/utils/order-presentation";
 
 import AccountOrderDetailsTable from "./AccountOrderDetailsTable.vue";
 
 defineProps<{
-    order: AccountOrder;
+    order: AccountOrderSummary;
+    detail: AccountOrderDetail | null;
     expanded: boolean;
-    totalItems: (order: AccountOrder) => number;
+    isDetailLoading: boolean;
+    detailError: string;
+    totalItems: (order: AccountOrderDetail | null) => number;
     formatPrice: (value: number, currency?: string) => string;
     formatDate: (value: string | null) => string;
     formatAddress: (address: AccountOrderAddress | null) => string;

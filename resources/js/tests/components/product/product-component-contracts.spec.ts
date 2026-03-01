@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import ProductInfoCard from "@/components/product/ProductInfoCard.vue";
 import ProductPurchaseCard from "@/components/product/ProductPurchaseCard.vue";
 import type { CatalogProduct } from "@/types/catalog";
+import { formatPrice } from "@/utils/format";
 
 const buildProduct = (): CatalogProduct => ({
     id: 5,
@@ -55,13 +56,15 @@ describe("product purchase card contract", () => {
                 product,
                 selectedVariant: product.variants[0],
                 selectedVariantId: product.variants[0].id,
-                formatPrice: (value: number | undefined) => Number(value ?? 0).toFixed(2),
+                formatPrice,
             },
         });
 
         await wrapper.get("select").setValue(String(product.variants[1].id));
         await wrapper.get("button").trigger("click");
 
+        expect(wrapper.text()).toContain("$89.90");
+        expect(wrapper.text()).not.toContain("$89.90 USD");
         expect(wrapper.emitted("update:selectedVariantId")?.[0]).toEqual([product.variants[1].id]);
         expect(wrapper.emitted("addToCart")).toHaveLength(1);
     });

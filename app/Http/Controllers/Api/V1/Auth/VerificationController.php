@@ -9,8 +9,8 @@ use App\Application\Auth\Commands\ResendAuthVerificationCommand;
 use App\Application\Auth\Commands\ResendAuthVerificationHandler;
 use App\Application\Auth\Commands\VerifyAuthEmailCommand;
 use App\Application\Auth\Commands\VerifyAuthEmailHandler;
+use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class VerificationController extends Controller
 {
+    use ResolvesAuthenticatedUser;
+
     /**
      * Create controller instance.
      */
@@ -53,10 +55,7 @@ class VerificationController extends Controller
      */
     public function resend(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (! $user instanceof User) {
-            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
-        }
+        $user = $this->requireAuthenticatedUser($request);
 
         $message = $this->resendAuthVerificationHandler->handle(
             new ResendAuthVerificationCommand($user)

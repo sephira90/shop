@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Products\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class UpdateAdminProductInputDto
 {
     /**
@@ -12,9 +14,9 @@ final readonly class UpdateAdminProductInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            sku: trim((string) $validated['sku']),
-            name: trim((string) $validated['name']),
-            status: trim((string) $validated['status']),
+            sku: TypedValue::trimmedString($validated['sku']),
+            name: TypedValue::trimmedString($validated['name']),
+            status: TypedValue::trimmedString($validated['status']),
             variants: self::normalizeVariants($validated),
             optionalAttributes: self::normalizeOptionalAttributes($validated),
         );
@@ -61,7 +63,7 @@ final readonly class UpdateAdminProductInputDto
                 continue;
             }
 
-            $variants[] = AdminProductVariantInputDto::fromValidated($variantPayload);
+            $variants[] = AdminProductVariantInputDto::fromValidated(TypedValue::associativeArray($variantPayload));
         }
 
         return $variants;

@@ -20,7 +20,7 @@
                 </AppFormField>
 
                 <AppFormField label="Parent category">
-                    <AppSelectInput v-model="form.parent_id">
+                    <AppSelectInput v-model="form.parent_id" :disabled="isLoadingParentOptions">
                         <option value="">No parent</option>
                         <option
                             v-for="category in parentOptions"
@@ -110,11 +110,12 @@ import AppSubmitResetActions from "@/components/ui/actions/AppSubmitResetActions
 import AppTextareaInput from "@/components/ui/forms/AppTextareaInput.vue";
 import AppTextInput from "@/components/ui/forms/AppTextInput.vue";
 import type { AdminNotice } from "@/composables/useAdminNotice";
-import type { AdminCategory } from "@/types/admin-categories";
+import type { AdminCategoryOption } from "@/types/admin-categories";
 import type { CategoryFormState } from "@/validators/admin/categories";
 
 defineProps<{
-    parentOptions: AdminCategory[];
+    parentOptions: AdminCategoryOption[];
+    isLoadingParentOptions: boolean;
     isSubmitting: boolean;
     editingId: number | null;
     noticeType: AdminNotice["type"];

@@ -1,5 +1,12 @@
-import type { AdminCategoryWireDto } from "@/contracts/api/v1/admin-categories";
-import type { CategoryMutationPayload, AdminCategory } from "@/types/admin-categories";
+import type {
+    AdminCategoryOptionWireDto,
+    AdminCategoryWireDto,
+} from "@/contracts/api/v1/admin-categories";
+import type {
+    CategoryMutationPayload,
+    AdminCategory,
+    AdminCategoryOption,
+} from "@/types/admin-categories";
 
 const mapCategoryParent = (value: AdminCategoryWireDto["parent"]): AdminCategory["parent"] => {
     if (value === null) {
@@ -32,6 +39,24 @@ export const mapAdminCategoryFromApi = (value: AdminCategoryWireDto): AdminCateg
 
 export const mapAdminCategoryListFromApi = (value: AdminCategoryWireDto[]): AdminCategory[] => {
     return value.map((item) => mapAdminCategoryFromApi(item));
+};
+
+export const mapAdminCategoryOptionFromApi = (
+    value: AdminCategoryOptionWireDto,
+): AdminCategoryOption => {
+    return {
+        id: value.id,
+        parent_id: value.parent_id,
+        name: value.name,
+        slug: value.slug,
+        is_active: value.is_active,
+    };
+};
+
+export const mapAdminCategoryOptionListFromApi = (
+    value: AdminCategoryOptionWireDto[],
+): AdminCategoryOption[] => {
+    return value.map((item) => mapAdminCategoryOptionFromApi(item));
 };
 
 export const toCategoryMutationDto = (

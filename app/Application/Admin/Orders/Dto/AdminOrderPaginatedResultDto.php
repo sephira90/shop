@@ -21,15 +21,13 @@ final readonly class AdminOrderPaginatedResultDto
     ) {}
 
     /**
-     * @param  LengthAwarePaginator<int, mixed>  $paginator
+     * @param  LengthAwarePaginator<int, Order>  $paginator
      */
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
         foreach ($paginator->items() as $item) {
-            if ($item instanceof Order) {
-                $items[] = AdminOrderSummaryResultDto::fromOrder($item);
-            }
+            $items[] = AdminOrderSummaryResultDto::fromOrder($item);
         }
 
         return new self(

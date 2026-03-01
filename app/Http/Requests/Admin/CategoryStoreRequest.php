@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Categories\Dto\CreateAdminCategoryInputDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CategoryStoreRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -35,6 +38,11 @@ class CategoryStoreRequest extends FormRequest
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields(['is_active']);
     }
 
     /**

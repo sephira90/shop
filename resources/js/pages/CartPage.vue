@@ -1,11 +1,15 @@
 <template>
     <section class="grid">
         <AppCard>
-            <CartSummaryHeader :total="cartStore.cart?.summary.total ?? 0" />
+            <CartSummaryHeader
+                :total="cartStore.cart?.summary.total ?? 0"
+                :currency="cartStore.cart?.currency ?? 'USD'"
+            />
 
             <CartItemsTable
                 v-if="hasItems"
                 :items="cartStore.cart?.items ?? []"
+                :currency="cartStore.cart?.currency ?? 'USD'"
                 @remove-item="remove"
                 @increase-quantity="increaseQuantity"
                 @decrease-quantity="decreaseQuantity"

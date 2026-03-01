@@ -18,7 +18,7 @@ import CatalogProductCard from "./CatalogProductCard.vue";
 
 defineProps<{
     products: CatalogProduct[];
-    formatPrice: (price: number | undefined) => string;
+    formatPrice: (price: number | undefined, currency?: string) => string;
 }>();
 
 defineEmits<{

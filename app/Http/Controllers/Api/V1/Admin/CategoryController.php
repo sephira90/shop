@@ -12,10 +12,13 @@ use App\Application\Admin\Categories\Commands\UpdateAdminCategoryCommand;
 use App\Application\Admin\Categories\Commands\UpdateAdminCategoryHandler;
 use App\Application\Admin\Categories\Queries\GetAdminCategoryDetailHandler;
 use App\Application\Admin\Categories\Queries\GetAdminCategoryDetailQuery;
+use App\Application\Admin\Categories\Queries\ListAdminCategoryOptionsHandler;
+use App\Application\Admin\Categories\Queries\ListAdminCategoryOptionsQuery;
 use App\Application\Admin\Categories\Queries\PaginateAdminCategoriesHandler;
 use App\Application\Admin\Categories\Queries\PaginateAdminCategoriesQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CategoryIndexRequest;
+use App\Http\Requests\Admin\CategoryOptionsRequest;
 use App\Http\Requests\Admin\CategoryStoreRequest;
 use App\Http\Requests\Admin\CategoryUpdateRequest;
 use App\Models\Category;
@@ -29,6 +32,7 @@ class CategoryController extends Controller
      */
     public function __construct(
         private readonly PaginateAdminCategoriesHandler $paginateAdminCategoriesHandler,
+        private readonly ListAdminCategoryOptionsHandler $listAdminCategoryOptionsHandler,
         private readonly GetAdminCategoryDetailHandler $getAdminCategoryDetailHandler,
         private readonly CreateAdminCategoryHandler $createAdminCategoryHandler,
         private readonly UpdateAdminCategoryHandler $updateAdminCategoryHandler,
@@ -46,6 +50,19 @@ class CategoryController extends Controller
         );
 
         return ApiResponse::paginatedWithMeta($categories->itemsToArray(), $categories->metaToArray());
+    }
+
+    /**
+     * List minimal category selector options for admin forms.
+     */
+    public function options(CategoryOptionsRequest $request): JsonResponse
+    {
+        $this->authorize('viewAny', Category::class);
+        $options = $this->listAdminCategoryOptionsHandler->handle(
+            new ListAdminCategoryOptionsQuery($request->filter())
+        );
+
+        return ApiResponse::data($options->itemsToArray());
     }
 
     /**

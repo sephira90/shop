@@ -1,11 +1,16 @@
 import type { LocationQueryRaw } from "vue-router";
 
-import type { AccountOrderListParams, AccountOrderStatusFilter } from "@/types/account-orders";
+import type {
+    AccountOrderStatusFilter,
+    AccountOrderSummaryListParams,
+} from "@/types/account-orders";
+import { normalizeEnumQuery, toSingleQueryValue } from "@/queries/route-query";
 import {
-    normalizeEnumQuery,
-    normalizePageFromQuery,
-    toSingleQueryValue,
-} from "@/queries/route-query";
+    buildRouteQuery,
+    isSameRouteQuery,
+    parseRouteFilters,
+    type RouteQuerySchema,
+} from "@/queries/route-query-schema";
 
 const ALLOWED_STATUS_FILTERS: AccountOrderStatusFilter[] = [
     "all",
@@ -18,64 +23,67 @@ const ALLOWED_STATUS_FILTERS: AccountOrderStatusFilter[] = [
     "refunded",
 ];
 
-export interface AccountOrdersFilters {
+interface AccountOrdersRouteFilters {
     searchQuery: string;
     statusFilter: AccountOrderStatusFilter;
+}
+
+export interface AccountOrdersFilters extends AccountOrdersRouteFilters {
     page: number;
 }
+
+const DEFAULT_ROUTE_FILTERS: AccountOrdersRouteFilters = {
+    searchQuery: "",
+    statusFilter: "all",
+};
 
 const normalizeStatusFilter = (value: unknown): AccountOrderStatusFilter => {
     return normalizeEnumQuery(value, ALLOWED_STATUS_FILTERS, "all");
 };
 
+const ACCOUNT_ORDERS_ROUTE_QUERY_SCHEMA: RouteQuerySchema<AccountOrdersRouteFilters> = {
+    fields: [
+        {
+            key: "searchQuery",
+            queryKey: "q",
+            parse: (value) => toSingleQueryValue(value).trim(),
+            format: (value) => {
+                const query = String(value).trim();
+
+                return query === "" ? null : query;
+            },
+        },
+        {
+            key: "statusFilter",
+            queryKey: "status",
+            parse: (value) => normalizeStatusFilter(value),
+            format: (value) => (value === "all" ? null : value),
+        },
+    ],
+};
+
 export const parseAccountOrdersFiltersFromRouteQuery = (
     query: Readonly<Record<string, unknown>>,
 ): AccountOrdersFilters => {
-    return {
-        searchQuery: toSingleQueryValue(query.q).trim(),
-        statusFilter: normalizeStatusFilter(query.status),
-        page: normalizePageFromQuery(query.page),
-    };
+    return parseRouteFilters(query, ACCOUNT_ORDERS_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAccountOrdersRouteQuery = (filters: AccountOrdersFilters): LocationQueryRaw => {
-    const query = filters.searchQuery.trim();
-    const routeQuery: LocationQueryRaw = {};
-
-    if (query !== "") {
-        routeQuery.q = query;
-    }
-
-    if (filters.statusFilter !== "all") {
-        routeQuery.status = filters.statusFilter;
-    }
-
-    if (filters.page > 1) {
-        routeQuery.page = String(filters.page);
-    }
-
-    return routeQuery;
+    return buildRouteQuery(filters, ACCOUNT_ORDERS_ROUTE_QUERY_SCHEMA);
 };
 
 export const isSameAccountOrdersRouteQuery = (
     left: Readonly<Record<string, unknown>>,
     right: Readonly<Record<string, unknown>>,
 ): boolean => {
-    const parsedLeft = parseAccountOrdersFiltersFromRouteQuery(left);
-    const parsedRight = parseAccountOrdersFiltersFromRouteQuery(right);
-
-    return (
-        parsedLeft.searchQuery === parsedRight.searchQuery &&
-        parsedLeft.statusFilter === parsedRight.statusFilter &&
-        parsedLeft.page === parsedRight.page
-    );
+    return isSameRouteQuery(left, right, ACCOUNT_ORDERS_ROUTE_QUERY_SCHEMA, DEFAULT_ROUTE_FILTERS);
 };
 
 export const buildAccountOrdersListParams = (
     page: number,
     filters: Pick<AccountOrdersFilters, "searchQuery" | "statusFilter">,
-): AccountOrderListParams => {
-    const params: AccountOrderListParams = {
+): AccountOrderSummaryListParams => {
+    const params: AccountOrderSummaryListParams = {
         page,
     };
 

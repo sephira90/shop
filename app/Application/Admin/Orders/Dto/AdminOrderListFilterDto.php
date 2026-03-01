@@ -7,6 +7,7 @@ namespace App\Application\Admin\Orders\Dto;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
+use App\Support\Data\TypedValue;
 
 final readonly class AdminOrderListFilterDto
 {
@@ -30,12 +31,12 @@ final readonly class AdminOrderListFilterDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            page: max(1, (int) ($validated['page'] ?? 1)),
-            perPage: max(1, (int) ($validated['per_page'] ?? 30)),
+            page: max(1, TypedValue::int($validated['page'] ?? 1)),
+            perPage: max(1, TypedValue::int($validated['per_page'] ?? 30)),
             search: self::normalizeSearch($validated['q'] ?? null),
-            orderStatus: isset($validated['status']) ? OrderStatus::tryFrom((string) $validated['status']) : null,
-            paymentStatus: isset($validated['payment_status']) ? PaymentStatus::tryFrom((string) $validated['payment_status']) : null,
-            shipmentStatus: isset($validated['shipment_status']) ? ShipmentStatus::tryFrom((string) $validated['shipment_status']) : null,
+            orderStatus: isset($validated['status']) ? OrderStatus::tryFrom(TypedValue::string($validated['status'])) : null,
+            paymentStatus: isset($validated['payment_status']) ? PaymentStatus::tryFrom(TypedValue::string($validated['payment_status'])) : null,
+            shipmentStatus: isset($validated['shipment_status']) ? ShipmentStatus::tryFrom(TypedValue::string($validated['shipment_status'])) : null,
         );
     }
 

@@ -9,8 +9,8 @@ use App\Application\Cart\Dto\CartResultDto;
 use App\Application\Cart\Dto\CartSummaryResultDto;
 use App\Enums\CartStatus;
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\ProductVariant;
+use App\Support\Data\TypedValue;
 
 final class CartResultMapper
 {
@@ -19,21 +19,17 @@ final class CartResultMapper
      */
     public function toResultDto(Cart $cart): CartResultDto
     {
-        $subtotal = (float) $cart->items->sum('line_total');
-        $statusValue = (string) $cart->getRawOriginal('status');
+        $subtotal = TypedValue::float($cart->items->sum('line_total'));
+        $statusValue = TypedValue::nullableTrimmedString($cart->getRawOriginal('status')) ?? '';
 
         if ($statusValue === '') {
             $status = $cart->getAttribute('status');
-            $statusValue = $status instanceof CartStatus ? $status->value : (string) $status;
+            $statusValue = $status instanceof CartStatus ? $status->value : TypedValue::string($status);
         }
 
         $items = [];
 
         foreach ($cart->items as $item) {
-            if (! $item instanceof CartItem) {
-                continue;
-            }
-
             $variant = $item->variant;
             $sku = '';
             $name = '';

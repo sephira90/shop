@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Webhook\WebhookProcessingPipeline;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -103,6 +104,6 @@ final readonly class PaymentService
 
     private function gatewayDriver(): string
     {
-        return (string) config('payment.driver', 'fake-payment');
+        return TypedValue::string(config('payment.driver', 'fake-payment'));
     }
 }

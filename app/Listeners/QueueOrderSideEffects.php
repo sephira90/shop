@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Enums\PaymentStatus;
 use App\Events\OrderPlaced;
 use App\Jobs\DispatchShipmentJob;
 
@@ -15,7 +14,7 @@ class QueueOrderSideEffects
      */
     public function handle(OrderPlaced $event): void
     {
-        if ($event->order->payment_status === PaymentStatus::CAPTURED) {
+        if ($event->order->hasCapturedPayment()) {
             DispatchShipmentJob::dispatch($event->order->id)->afterCommit();
         }
     }

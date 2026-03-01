@@ -59,7 +59,7 @@ final class CartMutationService
             $item->delete();
         }
 
-        return $cart->fresh(['items.variant.inventory']);
+        return $cart->refresh()->load(['items.variant.inventory']);
     }
 
     /**
@@ -72,7 +72,7 @@ final class CartMutationService
             ->where('product_variant_id', $variantId)
             ->delete();
 
-        return $cart->fresh(['items.variant.inventory']);
+        return $cart->refresh()->load(['items.variant.inventory']);
     }
 
     /**
@@ -109,10 +109,6 @@ final class CartMutationService
             }
 
             foreach ($guestCart->items as $item) {
-                if (! $item instanceof CartItem) {
-                    continue;
-                }
-
                 $existing = $userCart->items->firstWhere('product_variant_id', $item->product_variant_id);
                 $existingQuantity = $existing instanceof CartItem ? $existing->quantity : 0;
                 $quantity = $existingQuantity + $item->quantity;
@@ -121,7 +117,7 @@ final class CartMutationService
 
             $guestCart->update(['status' => CartStatus::ABANDONED->value]);
 
-            return $userCart->fresh(['items.variant.inventory']);
+            return $userCart->refresh()->load(['items.variant.inventory']);
         });
     }
 }

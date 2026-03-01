@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { assertAdminCategoryWireDto } from "@/contracts/api/v1/assertions/admin-categories";
+import {
+    assertAdminCategoryOptionWireDto,
+    assertAdminCategoryWireDto,
+} from "@/contracts/api/v1/assertions/admin-categories";
 import {
     assertAdminOrderDetailWireDto,
     assertAdminOrderSummaryWireDto,
@@ -30,6 +33,17 @@ describe("admin dto contract assertions", () => {
 
         expect(category.id).toBe(11);
         expect(category.slug).toBe("shoes");
+
+        const option = assertAdminCategoryOptionWireDto({
+            id: 12,
+            parent_id: 11,
+            name: "Boots",
+            slug: "boots",
+            is_active: false,
+        });
+
+        expect(option.parent_id).toBe(11);
+        expect(option.is_active).toBe(false);
     });
 
     it("parses order summary and detail payload", () => {

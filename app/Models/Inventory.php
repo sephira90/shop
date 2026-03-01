@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Inventory extends Model
 {
-    use HasFactory;
-
     /**
      * @var list<string>
      */
@@ -27,6 +24,8 @@ class Inventory extends Model
 
     /**
      * Related variant.
+     *
+     * @return BelongsTo<ProductVariant, $this>
      */
     public function variant(): BelongsTo
     {

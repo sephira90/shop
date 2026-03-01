@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Promotions\Dto\UpdateAdminPromotionInputDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Promotion;
+use App\Support\Data\TypedValue;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class PromotionUpdateRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -30,7 +34,7 @@ class PromotionUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $promotionId = $this->route('promotion')?->id;
+        $promotionId = $this->routePromotion()?->id;
 
         return [
             'name' => ['required', 'string', 'max:140'],
@@ -47,7 +51,7 @@ class PromotionUpdateRequest extends FormRequest
                 'numeric',
                 'min:0.01',
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($this->input('type') === 'percent' && (float) $value > 100.0) {
+                    if ($this->input('type') === 'percent' && TypedValue::float($value) > 100.0) {
                         $fail('Percent value must be less or equal to 100.');
                     }
                 },
@@ -59,6 +63,11 @@ class PromotionUpdateRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields(['is_active']);
+    }
+
     /**
      * Build typed DTO for promotion update flow.
      */
@@ -68,5 +77,12 @@ class PromotionUpdateRequest extends FormRequest
         $validated = $this->validated();
 
         return UpdateAdminPromotionInputDto::fromValidated($validated);
+    }
+
+    private function routePromotion(): ?Promotion
+    {
+        $promotion = $this->route('promotion');
+
+        return $promotion instanceof Promotion ? $promotion : null;
     }
 }

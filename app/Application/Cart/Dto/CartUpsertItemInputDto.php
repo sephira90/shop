@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Cart\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class CartUpsertItemInputDto
 {
     /**
@@ -12,8 +14,8 @@ final readonly class CartUpsertItemInputDto
     public static function fromValidated(array $validated): self
     {
         return new self(
-            productVariantId: (int) $validated['product_variant_id'],
-            quantity: (int) $validated['quantity'],
+            productVariantId: TypedValue::int($validated['product_variant_id']),
+            quantity: TypedValue::int($validated['quantity']),
             guestToken: self::normalizeGuestToken($validated['guest_token'] ?? null),
         );
     }

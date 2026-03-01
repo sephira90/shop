@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Promotions\Dto;
 
+use App\Support\Data\TypedValue;
+
 final readonly class CreateAdminPromotionInputDto
 {
     /**
@@ -13,13 +15,13 @@ final readonly class CreateAdminPromotionInputDto
     {
         $couponPayload = $validated['coupon'] ?? null;
         $coupon = is_array($couponPayload)
-            ? CreateAdminPromotionCouponInputDto::fromValidated($couponPayload)
+            ? CreateAdminPromotionCouponInputDto::fromValidated(TypedValue::associativeArray($couponPayload))
             : null;
 
         return new self(
-            name: trim((string) $validated['name']),
+            name: TypedValue::trimmedString($validated['name']),
             code: self::normalizeNullableString($validated['code'] ?? null),
-            type: trim((string) $validated['type']),
+            type: TypedValue::trimmedString($validated['type']),
             value: self::normalizeFloat($validated['value']),
             isActive: (bool) ($validated['is_active'] ?? true),
             startsAt: self::normalizeNullableString($validated['starts_at'] ?? null),
@@ -77,7 +79,7 @@ final readonly class CreateAdminPromotionInputDto
      */
     private static function normalizeFloat(mixed $value): float
     {
-        return (float) $value;
+        return TypedValue::float($value);
     }
 
     /**

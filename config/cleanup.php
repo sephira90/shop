@@ -19,6 +19,9 @@ return [
         'cron' => (string) env('APP_CLEANUP_CRON', '17 * * * *'),
     ],
 
+    // Process destructive cleanup in deterministic batches by primary key.
+    'batch_size' => (int) env('APP_CLEANUP_BATCH_SIZE', 500),
+
     'retention' => [
         // Keep checkout idempotency rows this many hours after expiry timestamp.
         'idempotency_hours' => (int) env('APP_CLEANUP_IDEMPOTENCY_RETAIN_HOURS', 168),

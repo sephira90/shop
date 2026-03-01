@@ -2,12 +2,12 @@
     <AppCard tag="aside">
         <AppSectionTitle>Purchase</AppSectionTitle>
         <p class="product-card__price">
-            {{ formatPrice(selectedVariant?.price) }} {{ selectedVariant?.currency ?? "USD" }}
+            {{ formatPrice(selectedVariant?.price, selectedVariant?.currency) }}
         </p>
         <div class="grid">
             <AppSelectInput v-model.number="selectedVariantId">
                 <option v-for="variant in product.variants" :key="variant.id" :value="variant.id">
-                    {{ variant.name }} - {{ formatPrice(variant.price) }} {{ variant.currency }}
+                    {{ variant.name }} - {{ formatPrice(variant.price, variant.currency) }}
                 </option>
             </AppSelectInput>
             <AppButton
@@ -32,7 +32,7 @@ import type { CatalogProduct, CatalogProductVariant } from "@/types/catalog";
 defineProps<{
     product: CatalogProduct;
     selectedVariant: CatalogProductVariant | null;
-    formatPrice: (price: number | undefined) => string;
+    formatPrice: (price: number | undefined, currency?: string) => string;
 }>();
 
 defineEmits<{

@@ -7,7 +7,7 @@ namespace App\Services\Catalog;
 use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Models\Category;
 use App\Models\Product;
-use App\Repositories\ProductRepository;
+use App\Repositories\CatalogProductReadRepository;
 use App\Support\Observability\ObservabilityService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,13 +19,15 @@ final readonly class CatalogService
      * Create service instance.
      */
     public function __construct(
-        private ProductRepository $productRepository,
+        private CatalogProductReadRepository $catalogProductReadRepository,
         private CatalogVersionService $catalogVersionService,
         private ObservabilityService $observabilityService,
     ) {}
 
     /**
      * Return paginated catalog response with caching.
+     *
+     * @return LengthAwarePaginator<int, Product>
      */
     public function list(CatalogProductListFilterDto $filter, int $perPage = 12): LengthAwarePaginator
     {
@@ -41,7 +43,7 @@ final readonly class CatalogService
         $paginator = Cache::remember(
             $cacheKey,
             now()->addMinutes(5),
-            fn (): LengthAwarePaginator => $this->productRepository->paginateCatalog($filter, $perPage),
+            fn (): LengthAwarePaginator => $this->catalogProductReadRepository->paginateCatalog($filter, $perPage),
         );
 
         $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
@@ -62,7 +64,7 @@ final readonly class CatalogService
         $product = Cache::remember(
             $cacheKey,
             now()->addMinutes(10),
-            fn (): ?Product => $this->productRepository->findActiveBySlug($slug),
+            fn (): ?Product => $this->catalogProductReadRepository->findActiveBySlug($slug),
         );
 
         $durationMs = (hrtime(true) - $startedAt) / 1_000_000;

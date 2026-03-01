@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Shipment;
+use App\Support\Data\TypedValue;
 use DateTimeInterface;
 use Illuminate\Support\Collection;
 
@@ -190,7 +191,7 @@ final readonly class CheckoutOrderResultDto
      */
     private static function normalizeAddress(mixed $value): ?array
     {
-        return is_array($value) ? $value : null;
+        return TypedValue::associativeArrayOrNull($value);
     }
 
     private static function formatDateLike(mixed $value): ?string

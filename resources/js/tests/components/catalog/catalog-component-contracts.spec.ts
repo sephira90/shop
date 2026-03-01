@@ -8,6 +8,7 @@ import CatalogFiltersCard from "@/components/catalog/CatalogFiltersCard.vue";
 import CatalogProductCard from "@/components/catalog/CatalogProductCard.vue";
 import CatalogProductGrid from "@/components/catalog/CatalogProductGrid.vue";
 import type { CatalogProduct } from "@/types/catalog";
+import { formatPrice } from "@/utils/format";
 
 const buildProduct = (): CatalogProduct => ({
     id: 7,
@@ -54,7 +55,7 @@ describe("catalog product card contract", () => {
         const wrapper = mount(CatalogProductCard, {
             props: {
                 product,
-                formatPrice: (value: number | undefined) => Number(value ?? 0).toFixed(2),
+                formatPrice,
             },
             global: {
                 stubs: {
@@ -67,6 +68,8 @@ describe("catalog product card contract", () => {
 
         const link = wrapper.getComponent(RouterLinkStub);
         expect(link.props("to")).toBe("/product/trail-boots");
+        expect(wrapper.text()).toContain("From $129.90");
+        expect(wrapper.text()).not.toContain("USD");
         expect(wrapper.emitted("addToCart")?.[0]).toEqual([701]);
     });
 });
@@ -76,7 +79,7 @@ describe("catalog product grid contract", () => {
         const wrapper = mount(CatalogProductGrid, {
             props: {
                 products: [buildProduct()],
-                formatPrice: (value: number | undefined) => Number(value ?? 0).toFixed(2),
+                formatPrice,
             },
             global: {
                 stubs: {

@@ -21,15 +21,13 @@ final readonly class AdminPromotionPaginatedResultDto
     ) {}
 
     /**
-     * @param  LengthAwarePaginator<int, mixed>  $paginator
+     * @param  LengthAwarePaginator<int, Promotion>  $paginator
      */
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
         foreach ($paginator->items() as $item) {
-            if ($item instanceof Promotion) {
-                $items[] = AdminPromotionResultDto::fromPromotion($item);
-            }
+            $items[] = AdminPromotionResultDto::fromPromotion($item);
         }
 
         return new self(

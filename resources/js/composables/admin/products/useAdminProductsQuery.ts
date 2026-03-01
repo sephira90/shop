@@ -4,7 +4,7 @@ import type { AdminRouteSyncOptions } from "@/composables/admin/adminRouteSync";
 import type { AdminQueryNoticeAdapter } from "@/composables/admin/useAdminMutationContext";
 import type { AdminProduct } from "@/types/admin-products";
 
-import { useAdminProductCategoriesState } from "./useAdminProductCategoriesState";
+import { useAdminCategoryOptionsState } from "../categories/useAdminCategoryOptionsState";
 import { useAdminProductsFilterState } from "./useAdminProductsFilterState";
 import { useAdminProductsListState } from "./useAdminProductsListState";
 
@@ -18,8 +18,11 @@ export const useAdminProductsQuery = (
         filterState,
         routeSync,
     });
-    const { categories, isLoadingCategories, loadCategories } =
-        useAdminProductCategoriesState(notice);
+    const {
+        categoryOptions: categories,
+        isLoadingCategoryOptions: isLoadingCategories,
+        loadCategoryOptions: loadCategories,
+    } = useAdminCategoryOptionsState(notice);
 
     const filteredProducts = computed<AdminProduct[]>(() => products.value);
 

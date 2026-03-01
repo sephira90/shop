@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Admin\Orders\Dto;
 
 use App\Models\Order;
+use App\Support\Data\TypedValue;
 use DateTimeInterface;
 
 final readonly class AdminOrderSummaryResultDto
@@ -15,9 +16,9 @@ final readonly class AdminOrderSummaryResultDto
             id: (string) $order->id,
             orderNumber: (string) $order->order_number,
             email: (string) $order->email,
-            status: (string) $order->getRawOriginal('status'),
-            paymentStatus: (string) $order->getRawOriginal('payment_status'),
-            shipmentStatus: (string) $order->getRawOriginal('shipment_status'),
+            status: TypedValue::string($order->getRawOriginal('status')),
+            paymentStatus: TypedValue::string($order->getRawOriginal('payment_status')),
+            shipmentStatus: TypedValue::string($order->getRawOriginal('shipment_status')),
             currency: (string) $order->currency,
             total: (float) $order->total,
             placedAt: self::formatDateLike($order->placed_at),

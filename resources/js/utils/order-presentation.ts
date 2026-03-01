@@ -1,4 +1,5 @@
 import { formatDateTime } from "@/utils/datetime";
+import { formatPrice } from "@/utils/format";
 
 export interface OrderAddressLike {
     line1?: string;
@@ -46,12 +47,7 @@ const shipmentStatusToneMap: Record<string, StatusTone> = {
 };
 
 export const formatMoney = (value: number, currency = "USD", locale = "en-US"): string => {
-    return new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(Number(value ?? 0));
+    return formatPrice(value, currency, locale);
 };
 
 export const formatOrderAddress = (address: OrderAddressLike | null | undefined): string => {

@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Payment\PaymentStatusTransitionPolicy;
 use App\Services\Shipping\ShipmentStatusTransitionPolicy;
+use App\Support\Data\TypedValue;
 use DomainException;
 
 final class AdminOrderService
@@ -78,7 +79,7 @@ final class AdminOrderService
             'cancelled_at' => $cancelledAt,
         ]);
 
-        return $order->fresh(['items', 'payments', 'shipments', 'user']);
+        return $order->refresh()->load(['items', 'payments', 'shipments', 'user']);
     }
 
     private function resolveOrderStatus(mixed $status): OrderStatus
@@ -87,7 +88,7 @@ final class AdminOrderService
             return $status;
         }
 
-        return OrderStatus::from((string) $status);
+        return OrderStatus::from(TypedValue::string($status));
     }
 
     private function resolvePaymentStatus(mixed $status): PaymentStatus
@@ -96,7 +97,7 @@ final class AdminOrderService
             return $status;
         }
 
-        return PaymentStatus::from((string) $status);
+        return PaymentStatus::from(TypedValue::string($status));
     }
 
     private function resolveShipmentStatus(mixed $status): ShipmentStatus
@@ -105,6 +106,6 @@ final class AdminOrderService
             return $status;
         }
 
-        return ShipmentStatus::from((string) $status);
+        return ShipmentStatus::from(TypedValue::string($status));
     }
 }

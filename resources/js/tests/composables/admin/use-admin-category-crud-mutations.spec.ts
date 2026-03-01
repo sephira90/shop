@@ -7,6 +7,7 @@ import type { AdminCategory } from "@/types/admin-categories";
 import type { CategoryFormState } from "@/validators/admin/categories";
 
 vi.mock("@/api/admin/categories", () => ({
+    listAdminCategoryOptions: vi.fn(),
     createAdminCategory: vi.fn(),
     updateAdminCategory: vi.fn(),
     deleteAdminCategory: vi.fn(),
@@ -74,6 +75,7 @@ describe("useAdminCategoryCrudMutations", () => {
         const showSuccess = vi.fn();
         const showError = vi.fn();
         const loadCategories = vi.fn(async () => {});
+        const loadParentOptions = vi.fn(async () => {});
         createAdminCategoryMock.mockResolvedValue(undefined);
 
         const scope = effectScope();
@@ -83,6 +85,7 @@ describe("useAdminCategoryCrudMutations", () => {
                     categories: ref([buildCategory(1)]),
                     page: ref(4),
                     loadCategories,
+                    loadParentOptions,
                 },
                 formState: {
                     editingId: ref<number | null>(null),
@@ -118,6 +121,7 @@ describe("useAdminCategoryCrudMutations", () => {
         );
         expect(updateAdminCategoryMock).not.toHaveBeenCalled();
         expect(loadCategories).toHaveBeenCalledWith(1);
+        expect(loadParentOptions).toHaveBeenCalledTimes(1);
         expect(showSuccess).toHaveBeenCalledWith("Category created successfully.");
         expect(showError).not.toHaveBeenCalled();
 
@@ -128,6 +132,7 @@ describe("useAdminCategoryCrudMutations", () => {
         const showSuccess = vi.fn();
         const showError = vi.fn();
         const loadCategories = vi.fn(async () => {});
+        const loadParentOptions = vi.fn(async () => {});
         updateAdminCategoryMock.mockResolvedValue(undefined);
 
         const scope = effectScope();
@@ -137,6 +142,7 @@ describe("useAdminCategoryCrudMutations", () => {
                     categories: ref([buildCategory(7)]),
                     page: ref(3),
                     loadCategories,
+                    loadParentOptions,
                 },
                 formState: {
                     editingId: ref<number | null>(7),
@@ -172,6 +178,7 @@ describe("useAdminCategoryCrudMutations", () => {
             }),
         );
         expect(loadCategories).toHaveBeenCalledWith(3);
+        expect(loadParentOptions).toHaveBeenCalledTimes(1);
         expect(showSuccess).toHaveBeenCalledWith("Category updated successfully.");
         expect(showError).not.toHaveBeenCalled();
 
@@ -190,6 +197,7 @@ describe("useAdminCategoryCrudMutations", () => {
                     categories: ref([buildCategory(4)]),
                     page: ref(1),
                     loadCategories: vi.fn(async () => {}),
+                    loadParentOptions: vi.fn(async () => {}),
                 },
                 formState: {
                     editingId: ref<number | null>(null),
@@ -229,6 +237,7 @@ describe("useAdminCategoryCrudMutations", () => {
         const showSuccess = vi.fn();
         const showError = vi.fn();
         const loadCategories = vi.fn(async () => {});
+        const loadParentOptions = vi.fn(async () => {});
         const resetFormKeepNotice = vi.fn();
         const confirm = vi.fn(async () => true);
         deleteAdminCategoryMock.mockResolvedValue(undefined);
@@ -240,6 +249,7 @@ describe("useAdminCategoryCrudMutations", () => {
                     categories: ref([buildCategory(5)]),
                     page: ref(2),
                     loadCategories,
+                    loadParentOptions,
                 },
                 formState: {
                     editingId: ref<number | null>(5),
@@ -270,6 +280,7 @@ describe("useAdminCategoryCrudMutations", () => {
         expect(confirm).toHaveBeenCalledWith('Delete category "Category 5"?');
         expect(deleteAdminCategoryMock).toHaveBeenCalledWith(5);
         expect(loadCategories).toHaveBeenCalledWith(1);
+        expect(loadParentOptions).toHaveBeenCalledTimes(1);
         expect(resetFormKeepNotice).toHaveBeenCalledTimes(1);
         expect(showSuccess).toHaveBeenCalledWith("Category deleted.");
         expect(showError).not.toHaveBeenCalled();

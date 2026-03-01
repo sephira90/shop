@@ -21,6 +21,7 @@ interface AdminCategoriesCrudQueryAdapter {
     categories: Ref<AdminCategory[]>;
     page: Ref<number>;
     loadCategories: (targetPage?: number) => Promise<void>;
+    loadParentOptions?: () => Promise<void>;
 }
 
 interface AdminCategoriesCrudFormAdapter {
@@ -75,6 +76,7 @@ export const useAdminCategoryCrudMutations = ({
             onSuccess: async () => {
                 await query.loadCategories(query.page.value);
                 formState.resetFormKeepNotice();
+                await query.loadParentOptions?.();
             },
         });
     };
@@ -108,6 +110,7 @@ export const useAdminCategoryCrudMutations = ({
                 if (formState.editingId.value === item.id) {
                     formState.resetFormKeepNotice();
                 }
+                await query.loadParentOptions?.();
             },
         });
     };

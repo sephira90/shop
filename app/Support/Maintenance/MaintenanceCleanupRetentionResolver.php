@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Maintenance;
 
+use App\Support\Data\TypedValue;
 use App\Support\Maintenance\Dto\MaintenanceCleanupRetentionDto;
 use InvalidArgumentException;
 
@@ -22,22 +23,22 @@ final class MaintenanceCleanupRetentionResolver
         return new MaintenanceCleanupRetentionDto(
             idempotencyHours: $this->resolvePositiveIntOption(
                 $options['idempotency-retain-hours'],
-                (int) config('cleanup.retention.idempotency_hours', 168),
+                TypedValue::int(config('cleanup.retention.idempotency_hours', 168)),
                 'idempotency-retain-hours',
             ),
             webhookHours: $this->resolvePositiveIntOption(
                 $options['webhook-retain-hours'],
-                (int) config('cleanup.retention.webhook_hours', 720),
+                TypedValue::int(config('cleanup.retention.webhook_hours', 720)),
                 'webhook-retain-hours',
             ),
             activeCartHours: $this->resolvePositiveIntOption(
                 $options['active-cart-retain-hours'],
-                (int) config('cleanup.retention.active_cart_hours', 720),
+                TypedValue::int(config('cleanup.retention.active_cart_hours', 720)),
                 'active-cart-retain-hours',
             ),
             inactiveCartHours: $this->resolvePositiveIntOption(
                 $options['inactive-cart-retain-hours'],
-                (int) config('cleanup.retention.inactive_cart_hours', 168),
+                TypedValue::int(config('cleanup.retention.inactive_cart_hours', 168)),
                 'inactive-cart-retain-hours',
             ),
         );
@@ -48,7 +49,7 @@ final class MaintenanceCleanupRetentionResolver
      */
     private function resolvePositiveIntOption(mixed $raw, int $fallback, string $label): int
     {
-        if ($raw === null || trim((string) $raw) === '') {
+        if ($raw === null || TypedValue::trimmedString($raw) === '') {
             if ($fallback > 0) {
                 return $fallback;
             }

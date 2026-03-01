@@ -3,7 +3,7 @@
         <h3 class="product-card__title">{{ product.name }}</h3>
         <AppMutedText>{{ product.short_description }}</AppMutedText>
         <p class="product-card__price">
-            From {{ formatPrice(primaryVariant?.price) }} {{ primaryVariant?.currency ?? "USD" }}
+            From {{ formatPrice(primaryVariant?.price, primaryVariant?.currency) }}
         </p>
         <div class="product-card__actions">
             <AppButton variant="muted" :to="`/product/${product.slug}`"> Open product </AppButton>
@@ -29,7 +29,7 @@ import type { CatalogProduct } from "@/types/catalog";
 
 const props = defineProps<{
     product: CatalogProduct;
-    formatPrice: (price: number | undefined) => string;
+    formatPrice: (price: number | undefined, currency?: string) => string;
 }>();
 
 defineEmits<{

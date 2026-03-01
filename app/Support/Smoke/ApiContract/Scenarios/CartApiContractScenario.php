@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\ApiContract\Scenarios;
 
+use App\Support\Data\TypedValue;
 use App\Support\Smoke\Api\ApiSmokeAssertions;
 use App\Support\Smoke\Api\ApiSmokeHttpClient;
 use App\Support\Smoke\ApiContract\ApiContractScenario;
@@ -24,7 +25,7 @@ final class CartApiContractScenario implements ApiContractScenario
 
         $assertions->assertStatus($response->status, HttpResponse::HTTP_OK, 'cart show');
         $assertions->assertHasKeys($response->json, ['data'], 'cart show');
-        $assertions->assertHasKeys((array) ($response->json['data'] ?? []), ['id', 'currency', 'items', 'summary'], 'cart show payload');
+        $assertions->assertHasKeys(TypedValue::associativeArray($response->json['data'] ?? []), ['id', 'currency', 'items', 'summary'], 'cart show payload');
 
         return [
             new SmokeCheckResult('cart_show', $response->status),

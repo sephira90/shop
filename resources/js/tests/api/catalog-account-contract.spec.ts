@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    assertAccountOrderDetailWireDto,
     assertAccountOrdersSummaryWireDto,
-    assertAccountOrderWireDto,
+    assertAccountOrderSummaryWireDto,
 } from "@/contracts/api/v1/assertions/account-orders";
 import {
     assertCatalogProductVariantWireDto,
@@ -34,7 +35,7 @@ describe("catalog and account dto contract assertions", () => {
     });
 
     it("parses account order payload and summary payload", () => {
-        const order = assertAccountOrderWireDto({
+        const order = assertAccountOrderDetailWireDto({
             id: "ord-11",
             order_number: "ORD-1001",
             email: "buyer@example.com",
@@ -43,6 +44,9 @@ describe("catalog and account dto contract assertions", () => {
             shipment_status: "pending",
             currency: "USD",
             total: 150,
+            subtotal: 150,
+            discount_total: 0,
+            shipping_total: 0,
             items: [
                 {
                     product_variant_id: 3,
@@ -60,6 +64,20 @@ describe("catalog and account dto contract assertions", () => {
                 postcode: "10001",
             },
             shipping_address: null,
+            payments: [],
+            shipments: [],
+            placed_at: null,
+            created_at: "2026-02-27T10:00:00Z",
+        });
+        const orderSummary = assertAccountOrderSummaryWireDto({
+            id: "ord-11",
+            order_number: "ORD-1001",
+            email: "buyer@example.com",
+            status: "pending",
+            payment_status: "pending",
+            shipment_status: "pending",
+            currency: "USD",
+            total: 150,
             placed_at: null,
             created_at: "2026-02-27T10:00:00Z",
         });
@@ -71,6 +89,7 @@ describe("catalog and account dto contract assertions", () => {
         });
 
         expect(order.items[0].quantity).toBe(2);
+        expect(orderSummary.total).toBe(150);
         expect(summary.total_spent).toBe(1234.5);
     });
 
@@ -87,7 +106,7 @@ describe("catalog and account dto contract assertions", () => {
         ).toThrowError(/must be boolean/);
 
         expect(() =>
-            assertAccountOrderWireDto({
+            assertAccountOrderDetailWireDto({
                 id: "ord-11",
                 order_number: "ORD-1001",
                 email: "buyer@example.com",
@@ -96,9 +115,14 @@ describe("catalog and account dto contract assertions", () => {
                 shipment_status: "pending",
                 currency: "USD",
                 total: 150,
+                subtotal: 150,
+                discount_total: 0,
+                shipping_total: 0,
                 items: {},
                 billing_address: null,
                 shipping_address: null,
+                payments: [],
+                shipments: [],
                 placed_at: null,
                 created_at: null,
             }),

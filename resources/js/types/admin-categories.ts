@@ -19,6 +19,14 @@ export interface AdminCategory {
     products_count: number;
 }
 
+export interface AdminCategoryOption {
+    id: number;
+    parent_id: number | null;
+    name: string;
+    slug: string;
+    is_active: boolean;
+}
+
 export type CategoryListResponse = ListResponse<AdminCategory>;
 export type CategoryStatusFilter = "all" | "active" | "inactive";
 
@@ -27,6 +35,11 @@ export interface AdminCategoryListParams {
     per_page?: number;
     q?: string;
     is_active?: boolean;
+}
+
+export interface AdminCategoryOptionListParams {
+    q?: string;
+    exclude_id?: number;
 }
 
 export interface CategoryMutationPayload {

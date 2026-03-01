@@ -1,9 +1,18 @@
 import { apiClient } from "@/api/client";
-import { normalizeListResponse } from "@/api/response";
-import { assertAdminCategoryWireDto } from "@/contracts/api/v1/assertions/admin-categories";
-import { mapAdminCategoryListFromApi, toCategoryMutationDto } from "@/mappers/admin/categories";
+import { extractData, normalizeListResponse, ApiContractError } from "@/api/response";
+import {
+    assertAdminCategoryOptionWireDto,
+    assertAdminCategoryWireDto,
+} from "@/contracts/api/v1/assertions/admin-categories";
+import {
+    mapAdminCategoryListFromApi,
+    mapAdminCategoryOptionListFromApi,
+    toCategoryMutationDto,
+} from "@/mappers/admin/categories";
 import type {
+    AdminCategoryOptionListParams,
     AdminCategoryListParams,
+    AdminCategoryOption,
     CategoryListResponse,
     CategoryMutationPayload,
 } from "@/types/admin-categories";
@@ -29,6 +38,24 @@ export const listAdminCategories = async (
         ),
         meta: response.meta,
     };
+};
+
+export const listAdminCategoryOptions = async (
+    params: AdminCategoryOptionListParams = {},
+): Promise<AdminCategoryOption[]> => {
+    const { data } = await apiClient.get("/admin/categories/options", {
+        params,
+    });
+
+    const response = extractData<object[]>(data);
+
+    if (!Array.isArray(response)) {
+        throw new ApiContractError("Admin category options response `data` must be an array.");
+    }
+
+    return mapAdminCategoryOptionListFromApi(
+        response.map((item) => assertAdminCategoryOptionWireDto(item)),
+    );
 };
 
 export const createAdminCategory = async (payload: CategoryMutationPayload): Promise<void> => {

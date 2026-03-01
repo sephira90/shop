@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Observability;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\Cache;
 
 final class ObservabilityMetricStore
@@ -214,7 +215,7 @@ final class ObservabilityMetricStore
         $sum = 0;
 
         foreach ($buckets as $bucket) {
-            $sum += (int) Cache::get($this->cacheKey(...array_merge($parts, [$bucket])), 0);
+            $sum += TypedValue::int(Cache::get($this->cacheKey(...array_merge($parts, [$bucket])), 0));
         }
 
         return $sum;
@@ -229,7 +230,7 @@ final class ObservabilityMetricStore
         $expiresAt = now()->addMinutes(self::CACHE_TTL_MINUTES);
         Cache::add($key, 0, $expiresAt);
         Cache::increment($key, $value);
-        Cache::put($key, (int) Cache::get($key, 0), $expiresAt);
+        Cache::put($key, TypedValue::int(Cache::get($key, 0)), $expiresAt);
     }
 
     private function registerValue(string $registryKey, string $value): void

@@ -20,6 +20,7 @@ vi.mock("@/api/admin/promotions", () => ({
 }));
 
 vi.mock("@/api/admin/categories", () => ({
+    listAdminCategoryOptions: vi.fn(),
     listAdminCategories: vi.fn(),
     createAdminCategory: vi.fn(),
     updateAdminCategory: vi.fn(),
@@ -34,12 +35,15 @@ vi.mock("@/api/admin/products", () => ({
     refreshAdminCatalogCache: vi.fn(),
 }));
 
-import { deleteAdminCategory } from "@/api/admin/categories";
+import { deleteAdminCategory, listAdminCategoryOptions } from "@/api/admin/categories";
 import { deleteAdminProduct } from "@/api/admin/products";
 import { deletePromotion } from "@/api/admin/promotions";
 
 const deletePromotionMock = deletePromotion as unknown as ReturnType<typeof vi.fn>;
 const deleteAdminCategoryMock = deleteAdminCategory as unknown as ReturnType<typeof vi.fn>;
+const listAdminCategoryOptionsMock = listAdminCategoryOptions as unknown as ReturnType<
+    typeof vi.fn
+>;
 const deleteAdminProductMock = deleteAdminProduct as unknown as ReturnType<typeof vi.fn>;
 
 const buildPromotion = (id: number): Promotion => ({
@@ -104,6 +108,7 @@ const setAdminRole = (): void => {
 beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    listAdminCategoryOptionsMock.mockResolvedValue([]);
 });
 
 describe("admin composables ui effects adapter", () => {

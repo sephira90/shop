@@ -6,6 +6,7 @@ namespace App\Application\Auth\Support;
 
 use App\Application\Auth\Dto\AuthUserDto;
 use App\Models\User;
+use App\Support\Data\TypedValue;
 
 final class AuthUserDtoMapper
 {
@@ -16,13 +17,13 @@ final class AuthUserDtoMapper
     {
         return new AuthUserDto(
             id: $user->id,
-            firstName: $user->first_name,
-            lastName: $user->last_name,
+            firstName: (string) $user->first_name,
+            lastName: (string) $user->last_name,
             name: $user->name,
             email: $user->email,
             phone: $user->phone,
             isEmailVerified: $user->hasVerifiedEmail(),
-            roles: $user->roles()->pluck('name')->all(),
+            roles: TypedValue::stringList($user->roles()->pluck('name')->all()),
         );
     }
 }

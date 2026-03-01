@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Observability;
 
+use App\Support\Data\TypedValue;
 use App\Support\Observability\Dto\ObservabilityReportOptionsDto;
 use InvalidArgumentException;
 
@@ -53,10 +54,10 @@ final class ObservabilityReportOptionsResolver
 
     private function resolveSource(mixed $raw): string
     {
-        $source = trim((string) $raw);
+        $source = TypedValue::nullableTrimmedString($raw) ?? '';
 
         if ($source === '') {
-            $source = (string) config('observability.snapshot.default_source', 'runtime');
+            $source = TypedValue::nullableTrimmedString(config('observability.snapshot.default_source', 'runtime')) ?? 'runtime';
         }
 
         $source = strtolower($source);

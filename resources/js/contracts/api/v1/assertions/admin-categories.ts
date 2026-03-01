@@ -1,5 +1,6 @@
 import { ApiContractError } from "@/api/response";
 import type {
+    AdminCategoryOptionWireDto,
     AdminCategoryParentWireDto,
     AdminCategoryWireDto,
 } from "@/contracts/api/v1/admin-categories";
@@ -79,6 +80,20 @@ const parseParent = (value: unknown): AdminCategoryParentWireDto | null => {
         id: requireNumber(value, "id"),
         name: requireString(value, "name"),
         slug: requireString(value, "slug"),
+    };
+};
+
+export const assertAdminCategoryOptionWireDto = (value: unknown): AdminCategoryOptionWireDto => {
+    if (!isRecord(value)) {
+        throw new ApiContractError("Category option payload must be an object.");
+    }
+
+    return {
+        id: requireNumber(value, "id"),
+        parent_id: parseNullableNumber(value, "parent_id"),
+        name: requireString(value, "name"),
+        slug: requireString(value, "slug"),
+        is_active: requireBoolean(value, "is_active"),
     };
 };
 

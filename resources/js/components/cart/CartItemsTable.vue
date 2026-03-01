@@ -23,8 +23,8 @@
                             "
                         />
                     </td>
-                    <td>{{ formatPrice(item.unit_price) }}</td>
-                    <td>{{ formatPrice(item.line_total) }}</td>
+                    <td>{{ formatPrice(item.unit_price, props.currency) }}</td>
+                    <td>{{ formatPrice(item.line_total, props.currency) }}</td>
                     <td>
                         <AppButton
                             data-testid="cart-remove-item"
@@ -48,14 +48,21 @@
 <script setup lang="ts">
 import AppActionsRow from "@/components/ui/actions/AppActionsRow.vue";
 import AppButton from "@/components/ui/actions/AppButton.vue";
+import { formatPrice } from "@/utils/format";
 import type { CartItem } from "@/stores/cart";
 
 import AppTableSection from "@/components/ui/table/AppTableSection.vue";
 import CartQuantityControl from "./CartQuantityControl.vue";
 
-defineProps<{
-    items: CartItem[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        items: CartItem[];
+        currency?: string;
+    }>(),
+    {
+        currency: "USD",
+    },
+);
 
 defineEmits<{
     (event: "removeItem", variantId: number): void;
@@ -63,8 +70,4 @@ defineEmits<{
     (event: "decreaseQuantity", item: CartItem): void;
     (event: "updateQuantity", payload: { item: CartItem; quantity: number }): void;
 }>();
-
-const formatPrice = (value: number): string => {
-    return Number(value).toFixed(2);
-};
 </script>

@@ -1,7 +1,7 @@
 import type { AdminRouteSyncOptions } from "@/composables/admin/adminRouteSync";
 import { useAdminMutationContext } from "@/composables/admin/useAdminMutationContext";
+import { formatPrice as formatCurrency } from "@/utils/format";
 import {
-    formatMoney,
     formatOrderAddress,
     type OrderAddressLike,
     orderStatusTone as resolveOrderStatusTone,
@@ -29,7 +29,8 @@ export const useAdminOrdersViewModel = (options: UseAdminOrdersOptions = {}) => 
         showSuccess: context.mutationNotice.showSuccess,
     });
 
-    const formatPrice = (value: number, currency = "USD"): string => formatMoney(value, currency);
+    const formatPrice = (value: number, currency = "USD"): string =>
+        formatCurrency(value, currency);
     const formatAddress = (address: OrderAddressLike | null): string => formatOrderAddress(address);
     const orderStatusTone = (status: string): StatusTone => resolveOrderStatusTone(status);
     const paymentStatusTone = (status: string): StatusTone => resolvePaymentStatusTone(status);

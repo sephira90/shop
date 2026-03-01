@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Observability\Channels;
 
+use App\Support\Data\TypedValue;
 use App\Support\Observability\Contracts\ObservabilityAlertChannel;
 use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
 use App\Support\Observability\ObservabilityAlertRoutingLogger;
@@ -26,14 +27,14 @@ final readonly class PagerDutyObservabilityAlertChannel implements Observability
             return false;
         }
 
-        $integrationKey = trim((string) config('observability.alerts.pagerduty.integration_key', ''));
+        $integrationKey = TypedValue::trimmedString(config('observability.alerts.pagerduty.integration_key', ''));
         if ($integrationKey === '') {
             $this->routingLogger->warning($this->channel(), 'PagerDuty integration key is empty.');
 
             return false;
         }
 
-        $severity = strtolower(trim((string) config('observability.alerts.pagerduty.severity', 'warning')));
+        $severity = strtolower(TypedValue::trimmedString(config('observability.alerts.pagerduty.severity', 'warning')));
         if (! in_array($severity, ['critical', 'error', 'warning', 'info'], true)) {
             $severity = 'warning';
         }
@@ -44,7 +45,7 @@ final readonly class PagerDutyObservabilityAlertChannel implements Observability
                 'event_action' => 'trigger',
                 'payload' => [
                     'summary' => $message->subject,
-                    'source' => (string) config('app.url', 'unknown'),
+                    'source' => TypedValue::string(config('app.url', 'unknown')),
                     'severity' => $severity,
                     'custom_details' => [
                         'message' => implode("\n", $message->lines),

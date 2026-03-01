@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Categories\Dto;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Str;
 
 final readonly class UpdateAdminCategoryInputDto
@@ -13,7 +14,7 @@ final readonly class UpdateAdminCategoryInputDto
      */
     public static function fromValidated(array $validated, string $existingSlug): self
     {
-        $name = trim((string) $validated['name']);
+        $name = TypedValue::trimmedString($validated['name']);
         $slug = self::normalizeNullableString($validated['slug'] ?? null);
         $normalizedExistingSlug = trim($existingSlug);
 

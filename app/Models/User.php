@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\RoleName;
+use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,10 +16,11 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens;
 
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
+
     use Notifiable;
 
     /**
@@ -62,6 +64,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * User roles relation.
+     *
+     * @return BelongsToMany<Role, $this>
      */
     public function roles(): BelongsToMany
     {
@@ -70,6 +74,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * User carts relation.
+     *
+     * @return HasMany<Cart, $this>
      */
     public function carts(): HasMany
     {
@@ -78,6 +84,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * User orders relation.
+     *
+     * @return HasMany<Order, $this>
      */
     public function orders(): HasMany
     {
@@ -91,7 +99,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $name = $role instanceof RoleName ? $role->value : $role;
 
-        return $this->roles->contains(static fn (Role $userRole): bool => $userRole->name === $name);
+        return $this->roles->contains('name', $name);
     }
 
     /**

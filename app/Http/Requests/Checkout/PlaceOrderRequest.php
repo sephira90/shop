@@ -58,4 +58,12 @@ class PlaceOrderRequest extends FormRequest
 
         return CheckoutPlaceOrderInputDto::fromValidated($validated);
     }
+
+    /**
+     * Return normalized idempotency key after middleware validation.
+     */
+    public function idempotencyKey(): string
+    {
+        return trim((string) $this->header('Idempotency-Key', ''));
+    }
 }

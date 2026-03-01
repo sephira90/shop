@@ -13,6 +13,7 @@ use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Shipping\Dto\ShippingWebhookPayloadDto;
 use App\Services\Webhook\WebhookIngressException;
 use App\Services\Webhook\WebhookProcessingOutcome;
+use App\Support\Data\TypedValue;
 
 final readonly class ShippingWebhookTransitionApplier
 {
@@ -36,14 +37,17 @@ final readonly class ShippingWebhookTransitionApplier
             throw WebhookIngressException::shipmentNotFound();
         }
 
-        $currentStatus = ShipmentStatus::from((string) $shipment->getRawOriginal('status'));
+        $currentStatus = ShipmentStatus::from(TypedValue::string($shipment->getRawOriginal('status')));
         if (! $this->shipmentStatusTransitionPolicy->canTransition($currentStatus, $status)) {
             return WebhookProcessingOutcome::DUPLICATE;
         }
 
+        /** @var array<string, mixed> $existingPayload */
+        $existingPayload = (array) $shipment->getAttribute('payload');
+
         $shipment->update([
             'status' => $status->value,
-            'payload' => array_merge($shipment->payload ?? [], ['webhook' => $webhookPayload->rawPayload->toArray()]),
+            'payload' => array_merge($existingPayload, ['webhook' => $webhookPayload->rawPayload->toArray()]),
             'shipped_at' => in_array($status, [ShipmentStatus::SHIPPED, ShipmentStatus::DELIVERED, ShipmentStatus::RETURNED], true)
                 ? ($shipment->shipped_at ?? now())
                 : $shipment->shipped_at,
@@ -52,7 +56,7 @@ final readonly class ShippingWebhookTransitionApplier
 
         $order = $shipment->order;
         if ($order instanceof Order) {
-            $currentOrderStatus = OrderStatus::from((string) $order->getRawOriginal('status'));
+            $currentOrderStatus = OrderStatus::from(TypedValue::string($order->getRawOriginal('status')));
             $newStatus = $this->orderStatusTransitionPolicy->resolveByShipmentStatus($currentOrderStatus, $status);
 
             $order->update([

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Account;
 
-use App\Application\Checkout\Dto\AccountOrderListFilterDto;
+use App\Application\Account\Orders\Dto\AccountOrderListFilterDto;
 use App\Enums\OrderStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;

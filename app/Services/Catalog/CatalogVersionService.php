@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Catalog;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\Cache;
 
 final class CatalogVersionService
@@ -17,7 +18,7 @@ final class CatalogVersionService
      */
     public function current(): int
     {
-        return (int) Cache::get(self::CACHE_KEY, self::DEFAULT_VERSION);
+        return TypedValue::int(Cache::get(self::CACHE_KEY, self::DEFAULT_VERSION));
     }
 
     /**

@@ -3,18 +3,20 @@ import { effectScope, reactive } from "vue";
 
 import type { ListResponse } from "@/api/response";
 import { useAccountOrders } from "@/composables/useAccountOrders";
-import type { AccountOrder } from "@/types/account-orders";
+import type { AccountOrderDetail, AccountOrderSummary } from "@/types/account-orders";
 
 vi.mock("@/api/account/orders", () => ({
     listAccountOrders: vi.fn(),
+    getAccountOrderDetail: vi.fn(),
     getAccountOrdersSummary: vi.fn(),
 }));
 
-import { listAccountOrders } from "@/api/account/orders";
+import { getAccountOrderDetail, listAccountOrders } from "@/api/account/orders";
 
 const listAccountOrdersMock = listAccountOrders as unknown as ReturnType<typeof vi.fn>;
+const getAccountOrderDetailMock = getAccountOrderDetail as unknown as ReturnType<typeof vi.fn>;
 
-const buildOrder = (id: string): AccountOrder => ({
+const buildSummaryOrder = (id: string): AccountOrderSummary => ({
     id,
     order_number: `ORD-${id}`,
     email: "buyer@example.com",
@@ -23,10 +25,19 @@ const buildOrder = (id: string): AccountOrder => ({
     shipment_status: "packed",
     currency: "USD",
     total: 125,
+    placed_at: "2026-02-22T00:00:00Z",
+    created_at: "2026-02-22T00:00:00Z",
+});
+
+const buildDetailOrder = (id: string, sku: string): AccountOrderDetail => ({
+    ...buildSummaryOrder(id),
+    subtotal: 125,
+    discount_total: 0,
+    shipping_total: 0,
     items: [
         {
             product_variant_id: 10,
-            sku: `SKU-${id}`,
+            sku,
             name: `Item ${id}`,
             quantity: 2,
             unit_price: 62.5,
@@ -45,12 +56,12 @@ const buildOrder = (id: string): AccountOrder => ({
         country: "US",
         postcode: "10001",
     },
-    placed_at: "2026-02-22T00:00:00Z",
-    created_at: "2026-02-22T00:00:00Z",
+    payments: [],
+    shipments: [],
 });
 
-const buildListResponse = (page: number): ListResponse<AccountOrder> => ({
-    data: [buildOrder(String(page))],
+const buildListResponse = (page: number): ListResponse<AccountOrderSummary> => ({
+    data: [buildSummaryOrder(String(page))],
     meta: {
         current_page: page,
         last_page: 5,
@@ -58,6 +69,18 @@ const buildListResponse = (page: number): ListResponse<AccountOrder> => ({
         total: 150,
     },
 });
+
+const createDeferred = <T>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((innerResolve) => {
+        resolve = innerResolve;
+    });
+
+    return {
+        promise,
+        resolve,
+    };
+};
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -93,6 +116,9 @@ describe("useAccountOrders", () => {
 
         await vi.waitFor(() => {
             expect(listAccountOrdersMock).toHaveBeenCalledTimes(1);
+        });
+        await vi.waitFor(() => {
+            expect(api.orders.value).toHaveLength(1);
         });
 
         expect(listAccountOrdersMock).toHaveBeenLastCalledWith({
@@ -130,8 +156,9 @@ describe("useAccountOrders", () => {
         scope.stop();
     });
 
-    it("toggles expanded details by order id", async () => {
+    it("loads order details lazily when a card is expanded", async () => {
         listAccountOrdersMock.mockResolvedValue(buildListResponse(1));
+        getAccountOrderDetailMock.mockResolvedValue(buildDetailOrder("1", "SKU-1"));
 
         const route = reactive<{ query: Record<string, unknown> }>({
             query: {},
@@ -153,12 +180,75 @@ describe("useAccountOrders", () => {
         await vi.waitFor(() => {
             expect(listAccountOrdersMock).toHaveBeenCalledTimes(1);
         });
+        await vi.waitFor(() => {
+            expect(api.orders.value).toHaveLength(1);
+        });
 
         expect(api.isExpanded("1")).toBe(false);
-        api.toggleDetails("1");
+        expect(api.getOrderDetail("1")).toBeNull();
+
+        await api.toggleDetails("1");
+
         expect(api.isExpanded("1")).toBe(true);
-        api.toggleDetails("1");
+        expect(getAccountOrderDetailMock).toHaveBeenCalledWith("1", { signal: expect.anything() });
+        await vi.waitFor(() => {
+            expect(api.getOrderDetail("1")?.items[0]?.sku).toBe("SKU-1");
+        });
+        expect(api.totalItems(api.getOrderDetail("1"))).toBe(2);
+
+        await api.toggleDetails("1");
+
         expect(api.isExpanded("1")).toBe(false);
+
+        scope.stop();
+    });
+
+    it("ignores stale detail responses for the same order", async () => {
+        listAccountOrdersMock.mockResolvedValue(buildListResponse(1));
+
+        const firstDetail = createDeferred<AccountOrderDetail>();
+        const secondDetail = createDeferred<AccountOrderDetail>();
+
+        getAccountOrderDetailMock
+            .mockImplementationOnce(() => firstDetail.promise)
+            .mockImplementationOnce(() => secondDetail.promise);
+
+        const route = reactive<{ query: Record<string, unknown> }>({
+            query: {},
+        });
+        const replace = vi.fn(async (to: unknown) => {
+            const query = (to as { query?: Record<string, unknown> }).query ?? {};
+            route.query = query;
+        });
+
+        const scope = effectScope();
+        const api = scope.run(() => useAccountOrders({ route, router: { replace } }));
+
+        expect(api).not.toBeNull();
+        if (!api) {
+            scope.stop();
+            return;
+        }
+
+        await vi.waitFor(() => {
+            expect(listAccountOrdersMock).toHaveBeenCalledTimes(1);
+        });
+        await vi.waitFor(() => {
+            expect(api.orders.value).toHaveLength(1);
+        });
+
+        const firstLoad = api.toggleDetails("1");
+        const secondLoad = api.loadOrderDetail("1", true);
+
+        secondDetail.resolve(buildDetailOrder("1", "SKU-NEW"));
+        await secondLoad;
+
+        firstDetail.resolve(buildDetailOrder("1", "SKU-OLD"));
+        await firstLoad;
+
+        await vi.waitFor(() => {
+            expect(api.getOrderDetail("1")?.items[0]?.sku).toBe("SKU-NEW");
+        });
 
         scope.stop();
     });

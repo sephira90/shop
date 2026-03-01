@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Shipment;
+use App\Support\Data\TypedValue;
 use DateTimeInterface;
 use Illuminate\Support\Collection;
 
@@ -58,9 +59,9 @@ final readonly class AdminOrderDetailResultDto
             id: (string) $order->id,
             orderNumber: (string) $order->order_number,
             email: (string) $order->email,
-            status: (string) $order->getRawOriginal('status'),
-            paymentStatus: (string) $order->getRawOriginal('payment_status'),
-            shipmentStatus: (string) $order->getRawOriginal('shipment_status'),
+            status: TypedValue::string($order->getRawOriginal('status')),
+            paymentStatus: TypedValue::string($order->getRawOriginal('payment_status')),
+            shipmentStatus: TypedValue::string($order->getRawOriginal('shipment_status')),
             currency: (string) $order->currency,
             subtotal: (float) $order->subtotal,
             discountTotal: (float) $order->discount_total,
@@ -181,7 +182,7 @@ final readonly class AdminOrderDetailResultDto
      */
     private static function normalizeAddress(mixed $value): ?array
     {
-        return is_array($value) ? $value : null;
+        return TypedValue::associativeArrayOrNull($value);
     }
 
     private static function formatDateLike(mixed $value): ?string

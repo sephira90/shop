@@ -54,8 +54,11 @@ final class AdminCategoryService
      */
     private function freshCategory(Category $category): Category
     {
-        return $category->fresh([
-            'parent:id,name,slug',
-        ])->loadCount(['children', 'products']);
+        return $category
+            ->refresh()
+            ->load([
+                'parent:id,name,slug',
+            ])
+            ->loadCount(['children', 'products']);
     }
 }

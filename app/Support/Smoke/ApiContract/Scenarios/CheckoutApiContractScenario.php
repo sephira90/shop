@@ -6,6 +6,7 @@ namespace App\Support\Smoke\ApiContract\Scenarios;
 
 use App\Enums\ProductStatus;
 use App\Models\ProductVariant;
+use App\Support\Data\TypedValue;
 use App\Support\Smoke\Api\ApiSmokeAssertions;
 use App\Support\Smoke\Api\ApiSmokeHttpClient;
 use App\Support\Smoke\ApiContract\ApiContractScenario;
@@ -35,7 +36,7 @@ final class CheckoutApiContractScenario implements ApiContractScenario
      */
     private function checkCheckoutPlaceOrder(ApiSmokeHttpClient $client, ApiSmokeAssertions $assertions): SmokeCheckResult
     {
-        $variantId = (int) (ProductVariant::query()
+        $variantId = TypedValue::int(ProductVariant::query()
             ->where('is_active', true)
             ->whereHas('product', static function ($query): void {
                 $query
@@ -89,7 +90,7 @@ final class CheckoutApiContractScenario implements ApiContractScenario
         $assertions->assertStatus($response->status, HttpResponse::HTTP_CREATED, 'checkout place-order');
         $assertions->assertHasKeys($response->json, ['data'], 'checkout place-order');
 
-        $data = (array) ($response->json['data'] ?? []);
+        $data = TypedValue::associativeArray($response->json['data'] ?? []);
         $assertions->assertHasKeys($data, ['id', 'order_number', 'payment'], 'checkout place-order data');
 
         if (array_key_exists('payment', $response->json)) {
@@ -101,7 +102,7 @@ final class CheckoutApiContractScenario implements ApiContractScenario
             throw new DomainException('checkout place-order payment payload is not an object.');
         }
 
-        $assertions->assertHasKeys($payment, ['payment_id', 'transaction_id', 'status', 'payload'], 'checkout place-order payment');
+        $assertions->assertHasKeys(TypedValue::associativeArray($payment), ['payment_id', 'transaction_id', 'status', 'payload'], 'checkout place-order payment');
 
         return new SmokeCheckResult('checkout_place_order', $response->status);
     }

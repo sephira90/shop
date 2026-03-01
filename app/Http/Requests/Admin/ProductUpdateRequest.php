@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Application\Admin\Products\Dto\UpdateAdminProductInputDto;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ProductUpdateRequest extends FormRequest
 {
+    use NormalizesBooleanQueryInput;
+
     /**
      * Determine if user can perform this request.
      */
@@ -29,7 +32,7 @@ class ProductUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $productId = $this->route('product')?->id;
+        $productId = $this->routeProduct()?->id;
 
         return [
             'sku' => ['required', 'string', 'max:64', Rule::unique('products', 'sku')->ignore($productId)],
@@ -61,6 +64,14 @@ class ProductUpdateRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeBooleanInputFields([
+            'is_featured',
+            'variants.*.is_active',
+        ]);
+    }
+
     /**
      * Build typed DTO for update flow.
      */
@@ -70,5 +81,12 @@ class ProductUpdateRequest extends FormRequest
         $validated = $this->validated();
 
         return UpdateAdminProductInputDto::fromValidated($validated);
+    }
+
+    private function routeProduct(): ?Product
+    {
+        $product = $this->route('product');
+
+        return $product instanceof Product ? $product : null;
     }
 }

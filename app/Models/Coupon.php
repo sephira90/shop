@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Coupon extends Model
 {
-    use HasFactory;
-
     /**
      * @var list<string>
      */
@@ -37,6 +34,8 @@ class Coupon extends Model
 
     /**
      * Related promotion.
+     *
+     * @return BelongsTo<Promotion, $this>
      */
     public function promotion(): BelongsTo
     {

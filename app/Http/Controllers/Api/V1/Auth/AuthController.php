@@ -15,11 +15,11 @@ use App\Application\Auth\Commands\UpdateAuthProfileCommand;
 use App\Application\Auth\Commands\UpdateAuthProfileHandler;
 use App\Application\Auth\Queries\GetAuthProfileHandler;
 use App\Application\Auth\Queries\GetAuthProfileQuery;
+use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
-use App\Models\User;
 use App\Support\Api\ApiResponse;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    use ResolvesAuthenticatedUser;
+
     /**
      * Create controller instance.
      */
@@ -74,10 +76,8 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $authenticated = $request->user();
-        if ($authenticated instanceof User) {
-            $this->logoutAuthUserHandler->handle(new LogoutAuthUserCommand($authenticated));
-        }
+        $authenticated = $this->requireAuthenticatedUser($request);
+        $this->logoutAuthUserHandler->handle(new LogoutAuthUserCommand($authenticated));
 
         return ApiResponse::data([
             'message' => 'Logged out successfully.',
@@ -89,11 +89,7 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $authenticated = $request->user();
-
-        if (! $authenticated instanceof User) {
-            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
-        }
+        $authenticated = $this->requireAuthenticatedUser($request);
 
         return ApiResponse::data(
             $this->getAuthProfileHandler->handle(new GetAuthProfileQuery($authenticated))->toArray()
@@ -105,11 +101,7 @@ class AuthController extends Controller
      */
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
-        $authenticated = $request->user();
-
-        if (! $authenticated instanceof User) {
-            return ApiResponse::error('Authentication is required.', Response::HTTP_UNAUTHORIZED);
-        }
+        $authenticated = $this->requireAuthenticatedUser($request);
 
         return ApiResponse::data(
             $this->updateAuthProfileHandler->handle(

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,8 +11,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ProductVariant extends Model
 {
-    use HasFactory;
-
     /**
      * @var list<string>
      */
@@ -43,6 +40,8 @@ class ProductVariant extends Model
 
     /**
      * Variant product.
+     *
+     * @return BelongsTo<Product, $this>
      */
     public function product(): BelongsTo
     {
@@ -51,6 +50,8 @@ class ProductVariant extends Model
 
     /**
      * Price history relation.
+     *
+     * @return HasMany<Price, $this>
      */
     public function prices(): HasMany
     {
@@ -59,6 +60,8 @@ class ProductVariant extends Model
 
     /**
      * Inventory relation.
+     *
+     * @return HasOne<Inventory, $this>
      */
     public function inventory(): HasOne
     {

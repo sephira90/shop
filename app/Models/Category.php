@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    use HasFactory;
-
     /**
      * @var list<string>
      */
@@ -39,6 +36,8 @@ class Category extends Model
 
     /**
      * Parent category relation.
+     *
+     * @return BelongsTo<self, $this>
      */
     public function parent(): BelongsTo
     {
@@ -47,6 +46,8 @@ class Category extends Model
 
     /**
      * Child categories relation.
+     *
+     * @return HasMany<self, $this>
      */
     public function children(): HasMany
     {
@@ -55,6 +56,8 @@ class Category extends Model
 
     /**
      * Products under this category.
+     *
+     * @return HasMany<Product, $this>
      */
     public function products(): HasMany
     {

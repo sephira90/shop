@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Admin\Products\Dto;
 
 use App\Enums\ProductStatus;
+use App\Support\Data\TypedValue;
 
 final readonly class AdminProductListFilterDto
 {
@@ -26,13 +27,13 @@ final readonly class AdminProductListFilterDto
      */
     public static function fromValidated(array $validated): self
     {
-        $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
+        $categoryId = isset($validated['category_id']) ? TypedValue::int($validated['category_id']) : null;
 
         return new self(
-            page: max(1, (int) ($validated['page'] ?? 1)),
-            perPage: max(1, (int) ($validated['per_page'] ?? 30)),
+            page: max(1, TypedValue::int($validated['page'] ?? 1)),
+            perPage: max(1, TypedValue::int($validated['per_page'] ?? 30)),
             search: self::normalizeSearch($validated['q'] ?? null),
-            status: isset($validated['status']) ? ProductStatus::tryFrom((string) $validated['status']) : null,
+            status: isset($validated['status']) ? ProductStatus::tryFrom(TypedValue::string($validated['status'])) : null,
             categoryId: $categoryId !== null && $categoryId > 0 ? $categoryId : null,
         );
     }

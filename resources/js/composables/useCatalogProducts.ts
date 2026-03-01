@@ -1,5 +1,5 @@
 import { reactive, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute, useRouter, type LocationQueryRaw } from "vue-router";
 
 import { listCatalogProducts } from "@/api/catalog";
 import { useApiError } from "@/composables/useApiError";
@@ -12,9 +12,22 @@ import {
 } from "@/queries/catalog";
 import type { CatalogProduct } from "@/types/catalog";
 
-export const useCatalogProducts = () => {
-    const route = useRoute();
-    const router = useRouter();
+interface CatalogProductsRouteLike {
+    query: Record<string, unknown>;
+}
+
+interface CatalogProductsRouterLike {
+    replace: (location: { query: LocationQueryRaw }) => Promise<unknown> | unknown;
+}
+
+interface UseCatalogProductsOptions {
+    route?: CatalogProductsRouteLike;
+    router?: CatalogProductsRouterLike;
+}
+
+export const useCatalogProducts = (options: UseCatalogProductsOptions = {}) => {
+    const route = options.route ?? useRoute();
+    const router = options.router ?? useRouter();
     const { parseApiError } = useApiError();
     const products = ref<CatalogProduct[]>([]);
     const isLoading = ref(false);
