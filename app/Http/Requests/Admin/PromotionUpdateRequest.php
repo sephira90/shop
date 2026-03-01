@@ -9,6 +9,7 @@ use App\Http\Requests\Concerns\NormalizesBooleanQueryInput;
 use App\Models\Promotion;
 use App\Support\Data\TypedValue;
 use Closure;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -43,7 +44,9 @@ class PromotionUpdateRequest extends FormRequest
                 'string',
                 'max:40',
                 Rule::unique('promotions', 'code')->ignore($promotionId),
-                Rule::unique('coupons', 'code')->where(static fn ($query) => $query->where('promotion_id', '!=', $promotionId)),
+                Rule::unique('coupons', 'code')->where(
+                    static fn (QueryBuilder $query): QueryBuilder => $query->where('promotion_id', '!=', $promotionId),
+                ),
             ],
             'type' => ['required', 'in:percent,fixed'],
             'value' => [

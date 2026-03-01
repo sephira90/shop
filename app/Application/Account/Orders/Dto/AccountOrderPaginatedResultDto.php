@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Account\Orders\Dto;
 
 use App\Models\Order;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final readonly class AccountOrderPaginatedResultDto
 {
@@ -26,7 +26,10 @@ final readonly class AccountOrderPaginatedResultDto
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
-        foreach ($paginator->items() as $item) {
+        /** @var list<Order> $paginatorItems */
+        $paginatorItems = array_values($paginator->items());
+
+        foreach ($paginatorItems as $item) {
             $items[] = AccountOrderSummaryResultDto::fromOrder($item);
         }
 

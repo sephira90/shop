@@ -7,8 +7,8 @@ namespace App\Repositories;
 use App\Application\Admin\Categories\Dto\AdminCategoryListFilterDto;
 use App\Application\Admin\Categories\Dto\AdminCategoryOptionListFilterDto;
 use App\Models\Category;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 final class CategoryRepository

@@ -8,7 +8,7 @@ use App\Application\Account\Orders\Dto\AccountOrderListFilterDto;
 use App\Application\Account\Orders\Dto\AccountOrderSummaryAggregateDto;
 use App\Models\Order;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 interface AccountOrderReadRepository
 {

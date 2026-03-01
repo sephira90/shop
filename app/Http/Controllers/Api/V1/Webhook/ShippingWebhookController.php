@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Webhook\WebhookIngressException;
 use App\Support\Api\ApiResponse;
 use App\Support\Data\JsonPayload;
+use App\Support\Data\TypedValue;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class ShippingWebhookController extends Controller
         try {
             $this->enqueueShippingWebhookHandler->handle(
                 new EnqueueShippingWebhookCommand(
-                    payload: JsonPayload::fromArray($request->all()),
+                    payload: JsonPayload::fromArray(TypedValue::associativeArray($request->all())),
                     signature: $signature,
                     receivedAtIso8601: now()->toIso8601String(),
                 ),

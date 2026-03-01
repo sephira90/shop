@@ -11,9 +11,9 @@ use App\Application\Account\Orders\Dto\AccountOrderSummaryStatusGroupDto;
 use App\Models\Order;
 use App\Models\User;
 use App\Repositories\Concerns\AppliesOrderSearch;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final class AccountOrderReadRepository implements AccountOrderReadRepositoryContract
 {

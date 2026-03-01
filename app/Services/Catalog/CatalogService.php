@@ -9,8 +9,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Repositories\CatalogProductReadRepository;
 use App\Support\Observability\ObservabilityService;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 
 final readonly class CatalogService

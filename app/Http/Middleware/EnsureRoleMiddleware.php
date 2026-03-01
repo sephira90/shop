@@ -13,6 +13,8 @@ class EnsureRoleMiddleware
 {
     /**
      * Handle incoming request and verify user role.
+     *
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
@@ -23,7 +25,9 @@ class EnsureRoleMiddleware
         }
 
         if ($roles === [] || $user->roles()->whereIn('name', $roles)->exists()) {
-            return $next($request);
+            $response = $next($request);
+
+            return $response;
         }
 
         return ApiResponse::error('Access denied for current role.', Response::HTTP_FORBIDDEN);

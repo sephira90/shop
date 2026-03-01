@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -44,8 +45,8 @@ class MaintenanceCleanupSchemaSupportTest extends TestCase
             );
 
             $columns = collect(DB::select(sprintf("PRAGMA index_info('%s')", $indexName)))
-                ->sortBy(static fn (object $column): string => self::readRowValue($column, 'seqno'))
-                ->map(static fn (object $column): string => self::readRowValue($column, 'name'))
+                ->sortBy(static fn (mixed $column): string => is_object($column) ? self::readRowValue($column, 'seqno') : '')
+                ->map(static fn (mixed $column): string => is_object($column) ? self::readRowValue($column, 'name') : '')
                 ->values()
                 ->all();
 
@@ -63,8 +64,8 @@ class MaintenanceCleanupSchemaSupportTest extends TestCase
         $this->assertNotEmpty($indexRows, sprintf('Table [%s] must contain index [%s].', $table, $indexName));
 
         $columns = $indexRows
-            ->sortBy(static fn (object $row): string => self::readRowValue($row, 'Seq_in_index'))
-            ->map(static fn (object $row): string => self::readRowValue($row, 'Column_name'))
+            ->sortBy(static fn (mixed $row): string => is_object($row) ? self::readRowValue($row, 'Seq_in_index') : '')
+            ->map(static fn (mixed $row): string => is_object($row) ? self::readRowValue($row, 'Column_name') : '')
             ->values()
             ->all();
 
@@ -75,6 +76,6 @@ class MaintenanceCleanupSchemaSupportTest extends TestCase
     {
         $values = (array) $row;
 
-        return isset($values[$key]) ? (string) $values[$key] : '';
+        return array_key_exists($key, $values) ? TypedValue::string($values[$key]) : '';
     }
 }

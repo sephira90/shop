@@ -7,7 +7,7 @@ namespace App\Repositories;
 use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 use App\Models\Order;
 use App\Repositories\Concerns\AppliesOrderSearch;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final class AdminOrderReadRepository
 {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Admin\Categories\Dto;
 
 use App\Models\Category;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final readonly class AdminCategoryPaginatedResultDto
 {
@@ -26,7 +26,10 @@ final readonly class AdminCategoryPaginatedResultDto
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
-        foreach ($paginator->items() as $item) {
+        /** @var list<Category> $paginatorItems */
+        $paginatorItems = array_values($paginator->items());
+
+        foreach ($paginatorItems as $item) {
             $items[] = AdminCategoryResultDto::fromCategory($item);
         }
 

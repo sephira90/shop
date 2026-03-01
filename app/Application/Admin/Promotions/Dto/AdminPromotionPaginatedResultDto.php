@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Admin\Promotions\Dto;
 
 use App\Models\Promotion;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final readonly class AdminPromotionPaginatedResultDto
 {
@@ -26,7 +26,10 @@ final readonly class AdminPromotionPaginatedResultDto
     public static function fromPaginator(LengthAwarePaginator $paginator): self
     {
         $items = [];
-        foreach ($paginator->items() as $item) {
+        /** @var list<Promotion> $paginatorItems */
+        $paginatorItems = array_values($paginator->items());
+
+        foreach ($paginatorItems as $item) {
             $items[] = AdminPromotionResultDto::fromPromotion($item);
         }
 

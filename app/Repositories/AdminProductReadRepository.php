@@ -6,9 +6,9 @@ namespace App\Repositories;
 
 use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
 use App\Models\Product;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final class AdminProductReadRepository
 {

@@ -6,6 +6,7 @@ namespace App\Application\Auth\Commands;
 
 use App\Application\Auth\AuthApplicationException;
 use App\Application\Auth\Contracts\AuthPasswordBrokerRepository;
+use App\Support\Data\TypedValue;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ResetAuthPasswordHandler
@@ -31,6 +32,6 @@ final class ResetAuthPasswordHandler
             );
         }
 
-        return __($status);
+        return TypedValue::string(__($status));
     }
 }

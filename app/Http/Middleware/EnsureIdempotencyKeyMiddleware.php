@@ -13,6 +13,8 @@ final class EnsureIdempotencyKeyMiddleware
 {
     /**
      * Require a non-empty Idempotency-Key header before the transport layer proceeds.
+     *
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -24,6 +26,8 @@ final class EnsureIdempotencyKeyMiddleware
 
         $request->headers->set('Idempotency-Key', $idempotencyKey);
 
-        return $next($request);
+        $response = $next($request);
+
+        return $response;
     }
 }

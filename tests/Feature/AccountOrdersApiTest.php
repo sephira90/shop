@@ -18,6 +18,8 @@ class AccountOrdersApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private static int $orderSequence = 1000;
+
     /**
      * Ensure account orders endpoint applies query and status filters.
      */
@@ -195,11 +197,10 @@ class AccountOrdersApiTest extends TestCase
      */
     private function createOrder(User $user, array $overrides = []): Order
     {
-        static $sequence = 1000;
-        $sequence++;
+        self::$orderSequence++;
 
         $payload = [
-            'order_number' => 'ORD-'.$sequence,
+            'order_number' => 'ORD-'.self::$orderSequence,
             'user_id' => $user->id,
             'email' => $user->email,
             'status' => 'pending',

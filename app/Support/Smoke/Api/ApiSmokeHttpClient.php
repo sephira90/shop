@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Api;
 
+use App\Support\Data\TypedValue;
 use App\Support\Observability\ObservabilityService;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
@@ -65,7 +66,7 @@ final class ApiSmokeHttpClient
         );
 
         $decoded = json_decode((string) $response->getContent(), true);
-        $json = is_array($decoded) ? $decoded : [];
+        $json = is_array($decoded) ? TypedValue::associativeArray($decoded) : [];
 
         return new ApiSmokeResponse($response->getStatusCode(), $json);
     }

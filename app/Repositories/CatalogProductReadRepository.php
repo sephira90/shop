@@ -8,10 +8,10 @@ use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Enums\ProductStatus;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final class CatalogProductReadRepository
 {
@@ -151,13 +151,13 @@ final class CatalogProductReadRepository
     /**
      * Resolve catalog eager-load configuration.
      *
-     * @return array{0:string, variants:\Closure(Relation<*, *, *>): mixed, 1:string}
+     * @return array{0:string, variants:\Closure(Relation<*, *, *>): void, 1:string}
      */
     private function catalogWithRelations(): array
     {
         return [
             'category:id,name,slug',
-            'variants' => static function ($variantQuery): void {
+            'variants' => static function (Relation $variantQuery): void {
                 self::applyCatalogVariantProjection($variantQuery);
             },
             'variants.inventory:id,product_variant_id,quantity,reserved_quantity',
@@ -177,7 +177,7 @@ final class CatalogProductReadRepository
     /**
      * Apply variant projection used by catalog list/show responses.
      *
-     * @param  Builder<ProductVariant>|Relation<ProductVariant, Product, mixed>  $variantQuery
+     * @param  Builder<ProductVariant>|Relation<*, *, *>  $variantQuery
      */
     private static function applyCatalogVariantProjection(Builder|Relation $variantQuery): void
     {

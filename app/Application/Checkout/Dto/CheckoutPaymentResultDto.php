@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Checkout\Dto;
 
 use App\Models\Payment;
+use App\Support\Data\TypedValue;
 
 final readonly class CheckoutPaymentResultDto
 {
@@ -18,11 +19,11 @@ final readonly class CheckoutPaymentResultDto
         $paymentPayload = [];
 
         if (is_array($rawPayload)) {
-            $paymentPayload = $rawPayload;
+            $paymentPayload = TypedValue::associativeArray($rawPayload);
         } elseif (is_string($rawPayload) && $rawPayload !== '') {
             $decoded = json_decode($rawPayload, true);
             if (is_array($decoded)) {
-                $paymentPayload = $decoded;
+                $paymentPayload = TypedValue::associativeArray($decoded);
             }
         }
 
