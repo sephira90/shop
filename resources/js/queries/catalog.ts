@@ -1,5 +1,6 @@
 import type { LocationQueryRaw } from "vue-router";
 
+import { toSingleQueryValue } from "@/queries/route-query";
 import type { CatalogProductListParams, CatalogSort } from "@/types/catalog";
 
 const DEFAULT_SORT: CatalogSort = "newest";
@@ -9,16 +10,6 @@ export interface CatalogFilters {
     q: string;
     sort: CatalogSort;
 }
-
-const toSingleQueryValue = (value: unknown): string => {
-    if (Array.isArray(value)) {
-        const first = value.find((item) => typeof item === "string");
-
-        return typeof first === "string" ? first : "";
-    }
-
-    return typeof value === "string" ? value : "";
-};
 
 const normalizeSort = (value: unknown): CatalogSort => {
     const normalized = toSingleQueryValue(value).trim().toLowerCase();

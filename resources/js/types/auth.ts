@@ -1,3 +1,5 @@
+export type RoleName = "customer" | "manager" | "admin";
+
 export interface AuthUser {
     id: number;
     first_name?: string | null;

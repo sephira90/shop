@@ -1,48 +1,15 @@
 import type {
-    AdminOrderAddressWireDto,
     AdminOrderDetailWireDto,
     AdminOrderItemWireDto,
     AdminOrderSummaryWireDto,
 } from "@/contracts/api/v1/admin-orders";
+import { mapOptionalAddressFields } from "@/mappers/common";
 import type {
-    AddressPayload,
     AdminOrderDetail,
     AdminOrderSummary,
     OrderItem,
     OrderStatusUpdatePayload,
 } from "@/types/admin-orders";
-
-const mapAddress = (value: AdminOrderAddressWireDto | null): AddressPayload | null => {
-    if (value === null) {
-        return null;
-    }
-
-    const line1 = (value.line1 ?? "").trim();
-    const city = (value.city ?? "").trim();
-    const country = (value.country ?? "").trim();
-    const postcode = (value.postcode ?? "").trim();
-
-    if (line1 === "" && city === "" && country === "" && postcode === "") {
-        return null;
-    }
-
-    const address: AddressPayload = {};
-
-    if (line1 !== "") {
-        address.line1 = line1;
-    }
-    if (city !== "") {
-        address.city = city;
-    }
-    if (country !== "") {
-        address.country = country;
-    }
-    if (postcode !== "") {
-        address.postcode = postcode;
-    }
-
-    return address;
-};
 
 const mapOrderItem = (value: AdminOrderItemWireDto): OrderItem => {
     return {
@@ -75,8 +42,8 @@ export const mapAdminOrderDetailFromApi = (value: AdminOrderDetailWireDto): Admi
     return {
         ...summary,
         subtotal: value.subtotal,
-        billing_address: mapAddress(value.billing_address),
-        shipping_address: mapAddress(value.shipping_address),
+        billing_address: mapOptionalAddressFields(value.billing_address),
+        shipping_address: mapOptionalAddressFields(value.shipping_address),
         items: value.items.map((item) => mapOrderItem(item)),
     };
 };

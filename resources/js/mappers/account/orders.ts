@@ -1,13 +1,12 @@
 import type {
-    AccountOrderAddressWireDto,
     AccountOrderDetailWireDto,
     AccountOrderItemWireDto,
     AccountOrderPaymentWireDto,
     AccountOrderShipmentWireDto,
     AccountOrderSummaryWireDto,
 } from "@/contracts/api/v1/account-orders";
+import { mapOptionalAddressFields } from "@/mappers/common";
 import type {
-    AccountOrderAddress,
     AccountOrderDetail,
     AccountOrderItem,
     AccountOrderStatus,
@@ -27,40 +26,6 @@ const mapAccountOrderItemFromApi = (value: AccountOrderItemWireDto): AccountOrde
         unit_price: value.unit_price,
         total_price: value.total_price,
     };
-};
-
-const mapAccountOrderAddressFromApi = (
-    value: AccountOrderAddressWireDto | null,
-): AccountOrderAddress | null => {
-    if (value === null) {
-        return null;
-    }
-
-    const line1 = (value.line1 ?? "").trim();
-    const city = (value.city ?? "").trim();
-    const country = (value.country ?? "").trim();
-    const postcode = (value.postcode ?? "").trim();
-
-    if (line1 === "" && city === "" && country === "" && postcode === "") {
-        return null;
-    }
-
-    const address: AccountOrderAddress = {};
-
-    if (line1 !== "") {
-        address.line1 = line1;
-    }
-    if (city !== "") {
-        address.city = city;
-    }
-    if (country !== "") {
-        address.country = country;
-    }
-    if (postcode !== "") {
-        address.postcode = postcode;
-    }
-
-    return address;
 };
 
 const mapAccountOrderPaymentFromApi = (value: AccountOrderPaymentWireDto): AccountOrderPayment => {
@@ -110,8 +75,8 @@ export const mapAccountOrderDetailFromApi = (
         subtotal: value.subtotal,
         discount_total: value.discount_total,
         shipping_total: value.shipping_total,
-        billing_address: mapAccountOrderAddressFromApi(value.billing_address),
-        shipping_address: mapAccountOrderAddressFromApi(value.shipping_address),
+        billing_address: mapOptionalAddressFields(value.billing_address),
+        shipping_address: mapOptionalAddressFields(value.shipping_address),
         items: value.items.map((item) => mapAccountOrderItemFromApi(item)),
         payments: value.payments.map((payment) => mapAccountOrderPaymentFromApi(payment)),
         shipments: value.shipments.map((shipment) => mapAccountOrderShipmentFromApi(shipment)),

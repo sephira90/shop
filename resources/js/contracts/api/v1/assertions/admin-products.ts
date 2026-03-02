@@ -1,4 +1,5 @@
 import { ApiContractError } from "@/api/response";
+import { createFieldParsers, isRecord } from "@/contracts/api/v1/assertions/primitives";
 import type {
     AdminProductCategoryWireDto,
     AdminProductMetaWireDto,
@@ -8,67 +9,8 @@ import type {
     AdminProductWireDto,
 } from "@/contracts/api/v1/admin-products";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === "object" && value !== null && !Array.isArray(value);
-
-const requireString = (record: Record<string, unknown>, key: string): string => {
-    const value = record[key];
-
-    if (typeof value !== "string") {
-        throw new ApiContractError(`Product payload field \`${key}\` must be string.`);
-    }
-
-    return value;
-};
-
-const requireBoolean = (record: Record<string, unknown>, key: string): boolean => {
-    const value = record[key];
-
-    if (typeof value !== "boolean") {
-        throw new ApiContractError(`Product payload field \`${key}\` must be boolean.`);
-    }
-
-    return value;
-};
-
-const requireNumber = (record: Record<string, unknown>, key: string): number => {
-    const value = Number(record[key]);
-
-    if (!Number.isFinite(value)) {
-        throw new ApiContractError(`Product payload field \`${key}\` must be number.`);
-    }
-
-    return value;
-};
-
-const parseNullableString = (record: Record<string, unknown>, key: string): string | null => {
-    const value = record[key];
-
-    if (value === null) {
-        return null;
-    }
-
-    if (typeof value === "string") {
-        return value;
-    }
-
-    throw new ApiContractError(`Product payload field \`${key}\` must be string|null.`);
-};
-
-const parseNullableNumber = (record: Record<string, unknown>, key: string): number | null => {
-    const value = record[key];
-
-    if (value === null) {
-        return null;
-    }
-
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) {
-        throw new ApiContractError(`Product payload field \`${key}\` must be number|null.`);
-    }
-
-    return numeric;
-};
+const { parseNullableNumber, parseNullableString, requireBoolean, requireNumber, requireString } =
+    createFieldParsers("Product");
 
 const parseStatus = (record: Record<string, unknown>, key: string): AdminProductStatusWireDto => {
     const value = requireString(record, key);

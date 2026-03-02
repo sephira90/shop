@@ -1,42 +1,8 @@
 import { ApiContractError } from "@/api/response";
+import { createFieldParsers, isRecord } from "@/contracts/api/v1/assertions/primitives";
 import type { CheckoutOrderWireDto, CheckoutPaymentWireDto } from "@/contracts/api/v1/checkout";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === "object" && value !== null && !Array.isArray(value);
-
-const requireString = (record: Record<string, unknown>, key: string): string => {
-    const value = record[key];
-
-    if (typeof value !== "string") {
-        throw new ApiContractError(`Checkout payload field \`${key}\` must be string.`);
-    }
-
-    return value;
-};
-
-const parseNullableString = (record: Record<string, unknown>, key: string): string | null => {
-    const value = record[key];
-
-    if (value === null) {
-        return null;
-    }
-
-    if (typeof value !== "string") {
-        throw new ApiContractError(`Checkout payload field \`${key}\` must be string|null.`);
-    }
-
-    return value;
-};
-
-const requireNumber = (record: Record<string, unknown>, key: string): number => {
-    const value = Number(record[key]);
-
-    if (!Number.isFinite(value)) {
-        throw new ApiContractError(`Checkout payload field \`${key}\` must be number.`);
-    }
-
-    return value;
-};
+const { parseNullableString, requireNumber, requireString } = createFieldParsers("Checkout");
 
 const parsePaymentPayload = (value: unknown): Record<string, unknown> => {
     if (!isRecord(value)) {

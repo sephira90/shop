@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-
-type RoleName = "customer" | "manager" | "admin";
+import type { RoleName } from "@/types/auth";
 
 interface AuthRouteMeta {
     requiresAuth?: boolean;

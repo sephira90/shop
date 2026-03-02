@@ -4903,3 +4903,153 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
+- `2026-03-01` — deep architecture audit converted into aligned execution backlog:
+  - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` was reframed from a generic refactoring plan into an aligned backlog input:
+    - explicit execution-alignment rules added;
+    - promotion rules added;
+    - original `Wave 1-5` table replaced with `Backlog A-E`;
+    - acceptance criteria reworded to apply per promoted block instead of treating the audit itself as active roadmap authority.
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now documents backlog intake rules for this audit:
+    - the audit is candidate backlog only;
+    - promotion must happen in the active roadmap first;
+    - deep-domain work remains separately approved and must not be bundled into quick-win slices.
+  - verification:
+    - docs-only governance update; runtime quality gate commands were not executed.
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"` passed green.
+- `2026-03-01` — promoted audit `Backlog A` completed as the next safety slice:
+  - cart mutation concurrency hardened:
+    - `app/Services/Cart/CartMutationService.php` now wraps `upsertItem()` and `removeItem()` in explicit transactions with locked cart/item state;
+    - stale in-memory cart state no longer controls `CartItem` upsert decisions;
+    - regression coverage added in `tests/Feature/CartMutationSafetyTest.php`.
+  - webhook safety tightened:
+    - `app/Services/Payment/PaymentWebhookTransitionApplier.php` and `app/Services/Shipping/ShippingWebhookTransitionApplier.php` now lock the related `Order` row before applying order-state transitions;
+    - `app/Services/Webhook/WebhookProcessingPipeline.php` moved from `firstOrCreate()` race window to `insertOrIgnore` plus locked receipt fetch on the existing unique `(provider, event_id)` boundary;
+    - ingress error taxonomy extended for missing shipment-order boundary.
+  - checkout pay transport boundary hardened:
+    - added `app/Http/Requests/Checkout/InitiatePaymentRequest.php`;
+    - `app/Http/Controllers/Api/V1/CheckoutController.php` now consumes the request DTO and no longer fabricates fallback idempotency keys;
+    - `routes/api.php` now applies `idempotency.key` middleware to `POST /api/v1/checkout/orders/{order}/pay`;
+    - missing-header regression coverage added in `tests/Feature/PaymentWebhookTest.php` and shipping helper flows updated accordingly.
+  - SPA global response handling introduced:
+    - `resources/js/api/client.ts` now centralizes `401/403` handling with single-flight unauthorized logout/redirect flow;
+    - `resources/js/stores/auth.ts` now exposes local-only `clearSession()` / `logout({ revokeRemote: false })` path;
+    - shared shell notice state added in `resources/js/stores/app-shell.ts` and mounted in `resources/js/App.vue` / `resources/js/main.ts`;
+    - frontend regression coverage added in `resources/js/tests/api/client-response-handling.spec.ts`.
+  - docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` records the promoted safety slice as completed progress item `23`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` now marks `Backlog A` as promoted/completed backlog input.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="CartMutationSafetyTest|PaymentWebhookTest|ShippingWebhookTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest"`;
+      - `npm run test -- resources/js/tests/api/client-response-handling.spec.ts`.
+    - full mandatory sequential quality gate passed on the final state:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+- `2026-03-02` — promoted audit `Backlog B` completed as backend boundary-hygiene slice:
+  - DomainException handling centralized at transport boundary:
+    - `bootstrap/app.php` now maps `\DomainException` to `422` for `/api/*`;
+    - inline controller catches removed from:
+      - `app/Http/Controllers/Api/V1/CartController.php`;
+      - `app/Http/Controllers/Api/V1/CheckoutController.php`;
+      - `app/Http/Controllers/Api/V1/Auth/AuthController.php`;
+      - `app/Http/Controllers/Api/V1/Admin/OrderController.php`;
+      - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
+      - `app/Http/Controllers/Api/V1/Webhook/ShippingWebhookController.php`.
+    - architecture guardrail added:
+      - `tests/Unit/Architecture/ApiControllerDomainExceptionBoundaryTest.php`.
+  - policy/authorization hygiene completed:
+    - `app/Policies/CouponPolicy.php` expanded to full matrix:
+      - `viewAny`, `view`, `create`, `update`, `delete`;
+    - policy completeness guardrail updated:
+      - `tests/Unit/Architecture/PolicyCompletenessMatrixGuardrailTest.php`;
+    - role matrix tests updated:
+      - `tests/Unit/Policies/AdminPolicyMatrixTest.php`;
+    - admin cache transport shell now includes explicit policy authorization:
+      - `app/Http/Controllers/Api/V1/Admin/CacheController.php` with `authorize('viewAny', Product::class)`.
+  - backend consistency cleanup completed:
+    - stateless transition policies promoted to `final readonly`:
+      - `app/Services/Payment/PaymentStatusTransitionPolicy.php`;
+      - `app/Services/Shipping/ShipmentStatusTransitionPolicy.php`;
+    - checkout discount datetime checks migrated from `getRawOriginal(...)` to casted datetime attributes:
+      - `app/Services/Checkout/CheckoutDiscountResolver.php`.
+  - docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `24`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` marks `Backlog B` as promoted/completed.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="ApiControllerDomainExceptionBoundaryTest|PolicyCompletenessMatrixGuardrailTest|AdminPolicyMatrixTest|AdminCacheRefreshTest|CartCheckoutTest|PaymentWebhookTest|ShippingWebhookTest|CouponCheckoutTest|PhaseOneHardeningTest|ApiControllerValidationBoundaryTest|CheckoutRequestIdentityResolverTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`;
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-02` — promoted audit `Backlog C` completed as frontend consistency slice:
+  - assertion primitives consolidated across API V1 contracts:
+    - shared helper module added:
+      - `resources/js/contracts/api/v1/assertions/primitives.ts`;
+    - duplicated local primitive helpers removed from:
+      - `resources/js/contracts/api/v1/assertions/auth.ts`;
+      - `resources/js/contracts/api/v1/assertions/catalog.ts`;
+      - `resources/js/contracts/api/v1/assertions/cart.ts`;
+      - `resources/js/contracts/api/v1/assertions/checkout.ts`;
+      - `resources/js/contracts/api/v1/assertions/admin-categories.ts`;
+      - `resources/js/contracts/api/v1/assertions/admin-products.ts`;
+      - `resources/js/contracts/api/v1/assertions/admin-orders.ts`;
+      - `resources/js/contracts/api/v1/assertions/admin-promotions.ts`;
+      - `resources/js/contracts/api/v1/assertions/account-orders.ts`.
+  - frontend duplication cleanup completed:
+    - `RoleName` extracted to shared type boundary:
+      - `resources/js/types/auth.ts`;
+      - consumers migrated in:
+        - `resources/js/router/index.ts`;
+        - `resources/js/stores/auth.ts`.
+    - catalog route-query parser now reuses shared query primitive:
+      - `resources/js/queries/catalog.ts` now imports `toSingleQueryValue` from `resources/js/queries/route-query.ts`.
+    - duplicated account/admin address normalization extracted to shared mapper boundary:
+      - `resources/js/mappers/common.ts`;
+      - reused in:
+        - `resources/js/mappers/admin/orders.ts`;
+        - `resources/js/mappers/account/orders.ts`.
+  - checkout result-state hardening completed:
+    - `resources/js/composables/checkout/useCheckoutPageViewModel.ts` now uses explicit `CheckoutResultState` (`idle|success|error`);
+    - `isResultSuccess` no longer depends on string-prefix heuristic (`startsWith("Order created")`).
+  - localStorage coupling reduced in stores:
+    - shared storage adapter boundary added:
+      - `resources/js/utils/storage.ts` (`browser`, `noop`, `in-memory`);
+    - `resources/js/stores/auth.ts` and `resources/js/stores/cart.ts` migrated from direct `localStorage` calls to adapter-backed storage;
+    - deterministic in-memory coverage added/updated:
+      - `resources/js/tests/auth-store.spec.ts`;
+      - `resources/js/tests/cart-store.spec.ts`;
+      - `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`.
+  - docs synchronized for promoted block state:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `25` added for `Backlog C`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` now marks `Backlog C` as promoted/completed.
+  - verification:
+    - targeted frontend regressions passed:
+      - `npm run test -- resources/js/tests/auth-store.spec.ts resources/js/tests/cart-store.spec.ts resources/js/tests/composables/use-checkout-page-view-model.spec.ts`.
+    - full mandatory sequential quality gate passed on final state:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.

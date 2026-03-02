@@ -17,6 +17,10 @@ DTO migration and the first refactor waves are completed, and the March 1 execut
 - PHPStan now runs clean at level 10 without `phpstan-baseline.neon`;
 - canonical backend static analysis now runs through `composer run analyse` as `PHPStan + Psalm`;
 - repository, queued side-effect, and policy completeness guardrails now protect the intended architecture boundaries for the current codebase.
+- the first promoted safety slice from `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` is also closed:
+  cart mutation locking, webhook receipt dedupe hardening, checkout pay transport validation, and global SPA `401/403` response handling are now explicit boundaries.
+- the next promoted backend boundary-hygiene slice is closed:
+  DomainException mapping is centralized in the global API exception renderer, coupon policy completeness is enforced, admin cache refresh now includes policy authorization, and checkout discount datetime checks no longer depend on raw Eloquent attributes.
 
 Goal of this program: close those gaps without breaking `/api/v1/*` response envelope (`data/meta/error`) and with strict quality-gate enforcement after each logical block.
 
@@ -700,11 +704,63 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
      - verification result:
        - PHPStan level 9 now reports `0` errors across `app/`, `routes/`, and `tests/`.
 22. Post-wave strict type hardening completed:
-    - remaining level 10 `mixed`/generic variance gaps were closed across webhook transport, middleware return boundaries, maintenance resource resolution, eager-load closures, smoke helpers, and schema/test helpers;
-    - static-analysis config upgraded again:
-      - `phpstan.neon` raised from level `9` to level `10`;
-    - verification result:
-      - PHPStan level 10 now reports `0` errors across `app/`, `routes/`, and `tests/`.
+     - remaining level 10 `mixed`/generic variance gaps were closed across webhook transport, middleware return boundaries, maintenance resource resolution, eager-load closures, smoke helpers, and schema/test helpers;
+     - static-analysis config upgraded again:
+       - `phpstan.neon` raised from level `9` to level `10`;
+     - verification result:
+       - PHPStan level 10 now reports `0` errors across `app/`, `routes/`, and `tests/`.
+23. Promoted backlog safety slice completed (`Backlog A` from `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md`):
+    - cart mutation concurrency hardening completed:
+      - `CartMutationService::upsertItem()` and `removeItem()` now run inside explicit transactions with locked cart state and locked item mutation paths;
+      - stale in-memory cart state no longer drives `CartItem` upsert decisions;
+      - regression coverage added in `tests/Feature/CartMutationSafetyTest.php`.
+    - webhook transition and dedupe safety tightened:
+      - `PaymentWebhookTransitionApplier` and `ShippingWebhookTransitionApplier` now lock the related `Order` row before applying order-state updates;
+      - `WebhookProcessingPipeline` moved from `firstOrCreate()` race window to unique-key `insertOrIgnore` plus locked receipt fetch inside the transaction;
+      - duplicate-event and transition regressions remain covered by existing payment/shipping webhook suites.
+    - checkout pay transport boundary hardened:
+      - new `InitiatePaymentRequest` introduced for `/api/v1/checkout/orders/{order}/pay`;
+      - canonical `idempotency.key` middleware now also protects the pay route;
+      - fallback `pay-{order}` idempotency generation removed from `CheckoutController::pay()`;
+      - regression coverage added for missing `Idempotency-Key` header on pay initiation.
+    - SPA auth/forbidden response handling centralized:
+     - `resources/js/api/client.ts` now installs explicit response handling for `401` and `403`;
+     - unauthorized handling is single-flight and clears local auth state before redirecting to `/auth`;
+     - forbidden responses now surface through shared shell notice state via `resources/js/stores/app-shell.ts`;
+     - regression coverage added in `resources/js/tests/api/client-response-handling.spec.ts`.
+24. Promoted backend boundary-hygiene slice completed (`Backlog B` from `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md`):
+    - DomainException transport handling centralized:
+      - `bootstrap/app.php` now maps `\DomainException` to `422` for API requests;
+      - inline `catch (DomainException)` handling removed from API V1 controllers:
+        - cart, checkout, auth login, admin order status update, payment webhook, shipping webhook.
+      - architecture guardrail added:
+        - `tests/Unit/Architecture/ApiControllerDomainExceptionBoundaryTest.php`.
+    - policy and authorization hygiene completed:
+      - `CouponPolicy` expanded to full action matrix (`viewAny`, `view`, `create`, `update`, `delete`);
+      - policy guardrail matrix updated to enforce the expanded coupon action set;
+      - admin policy matrix tests updated for coupon role coverage;
+      - `CacheController::refreshCatalog()` now performs explicit `authorize('viewAny', Product::class)` in addition to route middleware.
+    - transition and discount boundary cleanup completed:
+      - `PaymentStatusTransitionPolicy` and `ShipmentStatusTransitionPolicy` promoted to `final readonly` stateless policies;
+      - `CheckoutDiscountResolver` switched from `getRawOriginal(...)` datetime checks to casted datetime attributes (`expires_at`, `starts_at`, `ends_at`) with explicit typed local variables.
+25. Promoted frontend consistency slice completed (`Backlog C` from `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md`):
+    - API assertion primitives centralized:
+      - shared `resources/js/contracts/api/v1/assertions/primitives.ts` now provides `isRecord` and typed field parsers;
+      - duplicated local primitive helpers removed from all V1 assertion modules (`auth`, `catalog`, `cart`, `checkout`, `admin-*`, `account-orders`).
+    - frontend duplication cleanup completed:
+      - `RoleName` extracted to `resources/js/types/auth.ts` and reused by router/store boundaries;
+      - catalog query parser now imports shared `toSingleQueryValue` from `resources/js/queries/route-query.ts`;
+      - repeated admin/account order address normalization extracted to `resources/js/mappers/common.ts` and reused by both order mapper modules.
+    - checkout result-state hardening completed:
+      - `resources/js/composables/checkout/useCheckoutPageViewModel.ts` now uses explicit `CheckoutResultState` (`idle | success | error`);
+      - `isResultSuccess` now derives from state enum instead of string-prefix heuristics on user-visible message text.
+    - store storage coupling reduced:
+      - shared storage adapter boundary added in `resources/js/utils/storage.ts` (browser/noop/in-memory implementations);
+      - `resources/js/stores/auth.ts` and `resources/js/stores/cart.ts` migrated from direct `localStorage` usage to injected adapter boundary;
+      - deterministic in-memory storage coverage added/updated in:
+        - `resources/js/tests/auth-store.spec.ts`;
+        - `resources/js/tests/cart-store.spec.ts`;
+        - `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`.
 
 ## Locked Constraints
 
@@ -1172,6 +1228,18 @@ DoD:
 7. A single canonical frontend price-formatting utility is used across catalog, cart, account, and admin flows.
 8. PHPStan runs clean at level 10 without a baseline file.
 9. Architecture guardrails cover controllers, handlers, repositories, jobs/listeners afterCommit discipline, and policy completeness.
+
+## Backlog Intake Rule
+
+1. `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` is an aligned backlog input for the next execution program, not an active execution authority.
+2. Findings from that audit remain candidate backlog only until they are explicitly promoted into this file as new waves or backlog blocks.
+3. Promotion order should preserve the current architecture-first sequence:
+   - safety and locking;
+   - backend boundary quick wins;
+   - frontend consistency;
+   - deep domain expansion;
+   - platform enablement.
+4. Deep domain items such as `Money`, `app/Domain`, checkout orchestrator expansion, and broader domain-event rollout require separate approval and must not be bundled into quick-win slices.
 
 ## Mandatory Test Matrix
 

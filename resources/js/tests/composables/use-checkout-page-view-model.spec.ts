@@ -86,6 +86,7 @@ describe("useCheckoutPageViewModel", () => {
             email: "guest@example.com",
         });
         expect(vm.resultMessage.value).toBe("Order created: ORD-11");
+        expect(vm.resultState.value).toBe("success");
         expect(cartStore.fetchCart).toHaveBeenCalledTimes(1);
 
         scope.stop();
@@ -119,6 +120,7 @@ describe("useCheckoutPageViewModel", () => {
         expect(vm.resultMessage.value).toBe(
             "Guest token is missing. Open cart and try checkout again.",
         );
+        expect(vm.resultState.value).toBe("error");
 
         scope.stop();
     });
@@ -202,6 +204,7 @@ describe("useCheckoutPageViewModel", () => {
         await vm.submitCheckout();
 
         expect(vm.resultMessage.value).toBe("Gateway is unavailable.");
+        expect(vm.resultState.value).toBe("error");
         expect(vm.isResultSuccess.value).toBe(false);
         expect(vm.isSubmitting.value).toBe(false);
 

@@ -1,4 +1,5 @@
 import { ApiContractError } from "@/api/response";
+import { createFieldParsers, isRecord } from "@/contracts/api/v1/assertions/primitives";
 import type {
     AdminOrderAddressWireDto,
     AdminOrderDetailWireDto,
@@ -8,42 +9,7 @@ import type {
     AdminOrderSummaryWireDto,
 } from "@/contracts/api/v1/admin-orders";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === "object" && value !== null && !Array.isArray(value);
-
-const requireString = (record: Record<string, unknown>, key: string): string => {
-    const value = record[key];
-
-    if (typeof value !== "string") {
-        throw new ApiContractError(`Order payload field \`${key}\` must be string.`);
-    }
-
-    return value;
-};
-
-const requireNumber = (record: Record<string, unknown>, key: string): number => {
-    const value = Number(record[key]);
-
-    if (!Number.isFinite(value)) {
-        throw new ApiContractError(`Order payload field \`${key}\` must be number.`);
-    }
-
-    return value;
-};
-
-const parseNullableString = (record: Record<string, unknown>, key: string): string | null => {
-    const value = record[key];
-
-    if (value === null) {
-        return null;
-    }
-
-    if (typeof value === "string") {
-        return value;
-    }
-
-    throw new ApiContractError(`Order payload field \`${key}\` must be string|null.`);
-};
+const { parseNullableString, requireNumber, requireString } = createFieldParsers("Order");
 
 const parseAddress = (value: unknown): AdminOrderAddressWireDto | null => {
     if (value === null) {

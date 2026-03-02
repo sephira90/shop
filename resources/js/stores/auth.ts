@@ -7,13 +7,37 @@ import type {
     AuthRegisterPayload,
     AuthUpdateProfilePayload,
     AuthUser,
+    RoleName,
 } from "@/types/auth";
+import { createBrowserStorageAdapter, type StorageAdapter } from "@/utils/storage";
 
-type RoleName = "customer" | "manager" | "admin";
+const AUTH_TOKEN_STORAGE_KEY = "shop_api_token";
+
+let authStoreStorageAdapter: StorageAdapter = createBrowserStorageAdapter();
+
+const readStoredAuthToken = (): string => {
+    return authStoreStorageAdapter.getItem(AUTH_TOKEN_STORAGE_KEY) ?? "";
+};
+
+const persistAuthToken = (token: string): void => {
+    authStoreStorageAdapter.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+};
+
+const clearPersistedAuthToken = (): void => {
+    authStoreStorageAdapter.removeItem(AUTH_TOKEN_STORAGE_KEY);
+};
+
+export const setAuthStoreStorageAdapterForTests = (adapter: StorageAdapter): void => {
+    authStoreStorageAdapter = adapter;
+};
+
+export const resetAuthStoreStorageAdapterForTests = (): void => {
+    authStoreStorageAdapter = createBrowserStorageAdapter();
+};
 
 export const useAuthStore = defineStore("auth", {
     state: () => ({
-        token: localStorage.getItem("shop_api_token") ?? "",
+        token: readStoredAuthToken(),
         user: null as AuthUser | null,
     }),
     getters: {
@@ -37,19 +61,24 @@ export const useAuthStore = defineStore("auth", {
         hasRole(role: RoleName): boolean {
             return this.user?.roles.includes(role) ?? false;
         },
+        clearSession(): void {
+            this.token = "";
+            this.user = null;
+            clearPersistedAuthToken();
+        },
         async login(payload: AuthLoginPayload): Promise<void> {
             const response = await loginAuth(payload);
 
             this.token = response.token;
             this.user = response.user;
-            localStorage.setItem("shop_api_token", this.token);
+            persistAuthToken(this.token);
         },
         async register(payload: AuthRegisterPayload): Promise<void> {
             const response = await registerAuth(payload);
 
             this.token = response.token;
             this.user = response.user;
-            localStorage.setItem("shop_api_token", this.token);
+            persistAuthToken(this.token);
         },
         async fetchMe(): Promise<void> {
             if (!this.token) {
@@ -68,8 +97,8 @@ export const useAuthStore = defineStore("auth", {
         async updateProfile(payload: AuthUpdateProfilePayload): Promise<void> {
             this.user = await updateAuthProfile(payload);
         },
-        async logout(): Promise<void> {
-            if (this.token) {
+        async logout(options?: { revokeRemote?: boolean }): Promise<void> {
+            if ((options?.revokeRemote ?? true) && this.token) {
                 try {
                     await apiClient.post("/auth/logout");
                 } catch {
@@ -77,9 +106,7 @@ export const useAuthStore = defineStore("auth", {
                 }
             }
 
-            this.token = "";
-            this.user = null;
-            localStorage.removeItem("shop_api_token");
+            this.clearSession();
         },
     },
 });

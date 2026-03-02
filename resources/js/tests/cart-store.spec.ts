@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 vi.mock("@/api/client", () => ({
@@ -10,7 +10,12 @@ vi.mock("@/api/client", () => ({
 }));
 
 import { apiClient } from "@/api/client";
-import { useCartStore } from "@/stores/cart";
+import {
+    resetCartStoreStorageAdapterForTests,
+    setCartStoreStorageAdapterForTests,
+    useCartStore,
+} from "@/stores/cart";
+import { createInMemoryStorageAdapter } from "@/utils/storage";
 
 const apiClientMock = apiClient as unknown as {
     get: ReturnType<typeof vi.fn>;
@@ -18,9 +23,9 @@ const apiClientMock = apiClient as unknown as {
     delete: ReturnType<typeof vi.fn>;
 };
 
-const buildCartPayload = (quantity: number) => ({
+const buildCartPayload = (quantity: number, guestToken: string | null = null) => ({
     id: "cart-1",
-    guest_token: null,
+    guest_token: guestToken,
     currency: "USD",
     status: "active",
     items: [
@@ -45,7 +50,11 @@ describe("cart store", () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.clearAllMocks();
-        localStorage.clear();
+        setCartStoreStorageAdapterForTests(createInMemoryStorageAdapter());
+    });
+
+    afterEach(() => {
+        resetCartStoreStorageAdapterForTests();
     });
 
     it("starts with empty cart", () => {
@@ -100,5 +109,29 @@ describe("cart store", () => {
             quantity: 2,
         });
         expect(cartStore.cart?.items[0]?.quantity).toBe(2);
+    });
+
+    it("reuses persisted guest token for subsequent mutations", async () => {
+        apiClientMock.get.mockResolvedValueOnce({
+            data: {
+                data: buildCartPayload(1, "guest-token-1"),
+            },
+        });
+        apiClientMock.post.mockResolvedValueOnce({
+            data: {
+                data: buildCartPayload(2, "guest-token-1"),
+            },
+        });
+
+        const cartStore = useCartStore();
+
+        await cartStore.fetchCart();
+        await cartStore.upsertItem(101, 2);
+
+        expect(apiClientMock.post).toHaveBeenCalledWith("/cart/items", {
+            product_variant_id: 101,
+            quantity: 2,
+            guest_token: "guest-token-1",
+        });
     });
 });
