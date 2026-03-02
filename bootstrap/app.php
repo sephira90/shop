@@ -43,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $exception instanceof ValidationException => 422,
                 $exception instanceof AuthenticationException => 401,
                 $exception instanceof AuthorizationException => 403,
+                $exception instanceof \DomainException => 422,
                 $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
                 default => 500,
             };

@@ -181,7 +181,8 @@ class ShippingWebhookTest extends TestCase
 
         $orderId = $this->jsonString($orderResponse, 'data.id');
 
-        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
+        $this->withHeader('Idempotency-Key', 'shipping-initiate-payment')
+            ->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertOk();
 
         $payment = Payment::query()

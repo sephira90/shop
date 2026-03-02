@@ -121,9 +121,25 @@ class AdminPolicyMatrixTest extends TestCase
         $this->assertTrue($promotionPolicy->delete($manager, $promotion));
         $this->assertFalse($promotionPolicy->delete($customer, $promotion));
 
+        $this->assertTrue($couponPolicy->viewAny($admin));
+        $this->assertTrue($couponPolicy->viewAny($manager));
+        $this->assertFalse($couponPolicy->viewAny($customer));
+
+        $this->assertTrue($couponPolicy->view($admin, $coupon));
+        $this->assertTrue($couponPolicy->view($manager, $coupon));
+        $this->assertFalse($couponPolicy->view($customer, $coupon));
+
+        $this->assertTrue($couponPolicy->create($admin));
+        $this->assertTrue($couponPolicy->create($manager));
+        $this->assertFalse($couponPolicy->create($customer));
+
         $this->assertTrue($couponPolicy->update($admin, $coupon));
         $this->assertTrue($couponPolicy->update($manager, $coupon));
         $this->assertFalse($couponPolicy->update($customer, $coupon));
+
+        $this->assertTrue($couponPolicy->delete($admin, $coupon));
+        $this->assertTrue($couponPolicy->delete($manager, $coupon));
+        $this->assertFalse($couponPolicy->delete($customer, $coupon));
     }
 
     /**

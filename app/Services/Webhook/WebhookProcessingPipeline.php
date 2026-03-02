@@ -48,16 +48,21 @@ final readonly class WebhookProcessingPipeline
             $payloadHash = hash('sha256', json_encode($payload->toArray(), JSON_THROW_ON_ERROR));
 
             DB::transaction(function () use ($adapter, $payload, $eventId, $payloadHash, &$outcome): void {
-                $receipt = WebhookReceipt::query()->firstOrCreate(
-                    ['provider' => $adapter->receiptProvider(), 'event_id' => $eventId],
-                    [
-                        'payload_hash' => $payloadHash,
-                        'processed_at' => null,
-                    ],
-                );
+                $provider = $adapter->receiptProvider();
+                $now = now();
+
+                DB::table('webhook_receipts')->insertOrIgnore([
+                    'provider' => $provider,
+                    'event_id' => $eventId,
+                    'payload_hash' => $payloadHash,
+                    'processed_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
 
                 $receipt = WebhookReceipt::query()
-                    ->whereKey($receipt->id)
+                    ->where('provider', $provider)
+                    ->where('event_id', $eventId)
                     ->lockForUpdate()
                     ->firstOrFail();
 
@@ -76,7 +81,10 @@ final readonly class WebhookProcessingPipeline
                     throw WebhookIngressException::rejectedTransition();
                 }
 
-                $receipt->update(['processed_at' => now()]);
+                $receipt->update([
+                    'processed_at' => $now,
+                    'updated_at' => $now,
+                ]);
             });
         } finally {
             $durationMs = (hrtime(true) - $startedAt) / 1_000_000;

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Application\Admin\Cache\Commands\RefreshAdminCatalogCacheCommand;
 use App\Application\Admin\Cache\Commands\RefreshAdminCatalogCacheHandler;
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
@@ -24,6 +25,8 @@ class CacheController extends Controller
      */
     public function refreshCatalog(): JsonResponse
     {
+        $this->authorize('viewAny', Product::class);
+
         $version = $this->refreshAdminCatalogCacheHandler->handle(
             new RefreshAdminCatalogCacheCommand
         );

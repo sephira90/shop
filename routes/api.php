@@ -54,7 +54,8 @@ Route::prefix('v1')->group(function (): void {
         ->middleware(['throttle:checkout', 'idempotency.key']);
 
     Route::middleware(['auth:sanctum'])->group(function (): void {
-        Route::post('checkout/orders/{order}/pay', [CheckoutController::class, 'pay'])->middleware('throttle:checkout');
+        Route::post('checkout/orders/{order}/pay', [CheckoutController::class, 'pay'])
+            ->middleware(['throttle:checkout', 'idempotency.key']);
         Route::prefix('account/orders')->group(function (): void {
             Route::get('summary', [AccountOrdersController::class, 'summary']);
             Route::get('{order}', [AccountOrdersController::class, 'show']);

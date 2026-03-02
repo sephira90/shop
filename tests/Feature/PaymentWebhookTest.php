@@ -70,8 +70,7 @@ class PaymentWebhookTest extends TestCase
 
         $orderId = $this->jsonString($orderResponse, 'data.id');
 
-        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
-            ->assertOk();
+        $this->initiatePayment($orderId, 'payment-initiate-processing');
 
         $payment = Payment::query()->whereHas('order', static fn ($query) => $query->where('id', $orderId))->firstOrFail();
 
@@ -169,8 +168,7 @@ class PaymentWebhookTest extends TestCase
 
         $orderId = $this->jsonString($orderResponse, 'data.id');
 
-        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
-            ->assertOk();
+        $this->initiatePayment($orderId, 'payment-initiate-regression');
 
         $payment = Payment::query()
             ->whereHas('order', static fn ($query) => $query->where('id', $orderId))
@@ -258,8 +256,7 @@ class PaymentWebhookTest extends TestCase
             ->assertCreated();
 
         $orderId = $this->jsonString($orderResponse, 'data.id');
-        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
-            ->assertOk();
+        $this->initiatePayment($orderId, 'payment-initiate-hash-mismatch');
 
         $payment = Payment::query()
             ->whereHas('order', static fn ($query) => $query->where('id', $orderId))
@@ -328,8 +325,7 @@ class PaymentWebhookTest extends TestCase
 
         $orderId = $this->jsonString($orderResponse, 'data.id');
 
-        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
-            ->assertOk();
+        $this->initiatePayment($orderId, 'payment-initiate-'.$idempotencyKey);
 
         $order = Order::query()->whereKey($orderId)->firstOrFail();
         $payment = Payment::query()
@@ -337,5 +333,59 @@ class PaymentWebhookTest extends TestCase
             ->firstOrFail();
 
         return [$order, $payment];
+    }
+
+    public function test_checkout_pay_requires_idempotency_key_header(): void
+    {
+        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        Sanctum::actingAs($user);
+
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertOk();
+
+        $orderResponse = $this->withHeader('Idempotency-Key', 'payment-missing-header-order-key')
+            ->postJson('/api/v1/checkout/place-order', [
+                'email' => $user->email,
+                'billing_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+                'shipping_address' => [
+                    'line1' => '1 Main Street',
+                    'city' => 'New York',
+                    'country' => 'US',
+                    'postcode' => '10001',
+                ],
+            ])
+            ->assertCreated();
+
+        $orderId = $this->jsonString($orderResponse, 'data.id');
+
+        $this->withoutHeader('Idempotency-Key');
+
+        $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
+            ->assertBadRequest()
+            ->assertJsonPath('error.message', 'Idempotency-Key header is required.');
+
+        $this->assertSame(
+            1,
+            Payment::query()->whereHas('order', static fn ($query) => $query->where('id', $orderId))->count()
+        );
+    }
+
+    private function initiatePayment(string $orderId, string $idempotencyKey): void
+    {
+        $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
+            ->assertOk();
     }
 }

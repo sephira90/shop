@@ -10,12 +10,11 @@ use App\Application\Checkout\Commands\PlaceCheckoutOrderCommand;
 use App\Application\Checkout\Commands\PlaceCheckoutOrderHandler;
 use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Checkout\InitiatePaymentRequest;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Models\Order;
 use App\Support\Api\ApiResponse;
-use DomainException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckoutController extends Controller
@@ -38,12 +37,7 @@ class CheckoutController extends Controller
         $input = $request->toDto();
         $currentUser = $this->resolveAuthenticatedUser($request);
         $command = new PlaceCheckoutOrderCommand($input, $request->idempotencyKey(), $currentUser);
-
-        try {
-            $result = $this->placeCheckoutOrderHandler->handle($command);
-        } catch (DomainException $exception) {
-            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
+        $result = $this->placeCheckoutOrderHandler->handle($command);
 
         return ApiResponse::data($result->toArray(), Response::HTTP_CREATED);
     }
@@ -51,13 +45,12 @@ class CheckoutController extends Controller
     /**
      * Initiate payment for order.
      */
-    public function pay(Request $request, Order $order): JsonResponse
+    public function pay(InitiatePaymentRequest $request, Order $order): JsonResponse
     {
         $this->authorize('view', $order);
 
-        $idempotencyKey = (string) $request->header('Idempotency-Key', 'pay-'.$order->id);
         $payment = $this->initiateCheckoutPaymentHandler->handle(
-            new InitiateCheckoutPaymentCommand($order, $idempotencyKey)
+            new InitiateCheckoutPaymentCommand($order, $request->idempotencyKey())
         );
 
         return ApiResponse::data($payment->toArray());

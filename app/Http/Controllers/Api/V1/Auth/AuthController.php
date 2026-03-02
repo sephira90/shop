@@ -21,7 +21,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Support\Api\ApiResponse;
-use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -64,8 +63,6 @@ class AuthController extends Controller
             );
         } catch (AuthApplicationException $exception) {
             return ApiResponse::error($exception->getMessage(), $exception->statusCode);
-        } catch (DomainException $exception) {
-            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return ApiResponse::data($result->toArray());

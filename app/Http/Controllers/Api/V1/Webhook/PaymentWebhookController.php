@@ -11,7 +11,6 @@ use App\Services\Webhook\WebhookIngressException;
 use App\Support\Api\ApiResponse;
 use App\Support\Data\JsonPayload;
 use App\Support\Data\TypedValue;
-use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,8 +43,6 @@ class PaymentWebhookController extends Controller
             );
         } catch (WebhookIngressException $exception) {
             return ApiResponse::error($exception->getMessage(), $exception->statusCode());
-        } catch (DomainException $exception) {
-            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return ApiResponse::data(['queued' => true], Response::HTTP_ACCEPTED);

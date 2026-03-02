@@ -63,6 +63,11 @@ final class WebhookIngressException extends DomainException
         return new self('Shipment not found for tracking number.', WebhookIngressErrorCode::SHIPMENT_NOT_FOUND);
     }
 
+    public static function shipmentOrderNotFound(): self
+    {
+        return new self('Shipment order not found.', WebhookIngressErrorCode::SHIPMENT_ORDER_NOT_FOUND);
+    }
+
     public static function rejectedTransition(): self
     {
         return new self(

@@ -21,45 +21,66 @@ final class CartMutationService
      */
     public function upsertItem(Cart $cart, int $variantId, int $quantity): Cart
     {
-        $variant = ProductVariant::query()
-            ->with(['inventory', 'product'])
-            ->whereKey($variantId)
-            ->where('is_active', true)
-            ->whereHas('product', static function ($productQuery): void {
-                $productQuery
-                    ->where('status', ProductStatus::ACTIVE->value)
-                    ->whereNotNull('published_at');
-            })
-            ->first();
+        return DB::transaction(function () use ($cart, $variantId, $quantity): Cart {
+            $lockedCart = Cart::query()
+                ->whereKey($cart->id)
+                ->lockForUpdate()
+                ->first();
 
-        if (! $variant instanceof ProductVariant) {
-            throw new DomainException('Selected variant is not available.');
-        }
+            if (! $lockedCart instanceof Cart) {
+                throw new DomainException('Cart not found.');
+            }
 
-        $inventory = $variant->inventory;
+            $variant = ProductVariant::query()
+                ->with(['inventory', 'product'])
+                ->whereKey($variantId)
+                ->where('is_active', true)
+                ->whereHas('product', static function ($productQuery): void {
+                    $productQuery
+                        ->where('status', ProductStatus::ACTIVE->value)
+                        ->whereNotNull('published_at');
+                })
+                ->first();
 
-        if (! $inventory instanceof Inventory || $inventory->availableQuantity() < $quantity) {
-            throw new DomainException('Insufficient stock for selected variant.');
-        }
+            if (! $variant instanceof ProductVariant) {
+                throw new DomainException('Selected variant is not available.');
+            }
 
-        /** @var CartItem $item */
-        $item = CartItem::query()->updateOrCreate(
-            [
-                'cart_id' => $cart->id,
-                'product_variant_id' => $variant->id,
-            ],
-            [
+            $inventory = $variant->inventory;
+
+            if (! $inventory instanceof Inventory || $inventory->availableQuantity() < $quantity) {
+                throw new DomainException('Insufficient stock for selected variant.');
+            }
+
+            $item = CartItem::query()
+                ->where('cart_id', $lockedCart->id)
+                ->where('product_variant_id', $variant->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($quantity <= 0) {
+                $item?->delete();
+
+                return $lockedCart->refresh()->load(['items.variant.inventory']);
+            }
+
+            $payload = [
                 'quantity' => $quantity,
                 'unit_price' => $variant->price,
                 'line_total' => bcmul((string) $variant->price, (string) $quantity, 2),
-            ],
-        );
+            ];
 
-        if ($item->quantity <= 0) {
-            $item->delete();
-        }
+            if ($item instanceof CartItem) {
+                $item->update($payload);
+            } else {
+                $lockedCart->items()->create([
+                    'product_variant_id' => $variant->id,
+                    ...$payload,
+                ]);
+            }
 
-        return $cart->refresh()->load(['items.variant.inventory']);
+            return $lockedCart->refresh()->load(['items.variant.inventory']);
+        });
     }
 
     /**
@@ -67,12 +88,24 @@ final class CartMutationService
      */
     public function removeItem(Cart $cart, int $variantId): Cart
     {
-        CartItem::query()
-            ->where('cart_id', $cart->id)
-            ->where('product_variant_id', $variantId)
-            ->delete();
+        return DB::transaction(function () use ($cart, $variantId): Cart {
+            $lockedCart = Cart::query()
+                ->whereKey($cart->id)
+                ->lockForUpdate()
+                ->first();
 
-        return $cart->refresh()->load(['items.variant.inventory']);
+            if (! $lockedCart instanceof Cart) {
+                throw new DomainException('Cart not found.');
+            }
+
+            CartItem::query()
+                ->where('cart_id', $lockedCart->id)
+                ->where('product_variant_id', $variantId)
+                ->lockForUpdate()
+                ->delete();
+
+            return $lockedCart->refresh()->load(['items.variant.inventory']);
+        });
     }
 
     /**

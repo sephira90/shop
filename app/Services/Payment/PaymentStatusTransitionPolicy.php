@@ -6,7 +6,7 @@ namespace App\Services\Payment;
 
 use App\Enums\PaymentStatus;
 
-final class PaymentStatusTransitionPolicy
+final readonly class PaymentStatusTransitionPolicy
 {
     /**
      * Validate allowed payment status transition.

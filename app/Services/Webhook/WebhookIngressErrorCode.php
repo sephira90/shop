@@ -22,5 +22,7 @@ enum WebhookIngressErrorCode: string
 
     case SHIPMENT_NOT_FOUND = 'shipment_not_found';
 
+    case SHIPMENT_ORDER_NOT_FOUND = 'shipment_order_not_found';
+
     case REJECTED_TRANSITION = 'rejected_transition';
 }

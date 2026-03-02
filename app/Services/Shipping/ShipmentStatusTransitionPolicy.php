@@ -6,7 +6,7 @@ namespace App\Services\Shipping;
 
 use App\Enums\ShipmentStatus;
 
-final class ShipmentStatusTransitionPolicy
+final readonly class ShipmentStatusTransitionPolicy
 {
     /**
      * Validate shipment status transition matrix.

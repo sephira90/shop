@@ -15,10 +15,8 @@ use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\UpsertCartItemRequest;
 use App\Support\Api\ApiResponse;
-use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class CartController extends Controller
 {
@@ -54,17 +52,12 @@ class CartController extends Controller
     {
         $input = $request->toDto();
         $currentUser = $this->resolveAuthenticatedUser($request);
-
-        try {
-            $cartPayload = $this->upsertCartItemHandler->handle(
-                new UpsertCartItemCommand(
-                    $currentUser,
-                    $input,
-                )
-            );
-        } catch (DomainException $exception) {
-            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
+        $cartPayload = $this->upsertCartItemHandler->handle(
+            new UpsertCartItemCommand(
+                $currentUser,
+                $input,
+            )
+        );
 
         return ApiResponse::data($cartPayload->toArray());
     }

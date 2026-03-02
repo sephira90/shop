@@ -15,9 +15,7 @@ use App\Http\Requests\Admin\OrderIndexRequest;
 use App\Http\Requests\Admin\OrderStatusUpdateRequest;
 use App\Models\Order;
 use App\Support\Api\ApiResponse;
-use DomainException;
 use Illuminate\Http\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 
 class OrderController extends Controller
 {
@@ -62,14 +60,9 @@ class OrderController extends Controller
     public function updateStatus(OrderStatusUpdateRequest $request, Order $order): JsonResponse
     {
         $this->authorize('update', $order);
-
-        try {
-            $updated = $this->updateAdminOrderStatusHandler->handle(
-                new UpdateAdminOrderStatusCommand($order, $request->toDto())
-            );
-        } catch (DomainException $exception) {
-            return ApiResponse::error($exception->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
+        $updated = $this->updateAdminOrderStatusHandler->handle(
+            new UpdateAdminOrderStatusCommand($order, $request->toDto())
+        );
 
         return ApiResponse::data($updated->toArray());
     }

@@ -53,7 +53,11 @@ final readonly class PaymentWebhookTransitionApplier
             'processed_at' => now(),
         ]);
 
-        $order = $payment->order;
+        $order = Order::query()
+            ->whereKey($payment->order_id)
+            ->lockForUpdate()
+            ->first();
+
         if (! $order instanceof Order) {
             throw WebhookIngressException::paymentOrderNotFound();
         }

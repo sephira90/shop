@@ -32,7 +32,7 @@ class PolicyCompletenessMatrixGuardrailTest extends TestCase
             ],
             Coupon::class => [
                 'policy' => CouponPolicy::class,
-                'actions' => ['update'],
+                'actions' => ['viewAny', 'view', 'create', 'update', 'delete'],
             ],
             Order::class => [
                 'policy' => OrderPolicy::class,

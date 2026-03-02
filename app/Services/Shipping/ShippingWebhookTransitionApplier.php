@@ -54,16 +54,22 @@ final readonly class ShippingWebhookTransitionApplier
             'delivered_at' => $status === ShipmentStatus::DELIVERED ? now() : $shipment->delivered_at,
         ]);
 
-        $order = $shipment->order;
-        if ($order instanceof Order) {
-            $currentOrderStatus = OrderStatus::from(TypedValue::string($order->getRawOriginal('status')));
-            $newStatus = $this->orderStatusTransitionPolicy->resolveByShipmentStatus($currentOrderStatus, $status);
+        $order = Order::query()
+            ->whereKey($shipment->order_id)
+            ->lockForUpdate()
+            ->first();
 
-            $order->update([
-                'shipment_status' => $status->value,
-                'status' => $newStatus->value,
-            ]);
+        if (! $order instanceof Order) {
+            throw WebhookIngressException::shipmentOrderNotFound();
         }
+
+        $currentOrderStatus = OrderStatus::from(TypedValue::string($order->getRawOriginal('status')));
+        $newStatus = $this->orderStatusTransitionPolicy->resolveByShipmentStatus($currentOrderStatus, $status);
+
+        $order->update([
+            'shipment_status' => $status->value,
+            'status' => $newStatus->value,
+        ]);
 
         return WebhookProcessingOutcome::PROCESSED;
     }
