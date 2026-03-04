@@ -86,4 +86,39 @@ class ObservabilityMetricStoreTest extends TestCase
             ],
         ], $store->webhookMetrics(60, 'smoke'));
     }
+
+    public function test_status_transition_metrics_are_grouped_by_domain_and_transition(): void
+    {
+        Cache::flush();
+
+        $store = app(ObservabilityMetricStore::class);
+        $store->storeStatusTransitionSample('order', 'pending', 'paid', 'runtime');
+        $store->storeStatusTransitionSample('order', 'pending', 'paid', 'runtime');
+        $store->storeStatusTransitionSample('payment', 'pending', 'captured', 'runtime');
+        $store->storeStatusTransitionSample('order', 'pending', 'paid', 'smoke');
+
+        $this->assertSame([
+            [
+                'domain' => 'order',
+                'previous_status' => 'pending',
+                'current_status' => 'paid',
+                'count' => 2,
+            ],
+            [
+                'domain' => 'payment',
+                'previous_status' => 'pending',
+                'current_status' => 'captured',
+                'count' => 1,
+            ],
+        ], $store->statusTransitionMetrics(60, 'runtime'));
+
+        $this->assertSame([
+            [
+                'domain' => 'order',
+                'previous_status' => 'pending',
+                'current_status' => 'paid',
+                'count' => 1,
+            ],
+        ], $store->statusTransitionMetrics(60, 'smoke'));
+    }
 }

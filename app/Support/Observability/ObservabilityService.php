@@ -138,6 +138,41 @@ final class ObservabilityService
     }
 
     /**
+     * Report domain status transition sample.
+     */
+    public function statusTransition(
+        string $domain,
+        string $aggregateId,
+        string $previousStatus,
+        string $currentStatus,
+        string $source = self::SOURCE_RUNTIME,
+    ): void {
+        if (! $this->enabled()) {
+            return;
+        }
+
+        $normalizedSource = $this->normalizeSource($source);
+        $payload = [
+            'metric' => 'domain.status_transition',
+            'source' => $normalizedSource,
+            'transition_source' => $source,
+            'domain' => $domain,
+            'aggregate_id' => $aggregateId,
+            'previous_status' => $previousStatus,
+            'current_status' => $currentStatus,
+        ];
+
+        $this->logger()->info('observability.status_transition', $payload);
+
+        $this->observabilityMetricStore->storeStatusTransitionSample(
+            domain: $domain,
+            previousStatus: $previousStatus,
+            currentStatus: $currentStatus,
+            source: $normalizedSource,
+        );
+    }
+
+    /**
      * Build aggregated observability snapshot from rolling cache counters.
      *
      * @return array{

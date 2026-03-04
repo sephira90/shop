@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use App\Application\Admin\Orders\Dto\UpdateAdminOrderStatusInputDto;
+use App\Domain\Order\StatusTransitionSource;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
+use App\Events\OrderStatusChanged;
 use App\Models\Order;
 use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Payment\PaymentStatusTransitionPolicy;
@@ -78,6 +80,15 @@ final class AdminOrderService
             'shipment_status' => $nextShipmentStatus->value,
             'cancelled_at' => $cancelledAt,
         ]);
+
+        if ($nextStatus !== $currentStatus) {
+            event(new OrderStatusChanged(
+                orderId: $order->id,
+                previousStatus: $currentStatus,
+                currentStatus: $nextStatus,
+                source: StatusTransitionSource::ADMIN_ORDER_UPDATE,
+            ));
+        }
 
         return $order->refresh()->load(['items', 'payments', 'shipments', 'user']);
     }

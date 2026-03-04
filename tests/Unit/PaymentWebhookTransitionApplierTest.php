@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Domain\Order\StatusTransitionSource;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
+use App\Events\OrderStatusChanged;
+use App\Events\PaymentStatusChanged;
 use App\Jobs\DispatchShipmentJob;
 use App\Jobs\SendOrderConfirmationJob;
 use App\Models\Order;
@@ -19,6 +22,7 @@ use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class PaymentWebhookTransitionApplierTest extends TestCase
@@ -108,6 +112,48 @@ class PaymentWebhookTransitionApplierTest extends TestCase
         $this->assertSame(PaymentStatus::CAPTURED, $freshOrder->payment_status);
 
         Bus::assertNothingDispatched();
+    }
+
+    public function test_apply_dispatches_payment_status_changed_event(): void
+    {
+        Event::fake();
+
+        [$order, $payment] = $this->createOrderWithPayment(
+            orderStatus: OrderStatus::PENDING,
+            orderPaymentStatus: PaymentStatus::PENDING,
+            paymentStatus: PaymentStatus::PENDING,
+        );
+
+        $resolvedPayload = app(PaymentWebhookIngressResolver::class)->resolve(JsonPayload::fromArray([
+            'event_id' => 'evt-payment-status-event',
+            'transaction_id' => $payment->transaction_id,
+            'status' => 'paid',
+        ]));
+
+        $outcome = DB::transaction(
+            fn (): WebhookProcessingOutcome => app(PaymentWebhookTransitionApplier::class)->apply(
+                $resolvedPayload,
+                TypedValue::string(config('payment.driver', 'fake-payment')),
+            ),
+        );
+
+        $this->assertSame(WebhookProcessingOutcome::PROCESSED, $outcome);
+
+        Event::assertDispatched(
+            PaymentStatusChanged::class,
+            fn (PaymentStatusChanged $event): bool => $event->orderId === $order->id
+                && $event->paymentId === (string) $payment->id
+                && $event->previousStatus === PaymentStatus::PENDING
+                && $event->currentStatus === PaymentStatus::CAPTURED
+                && $event->source === StatusTransitionSource::PAYMENT_WEBHOOK,
+        );
+        Event::assertDispatched(
+            OrderStatusChanged::class,
+            fn (OrderStatusChanged $event): bool => $event->orderId === $order->id
+                && $event->previousStatus === OrderStatus::PENDING
+                && $event->currentStatus === OrderStatus::PAID
+                && $event->source === StatusTransitionSource::PAYMENT_WEBHOOK,
+        );
     }
 
     /**

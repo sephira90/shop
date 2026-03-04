@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
+use App\Enums\OrderStatus;
 use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -64,5 +65,14 @@ class OperationalDocsConfigGuardrailTest extends TestCase
         $this->assertIsArray(config('observability.alerts.email.recipients'));
         $this->assertIsBool(config('observability.alerts.slack.enabled'));
         $this->assertIsBool(config('observability.alerts.pagerduty.enabled'));
+
+        $configuredNotifiableOrderStatuses = config('orders.status_notifications.notifiable_statuses');
+        $this->assertIsArray($configuredNotifiableOrderStatuses);
+        foreach (TypedValue::stringList($configuredNotifiableOrderStatuses) as $status) {
+            $this->assertNotNull(
+                OrderStatus::tryFrom($status),
+                sprintf('orders.status_notifications.notifiable_statuses contains unsupported status [%s].', $status),
+            );
+        }
     }
 }

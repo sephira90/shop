@@ -8,6 +8,7 @@ use App\Jobs\DispatchShipmentJob;
 use App\Jobs\ProcessPaymentWebhookJob;
 use App\Jobs\ProcessShippingWebhookJob;
 use App\Jobs\SendOrderConfirmationJob;
+use App\Jobs\SendOrderStatusChangedNotificationJob;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\File;
 use ReflectionNamedType;
@@ -25,10 +26,17 @@ class QueuedJobSafetyGuardrailTest extends TestCase
                 ],
             ],
             [
-                'path' => app_path('Services/Payment/PaymentWebhookTransitionApplier.php'),
+                'path' => app_path('Listeners/QueuePaymentStatusSideEffects.php'),
                 'dispatches' => [
-                    'SendOrderConfirmationJob::dispatch($order->id)->afterCommit();',
-                    'DispatchShipmentJob::dispatch($order->id)->afterCommit();',
+                    'SendOrderConfirmationJob::dispatch($event->orderId)->afterCommit();',
+                    'DispatchShipmentJob::dispatch($event->orderId)->afterCommit();',
+                ],
+            ],
+            [
+                'path' => app_path('Listeners/QueueOrderStatusSideEffects.php'),
+                'dispatches' => [
+                    'SendOrderStatusChangedNotificationJob::dispatch(',
+                    ')->afterCommit();',
                 ],
             ],
         ];
@@ -51,6 +59,7 @@ class QueuedJobSafetyGuardrailTest extends TestCase
         $jobClasses = [
             DispatchShipmentJob::class,
             SendOrderConfirmationJob::class,
+            SendOrderStatusChangedNotificationJob::class,
             ProcessPaymentWebhookJob::class,
             ProcessShippingWebhookJob::class,
         ];

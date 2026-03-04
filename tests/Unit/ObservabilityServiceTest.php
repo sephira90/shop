@@ -84,4 +84,37 @@ class ObservabilityServiceTest extends TestCase
         $this->assertSame(1, $smokeSnapshot['webhook'][0]['count']);
         $this->assertSame(1, $smokeSnapshot['webhook'][0]['lag_warn_count']);
     }
+
+    public function test_status_transition_metric_is_logged_and_stored(): void
+    {
+        config()->set('observability.enabled', true);
+        config()->set('observability.channel', 'stack');
+        Cache::flush();
+
+        Log::shouldReceive('channel')->once()->with('stack')->andReturnSelf();
+        Log::shouldReceive('info')->once()->with(
+            'observability.status_transition',
+            \Mockery::on(static fn (array $payload): bool => $payload['metric'] === 'domain.status_transition'
+                && $payload['domain'] === 'order'
+                && $payload['aggregate_id'] === 'order-1'
+                && $payload['previous_status'] === 'pending'
+                && $payload['current_status'] === 'paid'
+                && $payload['source'] === 'runtime'),
+        );
+
+        $service = app(ObservabilityService::class);
+        $service->statusTransition('order', 'order-1', 'pending', 'paid', 'runtime');
+
+        $statusMetrics = app(\App\Support\Observability\ObservabilityMetricStore::class)
+            ->statusTransitionMetrics(60, 'runtime');
+
+        $this->assertSame([
+            [
+                'domain' => 'order',
+                'previous_status' => 'pending',
+                'current_status' => 'paid',
+                'count' => 1,
+            ],
+        ], $statusMetrics);
+    }
 }

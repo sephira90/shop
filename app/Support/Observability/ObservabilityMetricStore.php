@@ -15,6 +15,8 @@ final class ObservabilityMetricStore
 
     private const WEBHOOK_REGISTRY_KEY = 'observability:registry:webhook_providers';
 
+    private const STATUS_TRANSITION_REGISTRY_KEY = 'observability:registry:status_transitions';
+
     public function storeApiSample(float $durationMs, string $source, int $apiSlowThresholdMs): void
     {
         $bucket = $this->bucket();
@@ -79,6 +81,34 @@ final class ObservabilityMetricStore
         if ($lagMs >= $webhookLagWarnThresholdMs) {
             $this->incrementCounter($this->cacheKey('webhook', $source, $normalizedProvider, 'lag_warn_count', $bucket), 1);
         }
+    }
+
+    public function storeStatusTransitionSample(
+        string $domain,
+        string $previousStatus,
+        string $currentStatus,
+        string $source,
+    ): void {
+        $normalizedDomain = $this->normalizeKeyPart($domain);
+        $normalizedPreviousStatus = $this->normalizeKeyPart($previousStatus);
+        $normalizedCurrentStatus = $this->normalizeKeyPart($currentStatus);
+        $bucket = $this->bucket();
+
+        $this->registerValue(self::STATUS_TRANSITION_REGISTRY_KEY, implode('|', [
+            $domain,
+            $previousStatus,
+            $currentStatus,
+        ]));
+
+        $this->incrementCounter($this->cacheKey(
+            'status_transition',
+            $source,
+            $normalizedDomain,
+            $normalizedPreviousStatus,
+            $normalizedCurrentStatus,
+            'count',
+            $bucket,
+        ), 1);
     }
 
     /**
@@ -187,6 +217,62 @@ final class ObservabilityMetricStore
                 'lag_ms_total' => $this->sumByBuckets($buckets, 'webhook', $source, $normalizedProvider, 'lag_ms_total'),
                 'lag_samples' => $this->sumByBuckets($buckets, 'webhook', $source, $normalizedProvider, 'lag_samples'),
                 'lag_warn_count' => $this->sumByBuckets($buckets, 'webhook', $source, $normalizedProvider, 'lag_warn_count'),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array{
+     *     domain:string,
+     *     previous_status:string,
+     *     current_status:string,
+     *     count:int
+     * }>
+     */
+    public function statusTransitionMetrics(int $minutes, string $source): array
+    {
+        $transitions = Cache::get(self::STATUS_TRANSITION_REGISTRY_KEY, []);
+        if (! is_array($transitions)) {
+            return [];
+        }
+
+        sort($transitions);
+        $buckets = $this->windowBuckets($minutes);
+        $rows = [];
+
+        foreach ($transitions as $transitionValue) {
+            if (! is_string($transitionValue) || $transitionValue === '') {
+                continue;
+            }
+
+            $parts = explode('|', $transitionValue, 3);
+            if (count($parts) !== 3) {
+                continue;
+            }
+
+            [$domain, $previousStatus, $currentStatus] = $parts;
+
+            $count = $this->sumByBuckets(
+                $buckets,
+                'status_transition',
+                $source,
+                $this->normalizeKeyPart($domain),
+                $this->normalizeKeyPart($previousStatus),
+                $this->normalizeKeyPart($currentStatus),
+                'count',
+            );
+
+            if ($count === 0) {
+                continue;
+            }
+
+            $rows[] = [
+                'domain' => $domain,
+                'previous_status' => $previousStatus,
+                'current_status' => $currentStatus,
+                'count' => $count,
             ];
         }
 

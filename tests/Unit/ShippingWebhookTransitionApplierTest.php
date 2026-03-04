@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Domain\Order\StatusTransitionSource;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
+use App\Events\OrderStatusChanged;
+use App\Events\ShipmentStatusChanged;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Shipping\ShippingWebhookIngressResolver;
@@ -17,6 +20,7 @@ use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class ShippingWebhookTransitionApplierTest extends TestCase
@@ -25,6 +29,8 @@ class ShippingWebhookTransitionApplierTest extends TestCase
 
     public function test_apply_delivered_status_updates_shipment_timestamps_and_completes_order(): void
     {
+        Event::fake();
+
         $now = Carbon::parse('2026-02-28 15:00:00');
         Carbon::setTestNow($now);
 
@@ -71,6 +77,21 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             );
             $this->assertSame(OrderStatus::COMPLETED, $freshOrder->status);
             $this->assertSame(ShipmentStatus::DELIVERED, $freshOrder->shipment_status);
+            Event::assertDispatched(
+                ShipmentStatusChanged::class,
+                fn (ShipmentStatusChanged $event): bool => $event->orderId === $order->id
+                    && $event->shipmentId === (string) $shipment->id
+                    && $event->previousStatus === ShipmentStatus::PACKED
+                    && $event->currentStatus === ShipmentStatus::DELIVERED
+                    && $event->source === StatusTransitionSource::SHIPPING_WEBHOOK,
+            );
+            Event::assertDispatched(
+                OrderStatusChanged::class,
+                fn (OrderStatusChanged $event): bool => $event->orderId === $order->id
+                    && $event->previousStatus === OrderStatus::PAID
+                    && $event->currentStatus === OrderStatus::COMPLETED
+                    && $event->source === StatusTransitionSource::SHIPPING_WEBHOOK,
+            );
         } finally {
             Carbon::setTestNow();
         }
@@ -78,6 +99,8 @@ class ShippingWebhookTransitionApplierTest extends TestCase
 
     public function test_apply_returns_duplicate_for_delivered_to_shipped_regression_and_keeps_state_stable(): void
     {
+        Event::fake();
+
         $now = Carbon::parse('2026-02-28 15:10:00');
         Carbon::setTestNow($now);
 
@@ -121,6 +144,8 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             );
             $this->assertSame(OrderStatus::COMPLETED, $freshOrder->status);
             $this->assertSame(ShipmentStatus::DELIVERED, $freshOrder->shipment_status);
+            Event::assertNotDispatched(OrderStatusChanged::class);
+            Event::assertNotDispatched(ShipmentStatusChanged::class);
         } finally {
             Carbon::setTestNow();
         }

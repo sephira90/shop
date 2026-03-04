@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Domain\Order\StatusTransitionSource;
+use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
-use App\Jobs\DispatchShipmentJob;
-use App\Jobs\SendOrderConfirmationJob;
+use App\Events\OrderStatusChanged;
+use App\Events\PaymentStatusChanged;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Order\OrderStatusTransitionPolicy;
@@ -62,17 +64,30 @@ final readonly class PaymentWebhookTransitionApplier
             throw WebhookIngressException::paymentOrderNotFound();
         }
 
-        $orderStatus = $this->orderStatusTransitionPolicy->resolveByPaymentStatus($order->status, $paymentStatus);
+        $previousOrderStatus = OrderStatus::from(TypedValue::string($order->getRawOriginal('status')));
+        $orderStatus = $this->orderStatusTransitionPolicy->resolveByPaymentStatus($previousOrderStatus, $paymentStatus);
 
         $order->update([
             'payment_status' => $paymentStatus->value,
             'status' => $orderStatus->value,
         ]);
 
-        if ($paymentStatus === PaymentStatus::CAPTURED && $previousPaymentStatus !== PaymentStatus::CAPTURED) {
-            SendOrderConfirmationJob::dispatch($order->id)->afterCommit();
-            DispatchShipmentJob::dispatch($order->id)->afterCommit();
+        if ($orderStatus !== $previousOrderStatus) {
+            event(new OrderStatusChanged(
+                orderId: $order->id,
+                previousStatus: $previousOrderStatus,
+                currentStatus: $orderStatus,
+                source: StatusTransitionSource::PAYMENT_WEBHOOK,
+            ));
         }
+
+        event(new PaymentStatusChanged(
+            orderId: $order->id,
+            paymentId: (string) $payment->id,
+            previousStatus: $previousPaymentStatus,
+            currentStatus: $paymentStatus,
+            source: StatusTransitionSource::PAYMENT_WEBHOOK,
+        ));
 
         return WebhookProcessingOutcome::PROCESSED;
     }

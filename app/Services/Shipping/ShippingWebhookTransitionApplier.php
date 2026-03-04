@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Shipping;
 
 use App\Contracts\ShippingGatewayInterface;
+use App\Domain\Order\StatusTransitionSource;
 use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
+use App\Events\OrderStatusChanged;
+use App\Events\ShipmentStatusChanged;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Order\OrderStatusTransitionPolicy;
@@ -70,6 +73,23 @@ final readonly class ShippingWebhookTransitionApplier
             'shipment_status' => $status->value,
             'status' => $newStatus->value,
         ]);
+
+        if ($newStatus !== $currentOrderStatus) {
+            event(new OrderStatusChanged(
+                orderId: $order->id,
+                previousStatus: $currentOrderStatus,
+                currentStatus: $newStatus,
+                source: StatusTransitionSource::SHIPPING_WEBHOOK,
+            ));
+        }
+
+        event(new ShipmentStatusChanged(
+            orderId: $order->id,
+            shipmentId: (string) $shipment->id,
+            previousStatus: $currentStatus,
+            currentStatus: $status,
+            source: StatusTransitionSource::SHIPPING_WEBHOOK,
+        ));
 
         return WebhookProcessingOutcome::PROCESSED;
     }
