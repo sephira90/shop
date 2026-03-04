@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Domain\Exceptions\CheckoutException;
 use App\Domain\ValueObjects\Money;
 use App\Enums\PromotionType;
 use App\Models\Coupon;
 use App\Models\Promotion;
 use App\Services\Checkout\Dto\CheckoutDiscountContextDto;
 use Carbon\Carbon;
-use DomainException;
 
 final class CheckoutDiscountResolver
 {
@@ -33,18 +33,18 @@ final class CheckoutDiscountResolver
             ->first();
 
         if (! $coupon instanceof Coupon || ! $coupon->is_active) {
-            throw new DomainException('Coupon code is invalid.');
+            throw CheckoutException::couponCodeInvalid();
         }
 
         /** @var Carbon|null $couponExpiresAt */
         $couponExpiresAt = $coupon->expires_at;
 
         if ($couponExpiresAt !== null && now()->isAfter($couponExpiresAt)) {
-            throw new DomainException('Coupon has expired.');
+            throw CheckoutException::couponExpired();
         }
 
         if ($coupon->max_redemptions !== null && $coupon->redeemed_count >= $coupon->max_redemptions) {
-            throw new DomainException('Coupon usage limit exceeded.');
+            throw CheckoutException::couponUsageLimitExceeded();
         }
 
         $promotion = Promotion::query()
@@ -53,23 +53,23 @@ final class CheckoutDiscountResolver
             ->first();
 
         if (! $promotion instanceof Promotion || ! $promotion->is_active) {
-            throw new DomainException('Promotion is not available.');
+            throw CheckoutException::promotionNotAvailable();
         }
 
         /** @var Carbon|null $promotionStartsAt */
         $promotionStartsAt = $promotion->starts_at;
         if ($promotionStartsAt !== null && now()->isBefore($promotionStartsAt)) {
-            throw new DomainException('Promotion has not started yet.');
+            throw CheckoutException::promotionNotStartedYet();
         }
 
         /** @var Carbon|null $promotionEndsAt */
         $promotionEndsAt = $promotion->ends_at;
         if ($promotionEndsAt !== null && now()->isAfter($promotionEndsAt)) {
-            throw new DomainException('Promotion has ended.');
+            throw CheckoutException::promotionHasEnded();
         }
 
         if ($promotion->usage_limit !== null && $promotion->usage_count >= $promotion->usage_limit) {
-            throw new DomainException('Promotion usage limit exceeded.');
+            throw CheckoutException::promotionUsageLimitExceeded();
         }
 
         return new CheckoutDiscountContextDto(
@@ -87,7 +87,7 @@ final class CheckoutDiscountResolver
         try {
             $promotionType = $type instanceof PromotionType ? $type : PromotionType::from($type);
         } catch (\ValueError $exception) {
-            throw new DomainException('Promotion type is invalid.', 0, $exception);
+            throw CheckoutException::promotionTypeInvalid($exception);
         }
 
         $discount = match ($promotionType) {

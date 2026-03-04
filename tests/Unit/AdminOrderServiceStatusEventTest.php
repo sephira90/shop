@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Application\Admin\Orders\Dto\UpdateAdminOrderStatusInputDto;
+use App\Domain\Exceptions\OrderTransitionException;
 use App\Domain\Order\StatusTransitionSource;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
@@ -60,6 +61,32 @@ class AdminOrderServiceStatusEventTest extends TestCase
         );
 
         Event::assertNotDispatched(OrderStatusChanged::class);
+    }
+
+    public function test_update_status_rejects_direct_invalid_admin_transition(): void
+    {
+        Event::fake();
+
+        $order = $this->createPendingOrder();
+        $order->update([
+            'status' => OrderStatus::CANCELLED->value,
+        ]);
+
+        $this->expectException(OrderTransitionException::class);
+        $this->expectExceptionMessage('Order status transition is not allowed.');
+
+        try {
+            app(AdminOrderService::class)->updateStatus(
+                $order->refresh(),
+                new UpdateAdminOrderStatusInputDto(
+                    status: OrderStatus::PAID,
+                    paymentStatus: null,
+                    shipmentStatus: null,
+                ),
+            );
+        } finally {
+            Event::assertNotDispatched(OrderStatusChanged::class);
+        }
     }
 
     private function createPendingOrder(): Order

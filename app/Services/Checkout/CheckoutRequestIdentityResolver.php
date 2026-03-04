@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Domain\Exceptions\CheckoutException;
 use App\Models\Cart;
 use App\Models\User;
 use App\Services\Checkout\Dto\CheckoutRequestIdentityDto;
-use DomainException;
 
 final class CheckoutRequestIdentityResolver
 {
@@ -30,6 +30,6 @@ final class CheckoutRequestIdentityResolver
             return 'guest:'.$cart->guest_token;
         }
 
-        throw new DomainException('Guest checkout requires guest token.');
+        throw CheckoutException::guestTokenRequired();
     }
 }

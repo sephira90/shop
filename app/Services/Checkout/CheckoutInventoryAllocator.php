@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutInventoryDemandDto;
+use App\Domain\Exceptions\CheckoutException;
 use App\Models\Inventory;
-use DomainException;
 
 final class CheckoutInventoryAllocator
 {
@@ -34,7 +34,7 @@ final class CheckoutInventoryAllocator
             $inventory = $inventoryByVariant->get($variantId);
 
             if (! $inventory instanceof Inventory || $inventory->availableQuantity() < $requiredQuantity) {
-                throw new DomainException('Insufficient stock during checkout.');
+                throw CheckoutException::insufficientStockDuringCheckout();
             }
         }
 

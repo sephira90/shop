@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use App\Application\Admin\Orders\Dto\UpdateAdminOrderStatusInputDto;
+use App\Domain\Exceptions\OrderTransitionException;
 use App\Domain\Order\StatusTransitionSource;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
@@ -15,7 +16,6 @@ use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Payment\PaymentStatusTransitionPolicy;
 use App\Services\Shipping\ShipmentStatusTransitionPolicy;
 use App\Support\Data\TypedValue;
-use DomainException;
 
 final class AdminOrderService
 {
@@ -44,14 +44,14 @@ final class AdminOrderService
             $input->paymentStatus !== null
             && ! $this->paymentStatusTransitionPolicy->canTransition($currentPaymentStatus, $nextPaymentStatus)
         ) {
-            throw new DomainException('Payment status transition is not allowed.');
+            throw OrderTransitionException::paymentStatusTransitionNotAllowed();
         }
 
         if (
             $input->shipmentStatus !== null
             && ! $this->shipmentStatusTransitionPolicy->canTransition($currentShipmentStatus, $nextShipmentStatus)
         ) {
-            throw new DomainException('Shipment status transition is not allowed.');
+            throw OrderTransitionException::shipmentStatusTransitionNotAllowed();
         }
 
         $nextStatus = $input->status;
@@ -66,6 +66,13 @@ final class AdminOrderService
             if ($input->shipmentStatus !== null) {
                 $nextStatus = $this->orderStatusTransitionPolicy->resolveByShipmentStatus($nextStatus, $nextShipmentStatus);
             }
+        }
+
+        if (
+            $input->status !== null
+            && ! $this->orderStatusTransitionPolicy->canTransition($currentStatus, $nextStatus)
+        ) {
+            throw OrderTransitionException::orderStatusTransitionNotAllowed();
         }
 
         $cancelledAt = $order->cancelled_at;

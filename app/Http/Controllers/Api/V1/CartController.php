@@ -8,12 +8,13 @@ use App\Application\Cart\Commands\RemoveCartItemCommand;
 use App\Application\Cart\Commands\RemoveCartItemHandler;
 use App\Application\Cart\Commands\UpsertCartItemCommand;
 use App\Application\Cart\Commands\UpsertCartItemHandler;
-use App\Application\Cart\Dto\RemoveCartItemInputDto;
 use App\Application\Cart\Queries\GetCurrentCartHandler;
 use App\Application\Cart\Queries\GetCurrentCartQuery;
 use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cart\RemoveCartItemRequest;
 use App\Http\Requests\Cart\UpsertCartItemRequest;
+use App\Models\Cart;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,8 @@ class CartController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Cart::class);
+
         $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
         $currentUser = $this->resolveAuthenticatedUser($request);
         $payload = $this->getCurrentCartHandler->handle(
@@ -52,6 +55,7 @@ class CartController extends Controller
     {
         $input = $request->toDto();
         $currentUser = $this->resolveAuthenticatedUser($request);
+        $this->authorize('modify', [Cart::class, $input->guestToken]);
         $cartPayload = $this->upsertCartItemHandler->handle(
             new UpsertCartItemCommand(
                 $currentUser,
@@ -65,14 +69,15 @@ class CartController extends Controller
     /**
      * Remove cart item by variant id.
      */
-    public function removeItem(Request $request, int $variantId): JsonResponse
+    public function removeItem(RemoveCartItemRequest $request): JsonResponse
     {
-        $guestToken = $request->query('guest_token', $request->header('X-Cart-Token'));
+        $input = $request->toDto();
         $currentUser = $this->resolveAuthenticatedUser($request);
+        $this->authorize('modify', [Cart::class, $input->guestToken]);
         $cartPayload = $this->removeCartItemHandler->handle(
             new RemoveCartItemCommand(
                 $currentUser,
-                RemoveCartItemInputDto::fromRaw($guestToken, $variantId),
+                $input,
             )
         );
 

@@ -6,10 +6,10 @@ namespace Tests\Unit;
 
 use App\Application\Checkout\Dto\CheckoutAddressInputDto;
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Domain\Exceptions\CheckoutException;
 use App\Models\Cart;
 use App\Models\User;
 use App\Services\Checkout\CheckoutRequestIdentityResolver;
-use DomainException;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -52,7 +52,7 @@ class CheckoutRequestIdentityResolverTest extends TestCase
         $cart->id = Str::uuid()->toString();
         $cart->guest_token = null;
 
-        $this->expectException(DomainException::class);
+        $this->expectException(CheckoutException::class);
         $this->expectExceptionMessage('Guest checkout requires guest token.');
 
         app(CheckoutRequestIdentityResolver::class)->resolve($cart, $this->makeCheckoutInput(), null);

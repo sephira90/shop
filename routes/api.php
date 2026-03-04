@@ -47,7 +47,8 @@ Route::prefix('v1')->group(function (): void {
     Route::prefix('cart')->group(function (): void {
         Route::get('/', [CartController::class, 'show']);
         Route::post('items', [CartController::class, 'upsertItem']);
-        Route::delete('items/{variantId}', [CartController::class, 'removeItem']);
+        Route::delete('items/{variantId}', [CartController::class, 'removeItem'])
+            ->whereNumber('variantId');
     });
 
     Route::post('checkout/place-order', [CheckoutController::class, 'placeOrder'])

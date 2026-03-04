@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Checkout;
 
+use App\Domain\Exceptions\CheckoutException;
 use App\Models\Cart;
 use App\Models\CheckoutIdempotency;
 use App\Models\Order;
 use App\Services\Checkout\Dto\CheckoutIdempotencyResolutionDto;
 use App\Support\Data\TypedValue;
-use DomainException;
 
 final class CheckoutIdempotencyGuard
 {
@@ -55,7 +55,7 @@ final class CheckoutIdempotencyGuard
         }
 
         if ($idempotency->request_hash !== $requestHash) {
-            throw new DomainException('Idempotency key reused with different payload.');
+            throw CheckoutException::idempotencyPayloadMismatch();
         }
 
         if ($idempotency->order_id !== null) {
@@ -69,7 +69,7 @@ final class CheckoutIdempotencyGuard
         }
 
         if ($idempotency->cart_id !== null && $idempotency->cart_id !== $lockedCart->id) {
-            throw new DomainException('Idempotency key reused for a different cart.');
+            throw CheckoutException::idempotencyCartMismatch();
         }
 
         return new CheckoutIdempotencyResolutionDto(

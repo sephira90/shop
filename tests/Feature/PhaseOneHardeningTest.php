@@ -239,4 +239,42 @@ class PhaseOneHardeningTest extends TestCase
         $this->assertSame('paid', TypedValue::string($freshOrder->getRawOriginal('status')));
         $this->assertSame('captured', TypedValue::string($freshOrder->getRawOriginal('payment_status')));
     }
+
+    /**
+     * Ensure invalid direct admin order status transition is rejected.
+     */
+    public function test_admin_order_status_update_rejects_invalid_direct_order_transition(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $order = Order::query()->create([
+            'order_number' => 'ORD-PHASE1-INVALID-ORDER-TRANSITION',
+            'email' => 'customer@example.com',
+            'status' => 'cancelled',
+            'payment_status' => 'pending',
+            'shipment_status' => 'pending',
+            'currency' => 'USD',
+            'subtotal' => 100,
+            'discount_total' => 0,
+            'shipping_total' => 0,
+            'total' => 100,
+            'billing_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'cart_snapshot' => [],
+            'placed_at' => now(),
+            'cancelled_at' => now()->subHour(),
+        ]);
+
+        $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
+            'status' => 'paid',
+        ])->assertUnprocessable()
+            ->assertJsonPath('error.message', 'Order status transition is not allowed.');
+
+        $freshOrder = Order::query()->findOrFail($order->id);
+        $this->assertSame('cancelled', TypedValue::string($freshOrder->getRawOriginal('status')));
+    }
 }

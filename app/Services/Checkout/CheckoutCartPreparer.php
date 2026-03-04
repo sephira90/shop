@@ -6,6 +6,7 @@ namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutCartLineItemDto;
 use App\Application\Checkout\Dto\CheckoutCartPreparationDto;
+use App\Domain\Exceptions\CheckoutException;
 use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Enums\ProductStatus;
@@ -13,18 +14,17 @@ use App\Models\Cart;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Support\Data\TypedValue;
-use DomainException;
 
 final class CheckoutCartPreparer
 {
     public function prepare(Cart $lockedCart, string $currency): CheckoutCartPreparationDto
     {
         if ($lockedCart->items->isEmpty()) {
-            throw new DomainException('Cart is empty.');
+            throw CheckoutException::cartIsEmpty();
         }
 
         if (TypedValue::string($lockedCart->getRawOriginal('status')) !== CartStatus::ACTIVE->value) {
-            throw new DomainException('Cart is not active for checkout.');
+            throw CheckoutException::cartNotActiveForCheckout();
         }
 
         $subtotal = Money::zero($currency);
@@ -34,14 +34,14 @@ final class CheckoutCartPreparer
         foreach ($lockedCart->items as $item) {
             $variant = $item->variant;
             if (! $variant instanceof ProductVariant) {
-                throw new DomainException('Cart contains unavailable items.');
+                throw CheckoutException::cartContainsUnavailableItems();
             }
 
             $product = $variant->product;
             if (! $product instanceof Product || ! $variant->is_active
                 || TypedValue::string($product->getRawOriginal('status')) !== ProductStatus::ACTIVE->value
                 || $product->published_at === null) {
-                throw new DomainException('Cart contains unavailable items.');
+                throw CheckoutException::cartContainsUnavailableItems();
             }
 
             $variantId = (int) $item->product_variant_id;

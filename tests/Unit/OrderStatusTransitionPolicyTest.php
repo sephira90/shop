@@ -13,6 +13,81 @@ use PHPUnit\Framework\TestCase;
 class OrderStatusTransitionPolicyTest extends TestCase
 {
     /**
+     * Ensure order transition matrix is deterministic.
+     */
+    public function test_order_status_transition_matrix_is_stable(): void
+    {
+        $policy = new OrderStatusTransitionPolicy;
+
+        $allowedTransitions = [
+            OrderStatus::PENDING->value => [
+                OrderStatus::PENDING,
+                OrderStatus::PAID,
+                OrderStatus::PROCESSING,
+                OrderStatus::SHIPPED,
+                OrderStatus::COMPLETED,
+                OrderStatus::CANCELLED,
+                OrderStatus::REFUNDED,
+            ],
+            OrderStatus::PAID->value => [
+                OrderStatus::PAID,
+                OrderStatus::PROCESSING,
+                OrderStatus::SHIPPED,
+                OrderStatus::COMPLETED,
+                OrderStatus::CANCELLED,
+                OrderStatus::REFUNDED,
+            ],
+            OrderStatus::PROCESSING->value => [
+                OrderStatus::PROCESSING,
+                OrderStatus::SHIPPED,
+                OrderStatus::COMPLETED,
+                OrderStatus::CANCELLED,
+                OrderStatus::REFUNDED,
+            ],
+            OrderStatus::SHIPPED->value => [
+                OrderStatus::SHIPPED,
+                OrderStatus::COMPLETED,
+                OrderStatus::CANCELLED,
+                OrderStatus::REFUNDED,
+            ],
+            OrderStatus::COMPLETED->value => [
+                OrderStatus::COMPLETED,
+                OrderStatus::REFUNDED,
+            ],
+            OrderStatus::CANCELLED->value => [
+                OrderStatus::CANCELLED,
+                OrderStatus::PROCESSING,
+                OrderStatus::REFUNDED,
+            ],
+            OrderStatus::REFUNDED->value => [
+                OrderStatus::REFUNDED,
+            ],
+        ];
+
+        foreach (OrderStatus::cases() as $from) {
+            foreach (OrderStatus::cases() as $to) {
+                $expected = in_array($to, $allowedTransitions[$from->value], true);
+
+                self::assertSame(
+                    $expected,
+                    $policy->canTransition($from, $to),
+                    sprintf('Unexpected order transition "%s" -> "%s".', $from->value, $to->value),
+                );
+
+                self::assertSame(
+                    $expected,
+                    $policy->canTransitionDirectly($from, $to),
+                    sprintf('Unexpected direct order transition "%s" -> "%s".', $from->value, $to->value),
+                );
+            }
+        }
+
+        self::assertTrue($policy->canTransition('paid', 'cancelled'));
+        self::assertFalse($policy->canTransition('completed', 'pending'));
+        self::assertFalse($policy->canTransitionDirectly('cancelled', 'paid'));
+    }
+
+    /**
      * Ensure order status transitions from payment events are deterministic.
      */
     public function test_order_status_resolution_by_payment_status_is_stable(): void

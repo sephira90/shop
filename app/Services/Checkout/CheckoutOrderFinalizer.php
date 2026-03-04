@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Checkout;
 
+use App\Domain\Exceptions\CheckoutException;
 use App\Enums\CartStatus;
 use App\Events\OrderPlaced;
 use App\Models\Order;
 use App\Services\Checkout\Dto\CheckoutOrderFinalizationInputDto;
-use DomainException;
 
 final class CheckoutOrderFinalizer
 {
@@ -36,7 +36,7 @@ final class CheckoutOrderFinalizer
         $refreshedOrder = $input->order->fresh(['items', 'payments', 'shipments']);
 
         if (! $refreshedOrder instanceof Order) {
-            throw new DomainException('Order not found after checkout finalization.');
+            throw CheckoutException::orderNotFoundAfterFinalization();
         }
 
         return $refreshedOrder;

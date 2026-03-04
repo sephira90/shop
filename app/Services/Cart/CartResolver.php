@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Cart;
 
+use App\Domain\Exceptions\CartException;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\User;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -92,7 +92,7 @@ final class CartResolver
 
         $token = trim((string) $guestToken);
         if ($token === '') {
-            throw new DomainException('Guest token is required.');
+            throw CartException::guestTokenRequired();
         }
 
         $cart = Cart::query()
