@@ -761,6 +761,194 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
         - `resources/js/tests/auth-store.spec.ts`;
         - `resources/js/tests/cart-store.spec.ts`;
         - `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`.
+26. Promoted deep-domain checkout foundation slice completed (`Backlog D` partial from `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md`, items `9` and `10`):
+    - checkout command orchestration moved out of application handler:
+      - new `App\Services\Checkout\CheckoutPlaceOrderOrchestrator` now owns guest-cart merge, checkout cart resolution, order placement, and payment initiation flow;
+      - `PlaceCheckoutOrderHandler` reduced to transport/application shell that delegates to orchestrator.
+    - shipping calculation extracted behind explicit contract:
+      - `CheckoutShippingCostResolver` interface introduced;
+      - `FreeCheckoutShippingCostResolver` added as current default implementation;
+      - `CheckoutService` now resolves `shippingTotal` through the resolver contract instead of hardcoded literal.
+    - container binding and regression coverage added:
+      - `ApplicationBindingsServiceProvider` binds `CheckoutShippingCostResolver` to `FreeCheckoutShippingCostResolver`;
+      - `tests/Unit/CheckoutShippingCostResolverBindingTest.php` verifies binding and current default result;
+      - checkout feature suites remain green and now execute via orchestrator path.
+27. Promoted deep-domain payment-status domain extraction completed (`Backlog D` incremental continuation, item `8` foundation):
+    - payment-status business logic moved out of `Order` model:
+      - extracted `App\Domain\Order\OrderPaymentStatusResolver`;
+      - removed `hasCapturedPayment()` and `normalizedPaymentStatus()` helpers from `App\Models\Order`.
+    - side-effect consumers switched to domain service:
+      - `QueueOrderSideEffects` now uses `OrderPaymentStatusResolver` before dispatching `DispatchShipmentJob`;
+      - `DispatchShipmentJob` now resolves the same domain service in `handle()` and no longer depends on model helper methods.
+    - guardrails and unit coverage added:
+      - `tests/Unit/OrderPaymentStatusResolverTest.php` verifies enum/string/null normalization and captured-payment detection;
+      - `tests/Unit/Architecture/OrderModelBusinessLogicBoundaryTest.php` prevents payment-status business helpers from returning to `Order` model.
+28. Promoted deep-domain money value-object foundation completed (`Backlog D` incremental continuation, item `7` foundation):
+    - domain value object introduced:
+      - `App\Domain\ValueObjects\Money` (`cents + currency`) with explicit arithmetic and rounding semantics (`add`, `subtract`, `min`, `percentage`).
+    - checkout core flow migrated to money-boundary internals:
+      - `CheckoutCartPreparer` now accumulates subtotal as `Money`;
+      - `CheckoutDiscountResolver` now computes discount as `Money`;
+      - `CheckoutShippingCostResolver` contract now returns `Money`;
+      - `CheckoutOrderWriter` now performs total arithmetic via `Money` and converts to scalar only at persistence boundary.
+    - dto boundary updates for internal consistency:
+      - `CheckoutCartLineItemDto`, `CheckoutCartPreparationDto`, `CheckoutOrderWriteInputDto`, and `CheckoutDiscountContextDto` now carry `Money` for internal calculations while preserving existing API payload shape.
+    - unit coverage added/updated:
+      - `tests/Unit/Domain/ValueObjects/MoneyTest.php`;
+      - `tests/Unit/CheckoutShippingCostResolverBindingTest.php`;
+      - `tests/Unit/CheckoutOrderFinalizerTest.php`.
+29. Promoted platform-enablement factory foundation completed (`Backlog E` incremental start, item `20` foundation):
+    - new test factories introduced for catalog/cart/order/promotion domains:
+      - `CategoryFactory`, `ProductFactory`, `ProductVariantFactory`, `InventoryFactory`, `PriceFactory`,
+      - `CartFactory`, `CartItemFactory`,
+      - `OrderFactory`, `OrderItemFactory`,
+      - `PromotionFactory`, `CouponFactory`.
+    - seeder coupling reduction started:
+      - `CartMutationSafetyTest` no longer depends on `CatalogSeeder`; it now assembles required catalog/inventory state through factories.
+    - deterministic factory coverage added:
+      - `tests/Unit/FactoryCoverageTest.php` verifies catalog aggregate, cart/order item relations, and promotion/coupon linkage can be created without seeders.
+30. Promoted platform-enablement factory adoption progressed (`Backlog E` incremental continuation, item `20`):
+    - checkout feature tests decoupled from catalog seeding:
+      - `GuestCheckoutTest`,
+      - `CouponCheckoutTest`,
+      - `CartCheckoutTest`,
+      - `CheckoutAuthenticatedTokenTest`
+      now build active catalog state via factories instead of `CatalogSeeder`.
+    - shared test fixture helper introduced:
+      - `tests/Concerns/CreatesCatalogVariant.php` provides explicit `Product + ProductVariant + Inventory` setup for checkout-facing tests.
+    - role-bound auth contracts remain explicit:
+      - `RoleSeeder` kept where role assignment is part of test intent; only catalog bootstrap moved to factories.
+31. Promoted platform-enablement factory adoption progressed (`Backlog E` incremental continuation, item `20` webhook coverage):
+    - webhook feature tests decoupled from `CatalogSeeder` bootstrap:
+      - `PaymentWebhookTest`,
+      - `ShippingWebhookTest`
+      now build checkout-capable catalog state via shared factory fixture.
+    - shared fixture reuse expanded:
+      - `tests/Concerns/CreatesCatalogVariant.php` is now used across checkout and webhook feature suites, reducing duplicated catalog setup patterns.
+    - webhook safety semantics preserved:
+      - replay idempotency, hash mismatch protection, regression-guarded status transitions, and pay-endpoint idempotency-header assertions remain green after fixture migration.
+32. Promoted platform-enablement factory adoption progressed (`Backlog E` incremental continuation, item `20` catalog/hardening coverage):
+    - catalog feature tests decoupled from `CatalogSeeder`:
+      - `CatalogTest` now initializes active catalog state through factory fixtures.
+    - phase-one hardening public/cart/checkout path decoupled from catalog seeding:
+      - `PhaseOneHardeningTest` storefront/cart/checkout scenarios now use factory-based variant/product setup while manager-role admin transition cases retain explicit `RoleSeeder`.
+    - shared fixture capabilities expanded:
+      - `CreatesCatalogVariant` now provides `createActiveProductWithVariants(...)` in addition to single-variant inventory setup.
+33. Promoted platform-enablement factory adoption progressed (`Backlog E` incremental continuation, item `20` admin-promotion/performance coverage):
+    - admin promotion checkout-flow feature tests decoupled from `CatalogSeeder`:
+      - `AdminPromotionCouponFlowTest` now uses shared factory fixture setup for checkout-capable variant creation.
+    - performance smoke feature tests decoupled from `CatalogSeeder`:
+      - `PerformanceSmokeTest` now creates deterministic catalog fixtures through `CreatesCatalogVariant` instead of seeder bootstrap.
+    - no `CatalogSeeder` coupling remains in `tests/Feature/*`:
+      - feature-suite catalog bootstrap now consistently uses explicit factory fixtures, while `RoleSeeder` remains only for role-contract intent.
+34. Promoted domain-event expansion foundation completed (`Backlog E` incremental continuation, item `21` foundation):
+    - status transition domain events introduced with after-commit semantics:
+      - `OrderStatusChanged`,
+      - `PaymentStatusChanged`,
+      - `ShipmentStatusChanged`.
+    - post-payment webhook side effects moved behind event listener boundary:
+      - `PaymentWebhookTransitionApplier` now emits `PaymentStatusChanged` instead of dispatching jobs directly;
+      - `QueuePaymentStatusSideEffects` now owns `SendOrderConfirmationJob` / `DispatchShipmentJob` dispatch with explicit first-capture guard.
+    - transition audit subscribers added:
+      - `LogOrderStatusTransition`,
+      - `LogShipmentStatusTransition`.
+    - order-status change emission adopted in mutating flows:
+      - payment webhook transition path;
+      - shipping webhook transition path;
+      - admin order status update path.
+    - event wiring + regression coverage added:
+      - `EventServiceProvider` now maps status events to dedicated listeners;
+      - unit/feature coverage extended in:
+        - `PaymentWebhookTransitionApplierTest`,
+        - `ShippingWebhookTransitionApplierTest`,
+        - `AdminOrderServiceStatusEventTest`,
+        - `QueuePaymentStatusSideEffectsTest`.
+35. Promoted domain-event expansion progressed (`Backlog E` incremental continuation, item `21` metrics-subscriber slice):
+    - observability metric subscribers added for status-transition events:
+      - `RecordOrderStatusTransitionMetric`,
+      - `RecordPaymentStatusTransitionMetric`,
+      - `RecordShipmentStatusTransitionMetric`.
+    - event payloads enriched with transition source where needed:
+      - `PaymentStatusChanged` and `ShipmentStatusChanged` now carry `source`;
+      - webhook transition appliers emit typed sources (`payment_webhook`, `shipping_webhook`).
+    - observability module extended with status-transition metric pipeline:
+      - `ObservabilityService::statusTransition(...)` added;
+      - `ObservabilityMetricStore` now stores and aggregates `status_transition` counters by `domain + from + to + source`.
+    - event/listener wiring expanded:
+      - `EventServiceProvider` now maps status-transition metric listeners alongside existing audit and side-effect listeners.
+    - deterministic coverage added/updated:
+      - `StatusTransitionMetricListenersTest`,
+      - `ObservabilityMetricStoreTest`,
+      - `ObservabilityServiceTest`,
+      - plus webhook transition regression suites to ensure event-contract compatibility.
+36. Promoted domain-event expansion progressed (`Backlog E` incremental continuation, item `21` notification-side-effects slice):
+    - dedicated order-status side-effect listener added:
+      - `QueueOrderStatusSideEffects` now handles `OrderStatusChanged` and dispatches queued notification flow for customer-facing milestones.
+    - new queued notification job introduced:
+      - `SendOrderStatusChangedNotificationJob` dispatches `OrderStatusChangedNotification` via on-demand mail routing (`order.email`) with scalar payload-only queue boundary.
+    - notification scope is explicit and reversible:
+      - notification dispatch currently targets `shipped`, `completed`, `cancelled`, and `refunded` statuses only.
+    - event wiring + queue-safety guardrails extended:
+      - `EventServiceProvider` now wires `QueueOrderStatusSideEffects` for `OrderStatusChanged`;
+      - `QueuedJobSafetyGuardrailTest` now enforces `afterCommit` dispatch path and scalar payload contract for `SendOrderStatusChangedNotificationJob`.
+    - deterministic coverage added:
+      - `QueueOrderStatusSideEffectsTest`,
+      - `SendOrderStatusChangedNotificationJobTest`,
+      - plus existing admin/webhook order-status transition suites remain green.
+37. Promoted domain-event expansion progressed (`Backlog E` incremental continuation, item `21` config-contract hardening slice):
+    - order-status notification policy moved to explicit config contract:
+      - added `config/orders.php` with `orders.status_notifications.notifiable_statuses`.
+    - listener notification scope now resolves from config with enum-safe validation:
+      - `QueueOrderStatusSideEffects` now parses configured statuses through `OrderStatus::tryFrom(...)` and fails fast for invalid entries.
+    - config contract coverage extended:
+      - `OperationalDocsConfigGuardrailTest` now validates `orders.status_notifications.notifiable_statuses` contains only supported `OrderStatus` values.
+    - deterministic listener coverage extended:
+      - `QueueOrderStatusSideEffectsTest` now verifies config-driven dispatch/skip behavior and invalid-config failure semantics.
+38. Promoted platform-enablement infrastructure progressed (`Backlog E` incremental continuation, item `22` docker-compose foundation slice):
+    - root local compose entrypoint added:
+      - `docker-compose.yml` now provides `app + nginx + mysql:8.4 + redis:7` stack from repository root.
+    - local-stack contract guardrail added:
+      - `DockerComposeContractGuardrailTest` now validates required service/image/env contract for both:
+        - root `docker-compose.yml`,
+        - compatibility file `docker/compose.yml`.
+    - local runbook updated:
+      - `README.md` now includes Docker Compose quick-start commands for local parity with MySQL/Redis runtime.
+39. Promoted domain-event expansion progressed (`Backlog E` incremental continuation, item `21` typed-source boundary slice):
+    - status-transition event source moved from raw strings to typed enum contract:
+      - added `app/Domain/Order/StatusTransitionSource.php`.
+    - transition events now enforce enum source type:
+      - `OrderStatusChanged`,
+      - `PaymentStatusChanged`,
+      - `ShipmentStatusChanged`.
+    - all emitters/listeners migrated to enum-safe source handling:
+      - payment/shipping webhook transition appliers and admin order status service emit enum cases;
+      - logging/metric/notification listeners map source through explicit scalar boundary (`->value`) where needed.
+    - architecture guardrail added:
+      - `StatusTransitionSourceBoundaryTest` enforces typed event source constructor contract and forbids raw source literals in transition emitters.
+40. Promoted platform-enablement infrastructure progressed (`Backlog E` incremental continuation, item `22` docker-ops alias slice):
+    - canonical local docker operations added to composer aliases:
+      - `ops:docker-up`,
+      - `ops:docker-down`,
+      - `ops:docker-bootstrap`.
+    - local docker onboarding in README migrated to canonical aliases:
+      - quick-start now uses `composer run ops:docker-bootstrap`;
+      - stop flow now uses `composer run ops:docker-down`.
+    - guardrails extended for alias/docs parity:
+      - `ReleaseCommandScriptGuardrailTest` now enforces docker alias script contracts;
+      - `ReleaseDocsWorkflowGuardrailTest` now enforces docker alias references in README.
+41. Promoted platform-enablement infrastructure progressed (`Backlog E` incremental continuation, item `22` release-doc/runbook parity slice):
+    - release checklist updated with canonical docker alias block:
+      - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` now references:
+        - `composer run ops:docker-up`,
+        - `composer run ops:docker-down`,
+        - `composer run ops:docker-bootstrap`.
+    - ops runbook updated with local parity bootstrap/teardown flow:
+      - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md` now includes local investigation baseline using docker aliases.
+    - release docs guardrail expanded:
+      - `ReleaseDocsWorkflowGuardrailTest` now enforces docker alias references in:
+        - README,
+        - release checklist,
+        - ops runbook.
 
 ## Locked Constraints
 

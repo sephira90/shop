@@ -1,7 +1,7 @@
 # Deep Architecture Audit & Backlog Alignment
 
 > Date: 2026-03-01
-> Status: Aligned backlog input (`Backlog A`, `Backlog B`, and `Backlog C` promoted and completed in active roadmap)
+> Status: Aligned backlog input (`Backlog A`, `Backlog B`, `Backlog C` completed; `Backlog D` promoted with items `7`, `8`, `9`, `10` foundation completed; `Backlog E` promoted in incremental mode with item `20` foundation plus checkout/webhook/catalog/hardening/admin-promotion/performance feature-test adoption, item `21` status-transition event+metrics+notification side-effects foundation with config-contract hardening and typed-source boundary hardening, and item `22` docker-compose + docker-ops alias + release-doc parity foundation in active roadmap)
 > Source-of-truth for architecture execution: `docs/ARCHITECTURE_REFACTOR_NEXT.md`
 
 ## Execution Alignment
@@ -331,8 +331,8 @@ Controllers → Handlers → Services → Domain Layer → Value Objects
 | **Backlog A** | P0 | 1, 2, 3, 4, 5 | Data safety, race conditions, transport validation | Promoted and completed on `2026-03-01`; see active roadmap progress item `23` |
 | **Backlog B** | P1 backend | 6, 11, 12, 13, 14, 15 | Backend boundary hygiene / quick wins | Promoted and completed on `2026-03-02`; see active roadmap progress item `24` |
 | **Backlog C** | P1 frontend | 16, 17, 18, 19 | Frontend consistency and decoupling | Promoted and completed on `2026-03-02`; see active roadmap progress item `25` |
-| **Backlog D** | P1 backend | 7, 8, 9, 10 | Deep domain program | Только как отдельный approved refactor slice |
-| **Backlog E** | P2 | 20, 21, 22 | Platform enablement, factories, domain-event expansion | После `Backlog A-C`; не должен блокировать risk-reduction |
+| **Backlog D** | P1 backend | 7, 8, 9, 10 | Deep domain program | Promoted as incremental deep-domain slice on `2026-03-03`; foundation slices for items `8/9/10` and checkout-scoped foundation for item `7` completed by `2026-03-04` |
+| **Backlog E** | P2 | 20, 21, 22 | Platform enablement, factories, domain-event expansion | Promoted in incremental mode on `2026-03-04`: item `20` factory foundation + checkout/webhook/catalog/hardening/admin-promotion/performance feature migration completed; item `21` status-transition event+metrics+notification side-effects foundation with config-contract and typed-source hardening in progress; item `22` docker-compose foundation plus docker-ops alias and release-doc parity started |
 
 ## Mapping To Active Roadmap
 
@@ -346,8 +346,8 @@ Controllers → Handlers → Services → Domain Layer → Value Objects
 1. `Backlog A` уже promoted и completed как safety slice.
 2. `Backlog B` уже promoted и completed как boundary hygiene slice.
 3. `Backlog C` уже promoted и completed как frontend consistency slice.
-4. Re-assess repository, controller, and webhook architecture after `Backlog C` before deciding whether `Backlog D` still needs full original scope.
-5. Promote `Backlog E` только после явного решения, нужен ли platform/domain expansion именно сейчас.
+4. `Backlog D` promoted in incremental mode: checkout orchestration/shipping-resolver foundation (`9`, `10`), payment-status domain extraction (`8`), and checkout-scoped `Money` value-object foundation (`7`) are completed; further expansion of `Money` usage can now be planned as an optional follow-up slice.
+5. `Backlog E` promoted in incremental mode with item `20` completed, item `21` in progress (event+metrics+notification slices plus config-contract and typed-source hardening), and item `22` docker-compose + docker-ops alias + release-doc parity foundation started; continue hardening item `21/22` slices before reassessing new platform additions.
 
 ---
 

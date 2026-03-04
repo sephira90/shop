@@ -5053,3 +5053,533 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-03` — promoted audit `Backlog D` progressed via deep-domain checkout foundation slice (`items 9 and 10`):
+  - checkout orchestration extracted from application handler:
+    - new service boundary introduced:
+      - `app/Services/Checkout/CheckoutPlaceOrderOrchestrator.php`;
+    - `app/Application/Checkout/Commands/PlaceCheckoutOrderHandler.php` reduced to orchestration shell that delegates to the new service.
+  - shipping-total calculation moved behind explicit contract:
+    - new contract:
+      - `app/Services/Checkout/CheckoutShippingCostResolver.php`;
+    - default implementation:
+      - `app/Services/Checkout/FreeCheckoutShippingCostResolver.php`;
+    - checkout flow integration:
+      - `app/Services/Checkout/CheckoutService.php` now resolves `shippingTotal` through the contract, removing hardcoded literal assignment.
+  - container wiring updated:
+    - `app/Providers/ApplicationBindingsServiceProvider.php` now binds:
+      - `CheckoutShippingCostResolver::class` -> `FreeCheckoutShippingCostResolver::class`.
+  - deterministic regression coverage added:
+    - `tests/Unit/CheckoutShippingCostResolverBindingTest.php` verifies both IoC binding and current default zero-cost behavior.
+  - roadmap and backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `26` added for this promoted partial `Backlog D` slice;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to mark `Backlog D` as promoted in incremental mode (`9`, `10` completed foundation; `7`, `8` pending).
+  - verification:
+    - targeted checkout regressions passed:
+      - `php artisan test --filter="CheckoutShippingCostResolverBindingTest|CartCheckoutTest|GuestCheckoutTest|CheckoutAuthenticatedTokenTest|CouponCheckoutTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-03` — promoted audit `Backlog D` progressed via payment-status domain extraction slice (`item 8` foundation):
+  - payment-status business logic removed from Eloquent model boundary:
+    - extracted domain service:
+      - `app/Domain/Order/OrderPaymentStatusResolver.php`;
+    - model helpers removed:
+      - `hasCapturedPayment()` and `normalizedPaymentStatus()` deleted from `app/Models/Order.php`.
+  - consumers migrated to domain service contract:
+    - `app/Listeners/QueueOrderSideEffects.php` now depends on `OrderPaymentStatusResolver` to gate shipment dispatch side effect;
+    - `app/Jobs/DispatchShipmentJob.php` now resolves `OrderPaymentStatusResolver` in `handle()` and no longer calls model helper methods.
+  - deterministic coverage and architecture guardrail added:
+    - `tests/Unit/OrderPaymentStatusResolverTest.php` validates captured-payment detection and normalization behavior;
+    - `tests/Unit/Architecture/OrderModelBusinessLogicBoundaryTest.php` asserts payment-status business helpers remain out of `Order` model.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `27` added for this incremental `Backlog D` slice;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated: `Backlog D` now marks `8/9/10` foundation completed, `7` pending.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="OrderPaymentStatusResolverTest|OrderModelBusinessLogicBoundaryTest|AfterCommitDispatchSafetyTest|CheckoutOrderFinalizerTest|ShipmentDispatchIdempotencyTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog D` progressed via checkout-scoped money value-object foundation (`item 7` foundation):
+  - domain money boundary introduced:
+    - added `app/Domain/ValueObjects/Money.php` (`cents + currency`) with deterministic arithmetic/rounding semantics and explicit currency guards.
+  - checkout core internals migrated from float arithmetic to `Money`:
+    - `app/Services/Checkout/CheckoutCartPreparer.php` now accumulates subtotal through `Money`;
+    - `app/Services/Checkout/CheckoutDiscountResolver.php` now computes discount totals as `Money`;
+    - `app/Services/Checkout/CheckoutShippingCostResolver.php` and `app/Services/Checkout/FreeCheckoutShippingCostResolver.php` now operate on `Money`;
+    - `app/Services/Checkout/CheckoutOrderWriter.php` now computes `total` via `Money` and converts to scalar only at persistence boundary.
+  - checkout dto boundaries updated for internal consistency:
+    - `app/Application/Checkout/Dto/CheckoutCartLineItemDto.php`;
+    - `app/Application/Checkout/Dto/CheckoutCartPreparationDto.php`;
+    - `app/Application/Checkout/Dto/CheckoutOrderWriteInputDto.php`;
+    - `app/Services/Checkout/Dto/CheckoutDiscountContextDto.php`.
+  - deterministic coverage added/updated:
+    - `tests/Unit/Domain/ValueObjects/MoneyTest.php`;
+    - `tests/Unit/CheckoutShippingCostResolverBindingTest.php`;
+    - `tests/Unit/CheckoutOrderFinalizerTest.php`.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `28` added for `Backlog D` item `7` foundation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` now reflects that item `7` has checkout-scoped foundation completed.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="MoneyTest|CheckoutShippingCostResolverBindingTest|CheckoutOrderFinalizerTest|CartCheckoutTest|GuestCheckoutTest|CouponCheckoutTest|CheckoutAuthenticatedTokenTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` started via factory foundation slice (`item 20` foundation):
+  - added model factories for isolated test setup without mandatory catalog seeding:
+    - `database/factories/CategoryFactory.php`;
+    - `database/factories/ProductFactory.php`;
+    - `database/factories/ProductVariantFactory.php`;
+    - `database/factories/InventoryFactory.php`;
+    - `database/factories/PriceFactory.php`;
+    - `database/factories/CartFactory.php`;
+    - `database/factories/CartItemFactory.php`;
+    - `database/factories/OrderFactory.php`;
+    - `database/factories/OrderItemFactory.php`;
+    - `database/factories/PromotionFactory.php`;
+    - `database/factories/CouponFactory.php`.
+  - started replacing seeder-coupled tests:
+    - `tests/Feature/CartMutationSafetyTest.php` migrated from `CatalogSeeder` setup to direct factory-driven setup (`Product/ProductVariant/Inventory`).
+  - deterministic factory regression coverage added:
+    - `tests/Unit/FactoryCoverageTest.php` verifies catalog aggregate creation, cart/order item relation creation, and promotion/coupon linkage without seeders.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `29` added for `Backlog E` item `20` foundation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect incremental promotion of `Backlog E` with item `20` started.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="FactoryCoverageTest|CartMutationSafetyTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via checkout feature factory adoption (`item 20` continuation):
+  - checkout feature tests decoupled from `CatalogSeeder` bootstrap:
+    - `tests/Feature/GuestCheckoutTest.php`;
+    - `tests/Feature/CouponCheckoutTest.php`;
+    - `tests/Feature/CartCheckoutTest.php`;
+    - `tests/Feature/CheckoutAuthenticatedTokenTest.php`.
+  - shared checkout catalog fixture helper added:
+    - `tests/Concerns/CreatesCatalogVariant.php` now provides deterministic `Product + ProductVariant + Inventory` setup for checkout-facing feature tests.
+  - role contracts preserved:
+    - `RoleSeeder` remains explicit in auth/role-aware flows; only catalog fixture responsibility moved to factories.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `30` added for this `Backlog E` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect `item 20` foundation plus initial checkout-test adoption.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="GuestCheckoutTest|CouponCheckoutTest|CartCheckoutTest|CheckoutAuthenticatedTokenTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via webhook feature factory adoption (`item 20` continuation):
+  - webhook feature tests decoupled from `CatalogSeeder`:
+    - `tests/Feature/PaymentWebhookTest.php`;
+    - `tests/Feature/ShippingWebhookTest.php`.
+  - shared fixture helper reused for webhook setup:
+    - `tests/Concerns/CreatesCatalogVariant.php` now backs checkout + webhook fixture initialization.
+  - fixture migration kept webhook safety behavior unchanged:
+    - signature requirement;
+    - replay idempotency;
+    - payload hash mismatch protection;
+    - payment/shipment status regression prevention.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `31` added for this `Backlog E` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect checkout + webhook adoption for `item 20`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="PaymentWebhookTest|ShippingWebhookTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via catalog/hardening feature factory adoption (`item 20` continuation):
+  - catalog feature tests decoupled from `CatalogSeeder`:
+    - `tests/Feature/CatalogTest.php` now prepares active catalog state with factory fixture helper.
+  - phase-one hardening storefront/cart/checkout setup decoupled from `CatalogSeeder`:
+    - `tests/Feature/PhaseOneHardeningTest.php` now creates product/variant fixtures via shared helper for public/cart/checkout scenarios;
+    - manager-role admin transition scenarios continue to use explicit `RoleSeeder` only.
+  - shared fixture helper expanded for multi-variant scenarios:
+    - `tests/Concerns/CreatesCatalogVariant.php` now exposes:
+      - `createActiveProductWithVariants(array $prices)`;
+      - `createActiveVariantWithInventory(...)`.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `32` added for this `Backlog E` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect checkout/webhook/catalog/hardening adoption for item `20`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="CatalogTest|PhaseOneHardeningTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via admin-promotion/performance feature factory adoption (`item 20` continuation):
+  - remaining feature tests decoupled from `CatalogSeeder`:
+    - `tests/Feature/AdminPromotionCouponFlowTest.php` now uses `CreatesCatalogVariant` for checkout-capable variant setup in promotion/coupon checkout flow;
+    - `tests/Feature/PerformanceSmokeTest.php` now builds deterministic catalog fixtures with factories (`CreatesCatalogVariant`) for catalog/admin-product query budgets.
+  - feature-suite seeder coupling reduced to role-only intent:
+    - no `CatalogSeeder` usage remains under `tests/Feature/*`;
+    - `RoleSeeder` remains explicit where ACL/role contracts are the test intent.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `33` added for this `Backlog E` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect checkout/webhook/catalog/hardening/admin-promotion/performance adoption for item `20`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="AdminPromotionCouponFlowTest|PerformanceSmokeTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via status-transition domain-event foundation (`item 21` foundation):
+  - transition events introduced with `afterCommit` dispatch contract:
+    - `app/Events/OrderStatusChanged.php`;
+    - `app/Events/PaymentStatusChanged.php`;
+    - `app/Events/ShipmentStatusChanged.php`.
+  - payment webhook side effects moved behind event listener boundary:
+    - `app/Services/Payment/PaymentWebhookTransitionApplier.php` now emits `PaymentStatusChanged` (and `OrderStatusChanged` when order status actually changes);
+    - `app/Listeners/QueuePaymentStatusSideEffects.php` owns post-capture dispatch of:
+      - `SendOrderConfirmationJob`;
+      - `DispatchShipmentJob`.
+  - shipment/admin status-transition event wiring added:
+    - `app/Services/Shipping/ShippingWebhookTransitionApplier.php` now emits `ShipmentStatusChanged` and `OrderStatusChanged` on status transition;
+    - `app/Services/Admin/AdminOrderService.php` now emits `OrderStatusChanged` when admin update changes order status.
+  - audit subscribers introduced:
+    - `app/Listeners/LogOrderStatusTransition.php`;
+    - `app/Listeners/LogShipmentStatusTransition.php`.
+  - event/provider wiring and guardrails updated:
+    - `app/Providers/EventServiceProvider.php` maps new events to dedicated listeners;
+    - `tests/Unit/Architecture/QueuedJobSafetyGuardrailTest.php` now enforces `afterCommit` dispatch path in `QueuePaymentStatusSideEffects`.
+  - deterministic coverage added/updated:
+    - `tests/Unit/QueuePaymentStatusSideEffectsTest.php`;
+    - `tests/Unit/AdminOrderServiceStatusEventTest.php`;
+    - `tests/Unit/PaymentWebhookTransitionApplierTest.php`;
+    - `tests/Unit/ShippingWebhookTransitionApplierTest.php`.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `34` added for this `Backlog E` item `21` foundation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect item `21` foundation started.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="AdminOrderServiceStatusEventTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest|QueuePaymentStatusSideEffectsTest|QueuedJobSafetyGuardrailTest|PaymentWebhookTest|ShippingWebhookTest|PhaseOneHardeningTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via status-transition metrics subscribers (`item 21` continuation):
+  - status-transition metric listeners added:
+    - `app/Listeners/RecordOrderStatusTransitionMetric.php`;
+    - `app/Listeners/RecordPaymentStatusTransitionMetric.php`;
+    - `app/Listeners/RecordShipmentStatusTransitionMetric.php`.
+  - status-transition events enriched with source context:
+    - `app/Events/PaymentStatusChanged.php` and `app/Events/ShipmentStatusChanged.php` now carry `source`;
+    - webhook emitters pass typed sources (`payment_webhook`, `shipping_webhook`).
+  - observability metric pipeline extended for domain events:
+    - `app/Support/Observability/ObservabilityService.php` adds `statusTransition(...)`;
+    - `app/Support/Observability/ObservabilityMetricStore.php` adds status-transition sample storage and window aggregation (`statusTransitionMetrics(...)`).
+  - provider/listener wiring updated:
+    - `app/Providers/EventServiceProvider.php` now wires metric listeners alongside existing audit/side-effect listeners.
+  - deterministic coverage added/updated:
+    - `tests/Unit/StatusTransitionMetricListenersTest.php`;
+    - `tests/Unit/ObservabilityMetricStoreTest.php`;
+    - `tests/Unit/ObservabilityServiceTest.php`;
+    - updated transition/event compatibility tests:
+      - `tests/Unit/QueuePaymentStatusSideEffectsTest.php`;
+      - `tests/Unit/PaymentWebhookTransitionApplierTest.php`;
+      - `tests/Unit/ShippingWebhookTransitionApplierTest.php`.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `35` added for this `Backlog E` item `21` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect item `21` event+metrics foundation in progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="StatusTransitionMetricListenersTest|ObservabilityMetricStoreTest|ObservabilityServiceTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest|QueuePaymentStatusSideEffectsTest|PaymentWebhookTest|ShippingWebhookTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via order-status notification side-effects (`item 21` continuation):
+  - dedicated order-status side-effect listener introduced:
+    - `app/Listeners/QueueOrderStatusSideEffects.php` now handles `OrderStatusChanged` and dispatches queued customer notification flow for selected statuses.
+  - queued notification delivery flow added:
+    - `app/Jobs/SendOrderStatusChangedNotificationJob.php` delivers `app/Notifications/OrderStatusChangedNotification.php` via on-demand mail route (`order.email`);
+    - queue payload remains scalar-only (`orderId`, `previousStatus`, `currentStatus`, `source`) for retry safety.
+  - notification scope explicitly bounded:
+    - notifications are dispatched for `shipped`, `completed`, `cancelled`, `refunded` transitions;
+    - non-customer-facing transitions (for example `pending -> paid`) are skipped.
+  - event wiring and queue-safety guardrails extended:
+    - `app/Providers/EventServiceProvider.php` now maps `OrderStatusChanged` to `QueueOrderStatusSideEffects` in addition to audit/metric listeners;
+    - `tests/Unit/Architecture/QueuedJobSafetyGuardrailTest.php` now enforces:
+      - `afterCommit` dispatch in `QueueOrderStatusSideEffects`;
+      - scalar payload contract for `SendOrderStatusChangedNotificationJob`.
+  - deterministic coverage added:
+    - `tests/Unit/QueueOrderStatusSideEffectsTest.php`;
+    - `tests/Unit/SendOrderStatusChangedNotificationJobTest.php`;
+    - existing webhook/admin order-transition suites kept green.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `36` added for this `Backlog E` item `21` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect item `21` event+metrics+notification side-effects foundation in progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="QueueOrderStatusSideEffectsTest|SendOrderStatusChangedNotificationJobTest|QueuedJobSafetyGuardrailTest|AdminOrderServiceStatusEventTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest|PhaseOneHardeningTest"`;
+      - `php artisan test --filter="PaymentWebhookTest|ShippingWebhookTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via order-status notification config-contract hardening (`item 21` continuation):
+  - order-status notification policy moved to explicit config:
+    - added `config/orders.php` with `orders.status_notifications.notifiable_statuses`.
+  - listener now resolves notification scope from config with enum-safe validation:
+    - `app/Listeners/QueueOrderStatusSideEffects.php` now parses configured statuses via `OrderStatus::tryFrom(...)` and fails fast for unsupported values.
+  - config contract guardrails extended:
+    - `tests/Unit/Architecture/OperationalDocsConfigGuardrailTest.php` now validates that configured values are supported `OrderStatus` entries.
+  - deterministic listener coverage extended:
+    - `tests/Unit/QueueOrderStatusSideEffectsTest.php` now verifies:
+      - config-driven dispatch/skip behavior;
+      - invalid-config failure semantics.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `37` added for this `Backlog E` item `21` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect item `21` config-contract hardening progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="QueueOrderStatusSideEffectsTest|QueuedJobSafetyGuardrailTest|OperationalDocsConfigGuardrailTest|SendOrderStatusChangedNotificationJobTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via docker-compose foundation (`item 22` start):
+  - local docker compose entrypoint added:
+    - `docker-compose.yml` now provides root-level local stack (`app`, `nginx`, `db` MySQL 8.4, `redis` Redis 7).
+  - compose contract guardrail added:
+    - `tests/Unit/Architecture/DockerComposeContractGuardrailTest.php` now validates required service/image/env contract for:
+      - `docker-compose.yml`;
+      - `docker/compose.yml` (compatibility path).
+  - local runbook updated:
+    - `README.md` now includes Docker Compose quick start (`docker compose up --build -d`, key generation, migrations).
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `38` added for this `Backlog E` item `22` foundation slice;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect `item 22` docker-compose foundation started.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="DockerComposeContractGuardrailTest|OperationalDocsConfigGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via status-transition typed-source boundary hardening (`item 21` continuation):
+  - typed transition-source contract introduced:
+    - added `app/Domain/Order/StatusTransitionSource.php` with explicit cases:
+      - `payment_webhook`,
+      - `shipping_webhook`,
+      - `admin_order_update`.
+  - status-transition events migrated from raw string `source` to enum source:
+    - `app/Events/OrderStatusChanged.php`;
+    - `app/Events/PaymentStatusChanged.php`;
+    - `app/Events/ShipmentStatusChanged.php`.
+  - emitters/listeners migrated to enum-safe handling:
+    - emitters now use enum cases:
+      - `app/Services/Payment/PaymentWebhookTransitionApplier.php`;
+      - `app/Services/Shipping/ShippingWebhookTransitionApplier.php`;
+      - `app/Services/Admin/AdminOrderService.php`;
+    - listeners map enum to scalar boundary where required (`->value`):
+      - `QueuePaymentStatusSideEffects`,
+      - `QueueOrderStatusSideEffects`,
+      - `LogOrderStatusTransition`,
+      - `LogShipmentStatusTransition`,
+      - `RecordOrderStatusTransitionMetric`,
+      - `RecordPaymentStatusTransitionMetric`,
+      - `RecordShipmentStatusTransitionMetric`.
+  - architecture guardrail added:
+    - `tests/Unit/Architecture/StatusTransitionSourceBoundaryTest.php` now enforces:
+      - typed enum source parameter in status-transition events;
+      - absence of raw source literals in transition emitters.
+  - deterministic coverage updated:
+    - `tests/Unit/AdminOrderServiceStatusEventTest.php`;
+    - `tests/Unit/PaymentWebhookTransitionApplierTest.php`;
+    - `tests/Unit/ShippingWebhookTransitionApplierTest.php`;
+    - `tests/Unit/QueuePaymentStatusSideEffectsTest.php`;
+    - `tests/Unit/QueueOrderStatusSideEffectsTest.php`;
+    - `tests/Unit/StatusTransitionMetricListenersTest.php`.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `39` added for this `Backlog E` item `21` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect typed-source hardening progress on `item 21`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="StatusTransitionSourceBoundaryTest|AdminOrderServiceStatusEventTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest|QueuePaymentStatusSideEffectsTest|QueueOrderStatusSideEffectsTest|StatusTransitionMetricListenersTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via docker-ops alias parity (`item 22` continuation):
+  - canonical local docker aliases added to composer scripts:
+    - `ops:docker-up` (`docker compose up --build -d`);
+    - `ops:docker-down` (`docker compose down`);
+    - `ops:docker-bootstrap` (`@ops:docker-up` + app key generation + migrations with seed).
+  - docs aligned to canonical aliases:
+    - `README.md` docker quick-start now uses `composer run ops:docker-bootstrap`;
+    - stack stop command now uses `composer run ops:docker-down`;
+    - CI quality gate section now includes docker alias references.
+  - architecture guardrails expanded:
+    - `tests/Unit/Architecture/ReleaseCommandScriptGuardrailTest.php` now enforces docker alias script contracts;
+    - `tests/Unit/Architecture/ReleaseDocsWorkflowGuardrailTest.php` now enforces README references for docker aliases.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `40` added for this `Backlog E` item `22` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect docker-ops alias progress for `item 22`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="ReleaseCommandScriptGuardrailTest|ReleaseDocsWorkflowGuardrailTest|DockerComposeContractGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted audit `Backlog E` progressed via docker release-doc/runbook parity (`item 22` continuation):
+  - release checklist docker alias parity added:
+    - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` now includes:
+      - `composer run ops:docker-up`;
+      - `composer run ops:docker-down`;
+      - `composer run ops:docker-bootstrap`.
+  - operations runbook docker baseline added:
+    - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md` now includes local parity bootstrap/teardown commands via canonical docker aliases.
+  - release docs guardrail expanded:
+    - `tests/Unit/Architecture/ReleaseDocsWorkflowGuardrailTest.php` now enforces docker alias references across:
+      - README;
+      - release checklist;
+      - ops runbook.
+  - roadmap/backlog docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` progress item `41` added for this `Backlog E` item `22` continuation;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` updated to reflect release-doc parity progress for `item 22`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="ReleaseDocsWorkflowGuardrailTest|ReleaseCommandScriptGuardrailTest|OperationalDocsConfigGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - docs guardrails passed:
+      - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
