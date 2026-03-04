@@ -31,6 +31,21 @@ SHOP_ADMIN_EMAIL=admin@shop.local
 SHOP_ADMIN_PASSWORD=change-this-password
 ```
 
+## Docker Compose quick start
+
+```bash
+cp .env.example .env
+composer run ops:docker-bootstrap
+```
+
+Application is available at `http://localhost:8080`.
+
+Stop stack:
+
+```bash
+composer run ops:docker-down
+```
+
 ## Useful commands
 
 ```bash
@@ -158,6 +173,10 @@ It runs a full blocking pipeline:
   - `composer run ops:observability-report`
 - CI production smoke alias: `composer run ops:ci-production-smoke`
 - production smoke: `php artisan migrate --force`, `composer run ops:ci-production-smoke`
+- Docker local stack aliases:
+  - `composer run ops:docker-up`
+  - `composer run ops:docker-down`
+  - `composer run ops:docker-bootstrap`
 - targeted smoke examples:
   - `php artisan app:api-contract-smoke --only=shipping_webhook`
   - `php artisan app:performance-smoke --only=admin_orders_summary`

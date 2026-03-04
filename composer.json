@@ -104,6 +104,17 @@
         "ops:routes-smoke": [
             "@php artisan route:list --path=api/v1/admin/promotions"
         ],
+        "ops:docker-up": [
+            "docker compose up --build -d"
+        ],
+        "ops:docker-down": [
+            "docker compose down"
+        ],
+        "ops:docker-bootstrap": [
+            "@ops:docker-up",
+            "docker compose exec app php artisan key:generate",
+            "docker compose exec app php artisan migrate --seed"
+        ],
         "ops:healthcheck": [
             "@php artisan app:healthcheck"
         ],

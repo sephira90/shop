@@ -50,6 +50,10 @@ Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.
   - observability report alias: `composer run ops:observability-report`
   - CI alias: `composer run ops:ci-production-smoke`
   - deploy alias: `composer run ops:production-smoke-core`
+  - docker aliases:
+    - `composer run ops:docker-up`
+    - `composer run ops:docker-down`
+    - `composer run ops:docker-bootstrap`
   - deploy alias expands to: `app:healthcheck`, `app:performance-smoke`, `app:webhook-flow-smoke`, `app:api-contract-smoke`, `app:observability-report`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`

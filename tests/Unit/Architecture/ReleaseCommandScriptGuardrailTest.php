@@ -41,6 +41,20 @@ class ReleaseCommandScriptGuardrailTest extends TestCase
         ], $scripts['ops:healthcheck'] ?? null);
 
         $this->assertSame([
+            'docker compose up --build -d',
+        ], $scripts['ops:docker-up'] ?? null);
+
+        $this->assertSame([
+            'docker compose down',
+        ], $scripts['ops:docker-down'] ?? null);
+
+        $this->assertSame([
+            '@ops:docker-up',
+            'docker compose exec app php artisan key:generate',
+            'docker compose exec app php artisan migrate --seed',
+        ], $scripts['ops:docker-bootstrap'] ?? null);
+
+        $this->assertSame([
             '@ops:healthcheck',
             '@ops:performance-smoke',
             '@ops:webhook-flow-smoke',

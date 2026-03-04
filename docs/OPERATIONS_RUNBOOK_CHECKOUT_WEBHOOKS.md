@@ -16,6 +16,20 @@ Runbook for production incidents affecting checkout flow and webhook processing:
 - failing smoke checks (`app:webhook-flow-smoke`, `app:api-contract-smoke`)
 - order creation drop or spike in webhook retries/duplicates
 
+## Local Reproduction Baseline
+
+When incident triage requires local parity with MySQL/Redis stack:
+
+```bash
+composer run ops:docker-bootstrap
+```
+
+Stop local stack after investigation:
+
+```bash
+composer run ops:docker-down
+```
+
 ## Fast Triage (5-10 min)
 
 1. Baseline health:

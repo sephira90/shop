@@ -12,6 +12,7 @@ class ReleaseDocsWorkflowGuardrailTest extends TestCase
     {
         $readme = (string) file_get_contents(base_path('README.md'));
         $checklist = (string) file_get_contents(base_path('docs/PHASE5_RELEASE_READINESS_CHECKLIST.md'));
+        $runbook = (string) file_get_contents(base_path('docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md'));
 
         $this->assertStringContainsString('composer run quality:backend', $readme);
         $this->assertStringContainsString('composer run quality:frontend', $readme);
@@ -21,6 +22,9 @@ class ReleaseDocsWorkflowGuardrailTest extends TestCase
         $this->assertStringContainsString('composer run ops:observability-report', $readme);
         $this->assertStringContainsString('composer run ops:ci-production-smoke', $readme);
         $this->assertStringContainsString('composer run ops:production-smoke-core', $readme);
+        $this->assertStringContainsString('composer run ops:docker-up', $readme);
+        $this->assertStringContainsString('composer run ops:docker-down', $readme);
+        $this->assertStringContainsString('composer run ops:docker-bootstrap', $readme);
 
         $this->assertStringContainsString('docs/ARCHITECTURE_REFACTOR_NEXT.md', $checklist);
         $this->assertStringContainsString('composer run quality:backend', $checklist);
@@ -31,6 +35,13 @@ class ReleaseDocsWorkflowGuardrailTest extends TestCase
         $this->assertStringContainsString('composer run ops:observability-report', $checklist);
         $this->assertStringContainsString('composer run ops:ci-production-smoke', $checklist);
         $this->assertStringContainsString('composer run ops:production-smoke-core', $checklist);
+        $this->assertStringContainsString('composer run ops:docker-up', $checklist);
+        $this->assertStringContainsString('composer run ops:docker-down', $checklist);
+        $this->assertStringContainsString('composer run ops:docker-bootstrap', $checklist);
+
+        $this->assertStringContainsString('docs/ARCHITECTURE_REFACTOR_NEXT.md', $runbook);
+        $this->assertStringContainsString('composer run ops:docker-bootstrap', $runbook);
+        $this->assertStringContainsString('composer run ops:docker-down', $runbook);
     }
 
     public function test_ci_workflow_and_deploy_smoke_script_use_canonical_release_aliases(): void
