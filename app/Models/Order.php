@@ -108,24 +108,4 @@ class Order extends Model
     {
         return $this->hasMany(Shipment::class);
     }
-
-    public function hasCapturedPayment(): bool
-    {
-        return $this->normalizedPaymentStatus() === PaymentStatus::CAPTURED;
-    }
-
-    private function normalizedPaymentStatus(): ?PaymentStatus
-    {
-        $paymentStatus = $this->getAttributeValue('payment_status');
-
-        if ($paymentStatus instanceof PaymentStatus) {
-            return $paymentStatus;
-        }
-
-        if (is_string($paymentStatus)) {
-            return PaymentStatus::tryFrom($paymentStatus);
-        }
-
-        return null;
-    }
 }
