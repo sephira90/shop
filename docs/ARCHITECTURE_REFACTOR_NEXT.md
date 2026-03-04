@@ -1074,6 +1074,16 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
       - `CheckoutRequestIdentityResolverTest` asserts `CheckoutException`;
       - `AdminOrderServiceStatusEventTest` asserts `OrderTransitionException`;
       - new `CartResolverTest` asserts guest-token guard throws `CartException`.
+51. Promoted AI execution-governance architecture slice:
+    - added canonical architecture contract document:
+      - `docs/ARCHITECTURE.md` now defines layer model, dependency direction, and reliability contracts.
+    - added AI-first repository navigation map:
+      - `docs/AI_REPO_MAP.md` now defines bounded-context entrypoints and flow-first navigation for implementation tasks.
+    - agent rules synchronized with architecture docs:
+      - `.cursorrules` and `AGENTS.md` now explicitly require pre-implementation navigation via `AI_REPO_MAP` and boundary enforcement from `ARCHITECTURE`.
+    - architecture guardrails expanded:
+      - `LayerDependencyDirectionGuardrailTest` enforces application/service/repository dependency direction;
+      - `AiRepoMapGovernanceGuardrailTest` enforces architecture/repo-map docs presence and rule references.
 
 ## Locked Constraints
 

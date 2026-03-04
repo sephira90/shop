@@ -5869,3 +5869,33 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-05` — promoted AI execution-governance architecture slice (repo map + dependency guardrails):
+  - canonical architecture contract docs introduced:
+    - `docs/ARCHITECTURE.md` with layer model, dependency rules, and reliability contracts;
+    - `docs/AI_REPO_MAP.md` with bounded-context map and task entrypoints for implementation navigation.
+  - agent rule sources synchronized with architecture docs:
+    - `.cursorrules` now requires pre-implementation navigation via `docs/AI_REPO_MAP.md` and dependency-direction adherence from `docs/ARCHITECTURE.md`;
+    - `AGENTS.md` now includes explicit AI execution navigation section with dependency direction and cross-context contract rules.
+  - architecture guardrails expanded:
+    - `tests/Unit/Architecture/LayerDependencyDirectionGuardrailTest.php` added:
+      - application layer does not depend on HTTP controllers/requests,
+      - service layer does not depend on HTTP controllers/requests,
+      - repository layer does not depend on HTTP/service layers;
+    - `tests/Unit/Architecture/AiRepoMapGovernanceGuardrailTest.php` added:
+      - verifies architecture/repo-map docs existence and core sections,
+      - verifies `.cursorrules` and `AGENTS.md` keep explicit references.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `51`.
+  - verification:
+    - targeted guardrail regressions passed:
+      - `php artisan test --filter="LayerDependencyDirectionGuardrailTest|AiRepoMapGovernanceGuardrailTest|OperationalDocsConfigGuardrailTest|DocumentationAuthorityGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
