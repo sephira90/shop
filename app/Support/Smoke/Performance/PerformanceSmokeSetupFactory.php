@@ -8,10 +8,10 @@ use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
 use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Contracts\CartServiceInterface;
 use App\Enums\ProductStatus;
 use App\Models\Order;
 use App\Models\ProductVariant;
-use App\Services\Cart\CartService;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
@@ -40,7 +40,7 @@ final class PerformanceSmokeSetupFactory
     ];
 
     public function __construct(
-        private readonly CartService $cartService,
+        private readonly CartServiceInterface $cartService,
     ) {}
 
     /**

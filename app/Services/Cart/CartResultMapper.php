@@ -7,6 +7,7 @@ namespace App\Services\Cart;
 use App\Application\Cart\Dto\CartItemResultDto;
 use App\Application\Cart\Dto\CartResultDto;
 use App\Application\Cart\Dto\CartSummaryResultDto;
+use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\ProductVariant;
@@ -19,7 +20,8 @@ final class CartResultMapper
      */
     public function toResultDto(Cart $cart): CartResultDto
     {
-        $subtotal = TypedValue::float($cart->items->sum('line_total'));
+        $currency = TypedValue::nullableTrimmedString($cart->currency) ?? 'USD';
+        $subtotal = Money::zero($currency);
         $statusValue = TypedValue::nullableTrimmedString($cart->getRawOriginal('status')) ?? '';
 
         if ($statusValue === '') {
@@ -39,27 +41,31 @@ final class CartResultMapper
                 $name = (string) $variant->name;
             }
 
+            $unitPrice = Money::fromDecimal((float) $item->unit_price, $currency);
+            $lineTotal = Money::fromDecimal((float) $item->line_total, $currency);
+            $subtotal = $subtotal->add($lineTotal);
+
             $items[] = new CartItemResultDto(
                 productVariantId: (int) $item->product_variant_id,
                 sku: $sku,
                 name: $name,
                 quantity: (int) $item->quantity,
-                unitPrice: (float) $item->unit_price,
-                lineTotal: (float) $item->line_total,
+                unitPrice: $unitPrice->toFloat(),
+                lineTotal: $lineTotal->toFloat(),
             );
         }
 
         return new CartResultDto(
             id: (string) $cart->id,
             guestToken: $cart->guest_token,
-            currency: $cart->currency,
+            currency: $currency,
             status: $statusValue,
             items: $items,
             summary: new CartSummaryResultDto(
-                subtotal: $subtotal,
+                subtotal: $subtotal->toFloat(),
                 discountTotal: 0.0,
                 shippingTotal: 0.0,
-                total: $subtotal,
+                total: $subtotal->toFloat(),
             ),
         );
     }

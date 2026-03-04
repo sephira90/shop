@@ -76,6 +76,14 @@ final readonly class Money
         );
     }
 
+    public function multiply(int $factor): self
+    {
+        return new self(
+            amountCents: $this->amountCents * $factor,
+            currency: $this->currency,
+        );
+    }
+
     public function min(self $other): self
     {
         $this->assertSameCurrency($other);

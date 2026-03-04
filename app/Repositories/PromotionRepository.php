@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Admin\Promotions\Contracts\AdminPromotionReadRepository;
 use App\Application\Admin\Promotions\Dto\AdminPromotionListFilterDto;
 use App\Models\Promotion;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-final class PromotionRepository
+final class PromotionRepository implements AdminPromotionReadRepository
 {
     /**
      * List promotions for admin panel with typed filters.

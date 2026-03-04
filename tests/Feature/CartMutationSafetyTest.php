@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Contracts\CartMutationServiceInterface;
+use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Services\Cart\CartMutationService;
 use Database\Factories\InventoryFactory;
 use Database\Factories\ProductFactory;
 use Database\Factories\ProductVariantFactory;
@@ -54,16 +55,45 @@ class CartMutationSafetyTest extends TestCase
             'line_total' => bcmul((string) $variant->price, '4', 2),
         ]);
 
-        $result = app(CartMutationService::class)->upsertItem($staleCart, $variant->id, 5);
+        $result = app(CartMutationServiceInterface::class)->upsertItem($staleCart, $variant->id, 5);
 
         $freshItem = CartItem::query()
             ->where('cart_id', $cart->id)
             ->where('product_variant_id', $variant->id)
             ->firstOrFail();
+        $expectedLineTotal = Money::fromDecimal((float) $variant->price, (string) $variant->currency)
+            ->multiply(5)
+            ->toDecimalString();
 
         $this->assertSame(1, CartItem::query()->where('cart_id', $cart->id)->count());
         $this->assertSame(5, $freshItem->quantity);
-        $this->assertSame(bcmul((string) $variant->price, '5', 2), (string) $freshItem->line_total);
+        $this->assertSame($expectedLineTotal, (string) $freshItem->line_total);
         $this->assertSame(5, $result->items->firstWhere('product_variant_id', $variant->id)?->quantity);
+    }
+
+    public function test_remove_item_rejects_unknown_variant_id(): void
+    {
+        $this->deleteJson('/api/v1/cart/items/999999?guest_token=cart-remove-unknown-variant')
+            ->assertUnprocessable()
+            ->assertJsonPath('error.validation.variant_id.0', 'The selected variant id is invalid.');
+    }
+
+    public function test_guest_cart_mutation_requires_guest_token(): void
+    {
+        $product = ProductFactory::new()->createOne();
+        $variant = ProductVariantFactory::new()->createOne([
+            'product_id' => $product->id,
+            'price' => 49.99,
+        ]);
+        InventoryFactory::new()->createOne([
+            'product_variant_id' => $variant->id,
+            'quantity' => 20,
+            'reserved_quantity' => 0,
+        ]);
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $variant->id,
+            'quantity' => 1,
+        ])->assertForbidden();
     }
 }

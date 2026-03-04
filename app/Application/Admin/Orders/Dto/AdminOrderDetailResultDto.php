@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Orders\Dto;
 
+use App\Domain\ValueObjects\Money;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -16,6 +17,7 @@ final readonly class AdminOrderDetailResultDto
 {
     public static function fromOrder(Order $order): self
     {
+        $currency = (string) $order->currency;
         /** @var list<AdminOrderItemResultDto> $items */
         $items = [];
         if ($order->relationLoaded('items')) {
@@ -62,11 +64,11 @@ final readonly class AdminOrderDetailResultDto
             status: TypedValue::string($order->getRawOriginal('status')),
             paymentStatus: TypedValue::string($order->getRawOriginal('payment_status')),
             shipmentStatus: TypedValue::string($order->getRawOriginal('shipment_status')),
-            currency: (string) $order->currency,
-            subtotal: (float) $order->subtotal,
-            discountTotal: (float) $order->discount_total,
-            shippingTotal: (float) $order->shipping_total,
-            total: (float) $order->total,
+            currency: $currency,
+            subtotal: self::moneyValue($order, 'subtotal', $currency),
+            discountTotal: self::moneyValue($order, 'discount_total', $currency),
+            shippingTotal: self::moneyValue($order, 'shipping_total', $currency),
+            total: self::moneyValue($order, 'total', $currency),
             billingAddress: self::normalizeAddress($order->billing_address),
             shippingAddress: self::normalizeAddress($order->shipping_address),
             items: $items,
@@ -196,5 +198,19 @@ final readonly class AdminOrderDetailResultDto
         }
 
         return $value;
+    }
+
+    private static function moneyValue(Order $order, string $field, string $currency): float
+    {
+        $rawValue = $order->getRawOriginal($field);
+
+        if (is_string($rawValue) || is_int($rawValue) || is_float($rawValue)) {
+            return Money::fromDecimal($rawValue, $currency)->toFloat();
+        }
+
+        /** @var mixed $attributeValue */
+        $attributeValue = $order->getAttribute($field);
+
+        return Money::fromDecimal(TypedValue::float($attributeValue), $currency)->toFloat();
     }
 }

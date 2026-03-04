@@ -7,14 +7,15 @@ namespace App\Services\Checkout;
 use App\Application\Checkout\Dto\CheckoutInventoryDemandDto;
 use App\Application\Checkout\Dto\CheckoutOrderWriteInputDto;
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Contracts\CheckoutServiceInterface;
+use App\Domain\Exceptions\CheckoutException;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Checkout\Dto\CheckoutOrderFinalizationInputDto;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 
-final class CheckoutService
+final class CheckoutService implements CheckoutServiceInterface
 {
     public function __construct(
         private readonly CheckoutRequestIdentityResolver $checkoutRequestIdentityResolver,
@@ -46,7 +47,7 @@ final class CheckoutService
                 ->first();
 
             if (! $lockedCart instanceof Cart) {
-                throw new DomainException('Cart not found.');
+                throw CheckoutException::cartNotFound();
             }
 
             $idempotencyResolution = $this->checkoutIdempotencyGuard->resolve(

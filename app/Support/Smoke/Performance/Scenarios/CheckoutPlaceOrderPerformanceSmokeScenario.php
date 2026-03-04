@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Performance\Scenarios;
 
-use App\Services\Cart\CartService;
-use App\Services\Checkout\CheckoutService;
+use App\Contracts\CartServiceInterface;
+use App\Contracts\CheckoutServiceInterface;
 use App\Support\Smoke\Performance\Contracts\PerformanceSmokeScenario;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 use Illuminate\Support\Str;
@@ -13,8 +13,8 @@ use Illuminate\Support\Str;
 final class CheckoutPlaceOrderPerformanceSmokeScenario implements PerformanceSmokeScenario
 {
     public function __construct(
-        private readonly CartService $cartService,
-        private readonly CheckoutService $checkoutService,
+        private readonly CartServiceInterface $cartService,
+        private readonly CheckoutServiceInterface $checkoutService,
     ) {}
 
     public function name(): string

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Admin\Products\Contracts\AdminProductReadRepository as AdminProductReadRepositoryContract;
 use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-final class AdminProductReadRepository
+final class AdminProductReadRepository implements AdminProductReadRepositoryContract
 {
     /**
      * List products for admin panel with typed filters.

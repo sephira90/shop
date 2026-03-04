@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Categories\Queries;
 
+use App\Application\Admin\Categories\Contracts\AdminCategoryReadRepository;
 use App\Application\Admin\Categories\Dto\AdminCategoryOptionsResultDto;
-use App\Repositories\CategoryRepository;
 
 final class ListAdminCategoryOptionsHandler
 {
@@ -13,7 +13,7 @@ final class ListAdminCategoryOptionsHandler
      * Create query handler instance.
      */
     public function __construct(
-        private readonly CategoryRepository $categoryRepository,
+        private readonly AdminCategoryReadRepository $categoryRepository,
     ) {}
 
     /**

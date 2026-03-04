@@ -84,4 +84,40 @@ class CartResultMapperTest extends TestCase
         self::assertSame(0.0, $result['summary']['subtotal']);
         self::assertSame(0.0, $result['summary']['total']);
     }
+
+    /**
+     * Ensure mapper subtotal aggregation keeps cent precision for decimal line totals.
+     */
+    public function test_to_result_dto_aggregates_subtotal_with_money_precision(): void
+    {
+        $cart = new Cart([
+            'currency' => 'USD',
+            'status' => CartStatus::ACTIVE->value,
+        ]);
+        $cart->setAttribute('id', 'cart-3');
+
+        $firstItem = new CartItem([
+            'product_variant_id' => 10,
+            'quantity' => 1,
+            'unit_price' => 0.1,
+            'line_total' => 0.1,
+        ]);
+        $firstItem->setRelation('variant', null);
+
+        $secondItem = new CartItem([
+            'product_variant_id' => 20,
+            'quantity' => 1,
+            'unit_price' => 0.2,
+            'line_total' => 0.2,
+        ]);
+        $secondItem->setRelation('variant', null);
+
+        $cart->setRelation('items', new Collection([$firstItem, $secondItem]));
+
+        /** @var array{summary:array{subtotal:float,total:float}} $result */
+        $result = TypedValue::associativeArray((new CartResultMapper)->toResultDto($cart)->toArray());
+
+        self::assertSame(0.3, $result['summary']['subtotal']);
+        self::assertSame(0.3, $result['summary']['total']);
+    }
 }

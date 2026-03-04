@@ -9,6 +9,7 @@ use App\Support\Data\JsonPayload;
 use App\Support\Observability\ObservabilityService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final readonly class WebhookProcessingPipeline
 {
@@ -33,6 +34,11 @@ final readonly class WebhookProcessingPipeline
         $startedAt = hrtime(true);
         $eventId = 'unknown';
         $outcome = WebhookProcessingOutcome::REJECTED;
+        $receiptId = null;
+        $payloadHash = null;
+        $receiptProvider = $adapter->receiptProvider();
+        $observabilityProvider = $adapter->observabilityProvider();
+        $eventType = $this->resolveEventType($payload);
 
         try {
             if ($prevalidatedEventId !== null) {
@@ -47,12 +53,11 @@ final readonly class WebhookProcessingPipeline
 
             $payloadHash = hash('sha256', json_encode($payload->toArray(), JSON_THROW_ON_ERROR));
 
-            DB::transaction(function () use ($adapter, $payload, $eventId, $payloadHash, &$outcome): void {
-                $provider = $adapter->receiptProvider();
+            DB::transaction(function () use ($adapter, $payload, $eventId, $payloadHash, $receiptProvider, &$outcome, &$receiptId): void {
                 $now = now();
 
                 DB::table('webhook_receipts')->insertOrIgnore([
-                    'provider' => $provider,
+                    'provider' => $receiptProvider,
                     'event_id' => $eventId,
                     'payload_hash' => $payloadHash,
                     'processed_at' => null,
@@ -61,10 +66,11 @@ final readonly class WebhookProcessingPipeline
                 ]);
 
                 $receipt = WebhookReceipt::query()
-                    ->where('provider', $provider)
+                    ->where('provider', $receiptProvider)
                     ->where('event_id', $eventId)
                     ->lockForUpdate()
                     ->firstOrFail();
+                $receiptId = $receipt->id;
 
                 if ($receipt->payload_hash !== $payloadHash) {
                     throw WebhookIngressException::payloadHashMismatch();
@@ -86,12 +92,27 @@ final readonly class WebhookProcessingPipeline
                     'updated_at' => $now,
                 ]);
             });
+        } catch (\Throwable $exception) {
+            Log::error('webhook.processing_failed', [
+                'provider' => $receiptProvider,
+                'correlation_id' => $eventId === 'unknown' ? null : $eventId,
+                'event_id' => $eventId,
+                'event_type' => $eventType,
+                'receipt_id' => $receiptId,
+                'payload_hash' => $payloadHash,
+                'outcome' => $outcome->value,
+                'source' => $source,
+                'exception_class' => $exception::class,
+                'exception_message' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
         } finally {
             $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
             $lagMs = $this->resolveLagMs($receivedAtIso8601);
 
             $this->observabilityService->webhook(
-                provider: $adapter->observabilityProvider(),
+                provider: $observabilityProvider,
                 eventId: $eventId,
                 outcome: $outcome->value,
                 durationMs: $durationMs,
@@ -117,5 +138,26 @@ final readonly class WebhookProcessingPipeline
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function resolveEventType(JsonPayload $payload): ?string
+    {
+        $payloadData = $payload->toArray();
+        $candidateKeys = ['event_type', 'type'];
+
+        foreach ($candidateKeys as $key) {
+            $value = $payloadData[$key] ?? null;
+
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $normalized = trim($value);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return null;
     }
 }

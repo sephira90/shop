@@ -8,7 +8,7 @@ use App\Application\Auth\AuthApplicationException;
 use App\Application\Auth\Contracts\AuthUserRepository;
 use App\Application\Auth\Dto\AuthTokenResultDto;
 use App\Application\Auth\Support\AuthUserDtoMapper;
-use App\Services\Cart\CartService;
+use App\Contracts\CartServiceInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 final class LoginAuthUserHandler
@@ -18,7 +18,7 @@ final class LoginAuthUserHandler
      */
     public function __construct(
         private readonly AuthUserRepository $authUserRepository,
-        private readonly CartService $cartService,
+        private readonly CartServiceInterface $cartService,
         private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
 

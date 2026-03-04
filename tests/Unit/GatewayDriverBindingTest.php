@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use App\Contracts\PaymentGatewayInterface;
 use App\Contracts\ShippingGatewayInterface;
+use App\Domain\ValueObjects\Money;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
 use App\Infrastructure\Payments\FakePaymentGateway;
@@ -60,7 +61,7 @@ final class GatewayDriverBindingTest extends TestCase
 
 final class TestPaymentGateway implements PaymentGatewayInterface
 {
-    public function createPayment(Order $order, string $idempotencyKey): PaymentCreationResultDto
+    public function createPayment(Order $order, Money $amount, string $idempotencyKey): PaymentCreationResultDto
     {
         return new PaymentCreationResultDto(
             transactionId: 'test_txn_1',

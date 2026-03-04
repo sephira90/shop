@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Cart;
 
+use App\Contracts\CartMutationServiceInterface;
+use App\Domain\Exceptions\CartException;
+use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Enums\ProductStatus;
 use App\Models\Cart;
@@ -11,10 +14,9 @@ use App\Models\CartItem;
 use App\Models\Inventory;
 use App\Models\ProductVariant;
 use App\Models\User;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 
-final class CartMutationService
+final class CartMutationService implements CartMutationServiceInterface
 {
     /**
      * Add or update cart item.
@@ -28,7 +30,7 @@ final class CartMutationService
                 ->first();
 
             if (! $lockedCart instanceof Cart) {
-                throw new DomainException('Cart not found.');
+                throw CartException::cartNotFound();
             }
 
             $variant = ProductVariant::query()
@@ -43,13 +45,13 @@ final class CartMutationService
                 ->first();
 
             if (! $variant instanceof ProductVariant) {
-                throw new DomainException('Selected variant is not available.');
+                throw CartException::variantNotAvailable();
             }
 
             $inventory = $variant->inventory;
 
             if (! $inventory instanceof Inventory || $inventory->availableQuantity() < $quantity) {
-                throw new DomainException('Insufficient stock for selected variant.');
+                throw CartException::insufficientStockForVariant();
             }
 
             $item = CartItem::query()
@@ -64,10 +66,18 @@ final class CartMutationService
                 return $lockedCart->refresh()->load(['items.variant.inventory']);
             }
 
+            $currency = trim((string) $variant->currency);
+            if ($currency === '') {
+                $currency = trim((string) $lockedCart->currency);
+            }
+
+            $unitPrice = Money::fromDecimal((float) $variant->price, $currency);
+            $lineTotal = $unitPrice->multiply($quantity);
+
             $payload = [
                 'quantity' => $quantity,
-                'unit_price' => $variant->price,
-                'line_total' => bcmul((string) $variant->price, (string) $quantity, 2),
+                'unit_price' => $unitPrice->toFloat(),
+                'line_total' => $lineTotal->toFloat(),
             ];
 
             if ($item instanceof CartItem) {
@@ -95,7 +105,7 @@ final class CartMutationService
                 ->first();
 
             if (! $lockedCart instanceof Cart) {
-                throw new DomainException('Cart not found.');
+                throw CartException::cartNotFound();
             }
 
             CartItem::query()

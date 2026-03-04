@@ -314,9 +314,16 @@ final class ObservabilityMetricStore
         }
 
         $expiresAt = now()->addMinutes(self::CACHE_TTL_MINUTES);
-        Cache::add($key, 0, $expiresAt);
-        Cache::increment($key, $value);
-        Cache::put($key, TypedValue::int(Cache::get($key, 0)), $expiresAt);
+        if (Cache::add($key, $value, $expiresAt)) {
+            return;
+        }
+
+        $incrementedValue = Cache::increment($key, $value);
+
+        if ($incrementedValue === false) {
+            // Fallback for cache stores without native increment support.
+            Cache::put($key, TypedValue::int(Cache::get($key, 0)) + $value, $expiresAt);
+        }
     }
 
     private function registerValue(string $registryKey, string $value): void

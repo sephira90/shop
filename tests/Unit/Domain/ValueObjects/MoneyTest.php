@@ -32,6 +32,15 @@ class MoneyTest extends TestCase
         $this->assertSame(575, $discount->min($shipping)->amountCents());
     }
 
+    public function test_multiply_scales_amount_in_cents_without_float_rounding_drift(): void
+    {
+        $unitPrice = Money::fromDecimal('19.99', 'USD');
+        $lineTotal = $unitPrice->multiply(3);
+
+        $this->assertSame(5997, $lineTotal->amountCents());
+        $this->assertSame('59.97', $lineTotal->toDecimalString());
+    }
+
     public function test_percentage_uses_half_up_rounding(): void
     {
         $subtotal = Money::fromDecimal(99.99, 'USD');

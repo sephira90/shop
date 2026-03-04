@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Orders\Queries;
 
+use App\Application\Admin\Orders\Contracts\AdminOrderReadRepository;
 use App\Application\Admin\Orders\Dto\AdminOrderPaginatedResultDto;
-use App\Repositories\AdminOrderReadRepository;
 
 final class PaginateAdminOrdersHandler
 {

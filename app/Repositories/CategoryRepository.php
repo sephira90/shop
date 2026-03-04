@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Admin\Categories\Contracts\AdminCategoryReadRepository as AdminCategoryReadRepositoryContract;
 use App\Application\Admin\Categories\Dto\AdminCategoryListFilterDto;
 use App\Application\Admin\Categories\Dto\AdminCategoryOptionListFilterDto;
 use App\Models\Category;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-final class CategoryRepository
+final class CategoryRepository implements AdminCategoryReadRepositoryContract
 {
     /**
      * Return minimal category selector options for admin forms.

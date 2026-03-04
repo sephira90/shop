@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Performance\Scenarios;
 
-use App\Services\Cart\CartService;
+use App\Contracts\CartServiceInterface;
 use App\Support\Smoke\Performance\Contracts\PerformanceSmokeScenario;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 
 final class CartShowPerformanceSmokeScenario implements PerformanceSmokeScenario
 {
     public function __construct(
-        private readonly CartService $cartService,
+        private readonly CartServiceInterface $cartService,
     ) {}
 
     public function name(): string

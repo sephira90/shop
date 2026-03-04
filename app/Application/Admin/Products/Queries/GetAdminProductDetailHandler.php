@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Admin\Products\Queries;
 
+use App\Application\Admin\Products\Contracts\AdminProductReadRepository;
 use App\Application\Admin\Products\Dto\AdminProductResultDto;
-use App\Repositories\AdminProductReadRepository;
 
 final class GetAdminProductDetailHandler
 {

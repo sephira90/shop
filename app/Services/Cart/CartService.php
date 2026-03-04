@@ -5,17 +5,19 @@ declare(strict_types=1);
 namespace App\Services\Cart;
 
 use App\Application\Cart\Dto\CartResultDto;
+use App\Contracts\CartMutationServiceInterface;
+use App\Contracts\CartServiceInterface;
 use App\Models\Cart;
 use App\Models\User;
 
-final class CartService
+final class CartService implements CartServiceInterface
 {
     /**
      * Create service instance.
      */
     public function __construct(
         private readonly CartResolver $cartResolver,
-        private readonly CartMutationService $cartMutationService,
+        private readonly CartMutationServiceInterface $cartMutationService,
         private readonly CartResultMapper $cartResultMapper,
     ) {}
 

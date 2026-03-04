@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Admin\Orders\Contracts\AdminOrderReadRepository as AdminOrderReadRepositoryContract;
 use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 use App\Models\Order;
 use App\Repositories\Concerns\AppliesOrderSearch;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-final class AdminOrderReadRepository
+final class AdminOrderReadRepository implements AdminOrderReadRepositoryContract
 {
     use AppliesOrderSearch;
 

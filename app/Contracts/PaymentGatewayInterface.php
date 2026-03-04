@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
+use App\Domain\ValueObjects\Money;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Services\Payment\Dto\PaymentCreationResultDto;
@@ -13,7 +14,7 @@ interface PaymentGatewayInterface
     /**
      * Create payment in provider and return normalized payload.
      */
-    public function createPayment(Order $order, string $idempotencyKey): PaymentCreationResultDto;
+    public function createPayment(Order $order, Money $amount, string $idempotencyKey): PaymentCreationResultDto;
 
     /**
      * Verify webhook signature from provider.

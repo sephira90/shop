@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Application\Catalog\Contracts\CatalogProductReadRepository as CatalogProductReadRepositoryContract;
 use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Enums\ProductStatus;
 use App\Models\Product;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-final class CatalogProductReadRepository
+final class CatalogProductReadRepository implements CatalogProductReadRepositoryContract
 {
     /**
      * @var list<string>

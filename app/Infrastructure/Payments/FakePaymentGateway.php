@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Payments;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Domain\ValueObjects\Money;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Services\Payment\Dto\PaymentCreationResultDto;
@@ -17,7 +18,7 @@ final class FakePaymentGateway implements PaymentGatewayInterface
     /**
      * {@inheritDoc}
      */
-    public function createPayment(Order $order, string $idempotencyKey): PaymentCreationResultDto
+    public function createPayment(Order $order, Money $amount, string $idempotencyKey): PaymentCreationResultDto
     {
         $transactionId = 'fake_txn_'.Str::lower(Str::random(20));
 
@@ -28,6 +29,8 @@ final class FakePaymentGateway implements PaymentGatewayInterface
                 'provider' => 'fake',
                 'idempotency_key' => $idempotencyKey,
                 'order_number' => $order->order_number,
+                'amount' => $amount->toFloat(),
+                'currency' => $amount->currency(),
                 'checkout_url' => '/checkout/success?order='.$order->id,
             ]),
         );

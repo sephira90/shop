@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Domain\ValueObjects\Money;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
@@ -67,14 +68,15 @@ final readonly class PaymentService
                 return $existingPayment;
             }
 
-            $result = $this->gateway->createPayment($lockedOrder, $idempotencyKey);
+            $orderTotal = $this->resolveOrderTotal($lockedOrder);
+            $result = $this->gateway->createPayment($lockedOrder, $orderTotal, $idempotencyKey);
 
             return Payment::query()->create([
                 'order_id' => $lockedOrder->id,
                 'idempotency_key' => $idempotencyKey,
                 'gateway' => $gatewayDriver,
                 'transaction_id' => $result->transactionId,
-                'amount' => $lockedOrder->total,
+                'amount' => $orderTotal->toFloat(),
                 'currency' => $lockedOrder->currency,
                 'status' => $result->status->value,
                 'payload' => $result->payload->toArray(),
@@ -105,5 +107,17 @@ final readonly class PaymentService
     private function gatewayDriver(): string
     {
         return TypedValue::string(config('payment.driver', 'fake-payment'));
+    }
+
+    private function resolveOrderTotal(Order $order): Money
+    {
+        $currency = (string) $order->currency;
+        $rawTotal = $order->getRawOriginal('total');
+
+        if (is_string($rawTotal) || is_int($rawTotal) || is_float($rawTotal)) {
+            return Money::fromDecimal($rawTotal, $currency);
+        }
+
+        return Money::fromDecimal((float) $order->total, $currency);
     }
 }

@@ -6,15 +6,16 @@ namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Application\Checkout\Dto\CheckoutPlaceOrderResultDto;
+use App\Contracts\CartServiceInterface;
+use App\Contracts\CheckoutServiceInterface;
 use App\Models\User;
-use App\Services\Cart\CartService;
 use App\Services\Payment\PaymentService;
 
 final readonly class CheckoutPlaceOrderOrchestrator
 {
     public function __construct(
-        private CartService $cartService,
-        private CheckoutService $checkoutService,
+        private CartServiceInterface $cartService,
+        private CheckoutServiceInterface $checkoutService,
         private PaymentService $paymentService,
     ) {}
 

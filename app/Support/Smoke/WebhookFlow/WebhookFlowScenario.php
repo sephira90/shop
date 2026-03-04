@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Support\Smoke\WebhookFlow;
 
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Contracts\CartServiceInterface;
+use App\Contracts\CheckoutServiceInterface;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
@@ -16,8 +18,6 @@ use App\Models\Payment;
 use App\Models\ProductVariant;
 use App\Models\Shipment;
 use App\Models\User;
-use App\Services\Cart\CartService;
-use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\PaymentService;
 use App\Services\Shipping\ShippingService;
 use App\Support\Data\JsonPayload;
@@ -35,8 +35,8 @@ final class WebhookFlowScenario
      * Create webhook flow smoke scenario.
      */
     public function __construct(
-        private readonly CartService $cartService,
-        private readonly CheckoutService $checkoutService,
+        private readonly CartServiceInterface $cartService,
+        private readonly CheckoutServiceInterface $checkoutService,
         private readonly PaymentService $paymentService,
         private readonly ShippingService $shippingService,
     ) {}

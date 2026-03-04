@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Performance\Scenarios;
 
-use App\Repositories\AdminProductReadRepository;
+use App\Application\Admin\Products\Contracts\AdminProductReadRepository;
 use App\Support\Smoke\Performance\Contracts\PerformanceSmokeScenario;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 

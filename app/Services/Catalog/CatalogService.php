@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Catalog;
 
+use App\Application\Catalog\Contracts\CatalogProductReadRepository;
 use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Models\Category;
 use App\Models\Product;
-use App\Repositories\CatalogProductReadRepository;
 use App\Support\Observability\ObservabilityService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
