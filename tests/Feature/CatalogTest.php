@@ -6,13 +6,13 @@ namespace Tests\Feature;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
-use Database\Seeders\CatalogSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class CatalogTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -20,7 +20,7 @@ class CatalogTest extends TestCase
      */
     public function test_catalog_products_endpoint(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->createActiveVariantWithInventory();
 
         $response = $this->getJson('/api/v1/catalog/products');
 
@@ -33,7 +33,7 @@ class CatalogTest extends TestCase
      */
     public function test_catalog_products_endpoint_has_public_cache_headers(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->createActiveVariantWithInventory();
 
         $response = $this->getJson('/api/v1/catalog/products');
 
@@ -47,7 +47,7 @@ class CatalogTest extends TestCase
      */
     public function test_catalog_products_endpoint_rejects_invalid_filters(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->createActiveVariantWithInventory();
 
         $this->getJson('/api/v1/catalog/products?sort=invalid&per_page=0')
             ->assertUnprocessable()
@@ -69,7 +69,7 @@ class CatalogTest extends TestCase
      */
     public function test_catalog_list_and_show_have_consistent_projection_shape(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->createActiveVariantWithInventory();
 
         $listResponse = $this->getJson('/api/v1/catalog/products')
             ->assertOk();

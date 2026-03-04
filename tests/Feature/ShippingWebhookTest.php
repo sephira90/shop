@@ -6,19 +6,19 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\Payment;
-use App\Models\ProductVariant;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Models\WebhookReceipt;
 use App\Support\Data\TypedValue;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class ShippingWebhookTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -148,13 +148,13 @@ class ShippingWebhookTest extends TestCase
      */
     private function createPaidOrderWithShipment(): array
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create();
         $user->assignRole('customer');
         Sanctum::actingAs($user);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
 
         $this->postJson('/api/v1/cart/items', [
             'product_variant_id' => $variant->id,

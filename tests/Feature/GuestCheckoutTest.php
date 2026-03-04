@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\ProductVariant;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class GuestCheckoutTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -19,9 +19,9 @@ class GuestCheckoutTest extends TestCase
      */
     public function test_guest_checkout_is_supported_and_idempotent(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $guestToken = 'guest-checkout-token';
 
         $this->postJson('/api/v1/cart/items', [
@@ -66,9 +66,9 @@ class GuestCheckoutTest extends TestCase
      */
     public function test_guest_token_is_reused_without_unique_errors_after_checkout(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $guestToken = 'guest-cart-reuse-token';
 
         $firstCartResponse = $this->postJson('/api/v1/cart/items', [

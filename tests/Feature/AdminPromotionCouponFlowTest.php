@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Coupon;
-use App\Models\ProductVariant;
 use App\Models\Promotion;
 use App\Models\User;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class AdminPromotionCouponFlowTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -23,11 +23,13 @@ class AdminPromotionCouponFlowTest extends TestCase
      */
     public function test_promotion_code_creates_primary_coupon_for_checkout(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $manager = User::factory()->create(['email_verified_at' => now()]);
         $manager->assignRole('manager');
         Sanctum::actingAs($manager);
+
+        $variant = $this->createActiveVariantWithInventory();
 
         $promotionResponse = $this->postJson('/api/v1/admin/promotions', [
             'name' => 'Test Campaign',
@@ -47,11 +49,10 @@ class AdminPromotionCouponFlowTest extends TestCase
             'is_active' => 1,
         ]);
 
-        $variantId = (int) ProductVariant::query()->firstOrFail()->id;
         $guestToken = 'admin-promo-flow-guest';
 
         $this->postJson('/api/v1/cart/items', [
-            'product_variant_id' => $variantId,
+            'product_variant_id' => $variant->id,
             'quantity' => 1,
             'guest_token' => $guestToken,
         ])->assertOk();

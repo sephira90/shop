@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Order;
-use App\Models\ProductVariant;
 use App\Models\User;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class CartCheckoutTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -22,13 +22,13 @@ class CartCheckoutTest extends TestCase
      */
     public function test_checkout_is_idempotent(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create();
         $user->assignRole('customer');
         Sanctum::actingAs($user);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
 
         $this->postJson('/api/v1/cart/items', [
             'product_variant_id' => $variant->id,
@@ -69,13 +69,13 @@ class CartCheckoutTest extends TestCase
      */
     public function test_second_checkout_with_another_idempotency_key_is_rejected(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create();
         $user->assignRole('customer');
         Sanctum::actingAs($user);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
 
         $this->postJson('/api/v1/cart/items', [
             'product_variant_id' => $variant->id,
@@ -115,13 +115,13 @@ class CartCheckoutTest extends TestCase
      */
     public function test_same_idempotency_key_with_different_payload_is_rejected(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create();
         $user->assignRole('customer');
         Sanctum::actingAs($user);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
 
         $this->postJson('/api/v1/cart/items', [
             'product_variant_id' => $variant->id,
@@ -171,9 +171,10 @@ class CartCheckoutTest extends TestCase
      */
     public function test_checkout_rejects_when_inventory_becomes_insufficient(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
-        $variant = ProductVariant::query()->with('inventory')->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory(quantity: 10);
+        $variant = $variant->load('inventory');
         $guestToken = 'checkout-insufficient-stock-token';
 
         $this->postJson('/api/v1/cart/items', [
@@ -215,13 +216,13 @@ class CartCheckoutTest extends TestCase
      */
     public function test_checkout_requires_idempotency_key_header(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create();
         $user->assignRole('customer');
         Sanctum::actingAs($user);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
 
         $this->postJson('/api/v1/cart/items', [
             'product_variant_id' => $variant->id,

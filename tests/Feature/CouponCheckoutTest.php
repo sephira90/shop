@@ -6,15 +6,15 @@ namespace Tests\Feature;
 
 use App\Enums\PromotionType;
 use App\Models\Coupon;
-use App\Models\ProductVariant;
 use App\Models\Promotion;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class CouponCheckoutTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -22,9 +22,9 @@ class CouponCheckoutTest extends TestCase
      */
     public function test_coupon_discount_is_applied_to_order_total(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $guestToken = 'coupon-checkout-token';
 
         $this->postJson('/api/v1/cart/items', [

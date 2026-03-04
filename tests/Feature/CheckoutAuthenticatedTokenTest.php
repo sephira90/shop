@@ -7,15 +7,15 @@ namespace Tests\Feature;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Models\ProductVariant;
 use App\Models\User;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class CheckoutAuthenticatedTokenTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -23,14 +23,14 @@ class CheckoutAuthenticatedTokenTest extends TestCase
      */
     public function test_authenticated_user_can_checkout_without_guest_token(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
         $user->assignRole('admin');
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $cart = Cart::query()->create([
             'user_id' => $user->id,
             'currency' => 'USD',
@@ -78,14 +78,14 @@ class CheckoutAuthenticatedTokenTest extends TestCase
      */
     public function test_authenticated_cart_item_is_bound_to_user_cart(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
         $user->assignRole('admin');
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $token = $user->createToken('cart-auth-token')->plainTextToken;
 
         $this->withHeader('Authorization', 'Bearer '.$token)
@@ -132,14 +132,14 @@ class CheckoutAuthenticatedTokenTest extends TestCase
      */
     public function test_authenticated_checkout_merges_guest_cart(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
         $user->assignRole('admin');
 
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $guestCart = Cart::query()->create([
             'guest_token' => 'checkout-merge-token',
             'currency' => 'USD',

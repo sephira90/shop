@@ -7,10 +7,10 @@ namespace Tests\Feature;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Models\ProductVariant;
 use App\Services\Cart\CartMutationService;
-use Database\Seeders\CatalogSeeder;
-use Database\Seeders\RoleSeeder;
+use Database\Factories\InventoryFactory;
+use Database\Factories\ProductFactory;
+use Database\Factories\ProductVariantFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,9 +20,17 @@ class CartMutationSafetyTest extends TestCase
 
     public function test_upsert_item_reloads_locked_cart_state_before_mutation(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $product = ProductFactory::new()->createOne();
+        $variant = ProductVariantFactory::new()->createOne([
+            'product_id' => $product->id,
+            'price' => 99.99,
+        ]);
+        InventoryFactory::new()->createOne([
+            'product_variant_id' => $variant->id,
+            'quantity' => 100,
+            'reserved_quantity' => 0,
+        ]);
 
-        $variant = ProductVariant::query()->firstOrFail();
         $cart = Cart::query()->create([
             'guest_token' => 'cart-mutation-safety-token',
             'currency' => 'USD',

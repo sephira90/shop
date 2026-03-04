@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Enums\ProductStatus;
 use App\Models\Order;
-use App\Models\ProductVariant;
 use App\Models\User;
-use App\Support\Data\TypedValue;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class PerformanceSmokeTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -26,7 +24,8 @@ class PerformanceSmokeTest extends TestCase
      */
     public function test_catalog_list_query_path_stays_within_budget(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
+        $this->createPerformanceCatalogFixture();
 
         $queryCount = $this->measureQueryCount(function (): void {
             $this->getJson('/api/v1/catalog/products?per_page=12')
@@ -42,13 +41,13 @@ class PerformanceSmokeTest extends TestCase
      */
     public function test_cart_show_query_path_stays_within_budget(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
-        $variantId = $this->resolveAvailableVariantId();
+        $variant = $this->createActiveVariantWithInventory(quantity: 80);
         $guestToken = 'perf-cart-'.Str::lower(Str::random(12));
 
         $this->postJson('/api/v1/cart/items', [
-            'product_variant_id' => $variantId,
+            'product_variant_id' => $variant->id,
             'quantity' => 1,
             'guest_token' => $guestToken,
         ])->assertOk();
@@ -67,13 +66,13 @@ class PerformanceSmokeTest extends TestCase
      */
     public function test_checkout_place_order_query_path_stays_within_budget(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
 
-        $variantId = $this->resolveAvailableVariantId();
+        $variant = $this->createActiveVariantWithInventory(quantity: 80);
         $guestToken = 'perf-checkout-'.Str::lower(Str::random(12));
 
         $this->postJson('/api/v1/cart/items', [
-            'product_variant_id' => $variantId,
+            'product_variant_id' => $variant->id,
             'quantity' => 1,
             'guest_token' => $guestToken,
         ])->assertOk();
@@ -152,7 +151,8 @@ class PerformanceSmokeTest extends TestCase
      */
     public function test_admin_products_list_query_path_stays_within_budget(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
+        $this->seed([RoleSeeder::class]);
+        $this->createPerformanceCatalogFixture();
 
         $manager = User::factory()->create(['email_verified_at' => now()]);
         $manager->assignRole('manager');
@@ -185,25 +185,13 @@ class PerformanceSmokeTest extends TestCase
     }
 
     /**
-     * Resolve one active and in-stock variant id for checkout/cart budgets.
+     * Build a deterministic catalog fixture without relying on seeders.
      */
-    private function resolveAvailableVariantId(): int
+    private function createPerformanceCatalogFixture(): void
     {
-        $variantId = ProductVariant::query()
-            ->where('is_active', true)
-            ->whereHas('product', static function ($productQuery): void {
-                $productQuery
-                    ->where('status', ProductStatus::ACTIVE->value)
-                    ->whereNotNull('published_at');
-            })
-            ->whereHas('inventory', static function ($inventoryQuery): void {
-                $inventoryQuery->whereColumn('quantity', '>', 'reserved_quantity');
-            })
-            ->orderBy('id')
-            ->value('id');
-
-        $this->assertNotNull($variantId, 'Performance budget precondition failed: no available variant found.');
-
-        return TypedValue::int($variantId);
+        foreach (range(1, 18) as $index) {
+            $basePrice = 10 + ($index * 3);
+            $this->createActiveProductWithVariants([$basePrice + 1, $basePrice + 2]);
+        }
     }
 }

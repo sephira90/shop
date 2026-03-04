@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Order;
-use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Models\User;
 use App\Support\Data\TypedValue;
-use Database\Seeders\CatalogSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CreatesCatalogVariant;
 use Tests\TestCase;
 
 class PhaseOneHardeningTest extends TestCase
 {
+    use CreatesCatalogVariant;
     use RefreshDatabase;
 
     /**
@@ -24,9 +23,8 @@ class PhaseOneHardeningTest extends TestCase
      */
     public function test_catalog_show_does_not_return_unpublished_product(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
-
-        $product = Product::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
+        $product = $variant->product()->firstOrFail();
         $product->update(['published_at' => null]);
 
         $this->getJson('/api/v1/catalog/products/'.$product->slug)
@@ -39,9 +37,7 @@ class PhaseOneHardeningTest extends TestCase
      */
     public function test_catalog_show_returns_only_active_variants(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
-
-        $product = Product::query()->with('variants')->firstOrFail();
+        $product = $this->createActiveProductWithVariants([9.99, 19.99]);
         $variant = $product->variants->first();
         $this->assertNotNull($variant);
         $variant->update(['is_active' => false]);
@@ -59,9 +55,7 @@ class PhaseOneHardeningTest extends TestCase
      */
     public function test_cart_rejects_inactive_variant(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
-
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $variant->update(['is_active' => false]);
 
         $this->postJson('/api/v1/cart/items', [
@@ -77,9 +71,7 @@ class PhaseOneHardeningTest extends TestCase
      */
     public function test_cart_rejects_variant_from_unpublished_product(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
-
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $variant->product()->update(['published_at' => null]);
 
         $this->postJson('/api/v1/cart/items', [
@@ -95,9 +87,7 @@ class PhaseOneHardeningTest extends TestCase
      */
     public function test_checkout_rejects_cart_with_unavailable_variant(): void
     {
-        $this->seed([RoleSeeder::class, CatalogSeeder::class]);
-
-        $variant = ProductVariant::query()->firstOrFail();
+        $variant = $this->createActiveVariantWithInventory();
         $guestToken = 'phase-one-checkout-unavailable';
 
         $this->postJson('/api/v1/cart/items', [
