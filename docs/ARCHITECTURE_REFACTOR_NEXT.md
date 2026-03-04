@@ -949,6 +949,131 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
         - README,
         - release checklist,
         - ops runbook.
+42. Promoted `Deep Architecture Audit & Refactoring Plan v2` safety-first slice started via `Backlog F` (`P0`, items `1-3`):
+    - admin order direct status transition guard introduced:
+      - `OrderStatusTransitionPolicy` promoted to `final readonly` and expanded with explicit `canTransitionDirectly(from, to)` matrix;
+      - `AdminOrderService` now rejects invalid direct status updates (`DomainException: "Order status transition is not allowed."`) when `status` is explicitly provided.
+    - cart remove-item transport validation hardened:
+      - new `RemoveCartItemRequest` validates route `variantId` via `integer + exists:product_variants,id` and normalizes `guest_token` from query/header;
+      - cart delete route now includes numeric constraint via `->whereNumber('variantId')`.
+    - explicit cart authorization policy boundary introduced:
+      - new `CartPolicy` mapped in `AppServiceProvider`;
+      - `CartController` now performs explicit `authorize()` calls:
+        - `viewAny` for cart read;
+        - `modify` for cart mutations (authenticated user or guest token scope).
+    - policy guardrails and regressions expanded:
+      - `PolicyCompletenessMatrixGuardrailTest` now includes `Cart -> CartPolicy` action contract;
+      - new/updated regressions:
+        - `CartMutationSafetyTest` (unknown variant remove validation + guest mutation token requirement),
+        - `OrderStatusTransitionPolicyTest` (direct-transition matrix),
+        - `AdminOrderServiceStatusEventTest`,
+        - `PhaseOneHardeningTest` (invalid direct admin transition rejection).
+43. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain-model expansion started via `Backlog G` (`P1`, item `4` cart money expansion):
+    - monetary write-path in cart mutation migrated to `Money` value object:
+      - `CartMutationService` now computes `unit_price` and `line_total` using `Money::fromDecimal(...)->multiply(quantity)` instead of `bcmul` float/string arithmetic;
+      - persistence boundary remains scalar (`toFloat`) to preserve existing DB/API contracts.
+    - cart read-path summary aggregation migrated to `Money`:
+      - `CartResultMapper` now accumulates subtotal/total via `Money` and only maps to float at response boundary;
+      - per-item unit and line totals are normalized through `Money` prior to DTO mapping.
+    - domain value-object capability expanded:
+      - `Money` now includes `multiply(int $factor)` for deterministic cent-safe quantity scaling.
+    - deterministic regression coverage added/updated:
+      - `MoneyTest` now verifies cent-safe multiplication semantics;
+      - `CartResultMapperTest` now verifies decimal subtotal aggregation precision (`0.1 + 0.2 = 0.3`) through mapper boundary;
+      - `CartMutationSafetyTest` now asserts line-total persistence via `Money` calculation contract.
+44. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain-model expansion progressed via `Backlog G` (`P1`, item `5` order/payment money-boundary slice):
+    - order detail DTO mapping normalized through `Money` while preserving response contract:
+      - `CheckoutOrderResultDto`, `AdminOrderDetailResultDto`, `AccountOrderDetailResultDto` now map monetary fields through `Money` in `fromOrder(...)` and still expose `float` values on JSON boundary.
+    - payment creation boundary migrated to typed money contract:
+      - `PaymentGatewayInterface::createPayment(...)` now receives explicit `Money $amount`;
+      - `PaymentService` now resolves order total as `Money` before gateway invocation and before payment persistence write;
+      - fake gateway payload now includes normalized amount/currency from typed `Money` boundary.
+    - deterministic regression coverage added/updated:
+      - `OrderMoneyDtoMappingTest` validates cross-DTO money mapping consistency on float boundary;
+      - `GatewayDriverBindingTest` updated to reflect the typed gateway contract signature.
+45. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain-model expansion progressed via `Backlog G` (`P1`, item `6` service contracts slice):
+    - explicit service contracts introduced for core checkout/cart boundaries:
+      - `CheckoutServiceInterface`,
+      - `CartServiceInterface`,
+      - `CartMutationServiceInterface`.
+    - default implementations now implement explicit contracts:
+      - `CheckoutService`,
+      - `CartService`,
+      - `CartMutationService`.
+    - container wiring aligned with contracts:
+      - `ApplicationBindingsServiceProvider` now binds service contracts to default implementations.
+    - consumers migrated from concrete services to contracts:
+      - cart command/query handlers,
+      - auth login handler guest-cart merge path,
+      - checkout place-order orchestrator,
+      - performance/webhook smoke scenario setup and execution paths.
+    - deterministic coverage added/updated:
+      - new `ApplicationServiceBindingTest` enforces contract-to-implementation container resolution;
+      - `CartMutationSafetyTest` now resolves cart mutation service through interface contract.
+46. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain-model expansion progressed via `Backlog G` (`P1`, item `7` repository contracts slice):
+    - explicit repository contracts introduced for remaining read boundaries:
+      - `AdminOrderReadRepository` contract,
+      - `AdminProductReadRepository` contract,
+      - `AdminPromotionReadRepository` contract,
+      - `AdminCategoryReadRepository` contract,
+      - `CatalogProductReadRepository` contract.
+    - default read repositories now implement their explicit contracts:
+      - `App\Repositories\AdminOrderReadRepository`,
+      - `App\Repositories\AdminProductReadRepository`,
+      - `App\Repositories\PromotionRepository`,
+      - `App\Repositories\CategoryRepository`,
+      - `App\Repositories\CatalogProductReadRepository`.
+    - application container wiring aligned with repository contracts:
+      - `ApplicationBindingsServiceProvider` now binds each repository contract to its default infrastructure implementation.
+    - application/smoke consumers migrated from concrete repositories to contracts:
+      - admin orders/products/promotions/categories query handlers,
+      - `CatalogService`,
+      - admin performance smoke scenarios.
+    - deterministic coverage added:
+      - new `ApplicationRepositoryBindingTest` enforces contract-to-implementation container resolution across the five repository contracts.
+47. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain-model expansion progressed via `Backlog G` (`P1`, item `8` observability metric race-safety slice):
+    - counter increment path in `ObservabilityMetricStore` made race-safe for concurrent updates:
+      - removed read-modify-write sequence (`add -> increment -> get+put`) that could clobber parallel increments;
+      - `incrementCounter(...)` now uses atomic cache operations:
+        - `Cache::add(key, value, ttl)` for first write,
+        - `Cache::increment(key, value)` for existing keys.
+    - compatibility fallback retained for non-increment stores:
+      - when `Cache::increment(...)` returns `false`, store falls back to additive `put` path with explicit integer normalization.
+    - regression verification kept on observability behavior:
+      - metric aggregation tests remain green for API/catalog/webhook/status-transition windows and report command paths.
+48. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain deepening started via `Backlog H` (`P1`, item `9` order state-machine consolidation):
+    - canonical order state-machine API added:
+      - `OrderStatusTransitionPolicy` now exposes `canTransition(from, to)` as primary full matrix check.
+    - backward compatibility preserved:
+      - `canTransitionDirectly(from, to)` retained as alias and delegates to `canTransition(...)` for existing call-sites.
+    - matrix normalized for explicit self-transitions:
+      - all `OrderStatus` states now include self-transition in allowed matrix (`pending -> pending`, ..., `refunded -> refunded`) aligned with payment/shipment policies.
+    - order-state semantics clarified:
+      - `processing` and `shipped` remain explicit manual/admin order states;
+      - webhook-driven resolution remains intentionally collapsed to deterministic customer-facing outcomes.
+    - adoption + deterministic coverage:
+      - `AdminOrderService` now uses canonical `canTransition(...)`;
+      - `OrderStatusTransitionPolicyTest` now validates full matrix across all `OrderStatus::cases()` and asserts alias parity.
+49. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain deepening progressed via `Backlog H` (`P1`, item `10` webhook failure observability slice):
+    - webhook pipeline failure logging added without changing processing semantics:
+      - `WebhookProcessingPipeline` now logs `webhook.processing_failed` before rethrowing any throwable.
+    - failure context normalized for deterministic triage:
+      - log context now includes `provider`, `correlation_id`, `event_id`, `event_type`, `receipt_id`, `payload_hash`, `outcome`, `source`, `exception_class`, `exception_message`.
+    - coverage added for logging + rethrow behavior:
+      - `WebhookProcessingPipelineTest` verifies structured error logging and original exception propagation.
+50. Promoted `Deep Architecture Audit & Refactoring Plan v2` domain deepening progressed via `Backlog H` (`P1`, item `11` domain exception hierarchy slice):
+    - typed domain exception taxonomy introduced:
+      - `CartException`,
+      - `CheckoutException`,
+      - `OrderTransitionException`.
+    - cart/checkout/order-transition services migrated from raw `DomainException` to specialized exception types:
+      - cart mutation/resolution flows now throw `CartException`;
+      - checkout identity/cart/inventory/discount/idempotency/finalization flows now throw `CheckoutException`;
+      - admin order status guards now throw `OrderTransitionException`.
+    - deterministic unit coverage aligned with exception types:
+      - `CheckoutRequestIdentityResolverTest` asserts `CheckoutException`;
+      - `AdminOrderServiceStatusEventTest` asserts `OrderTransitionException`;
+      - new `CartResolverTest` asserts guest-token guard throws `CartException`.
 
 ## Locked Constraints
 

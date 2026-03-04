@@ -5583,3 +5583,289 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog F` (`P0`, items `1-3`) safety slice started:
+  - admin direct order-status transition guard added:
+    - `app/Services/Order/OrderStatusTransitionPolicy.php` expanded with explicit `canTransitionDirectly(from, to)` state matrix and promoted to `final readonly`;
+    - `app/Services/Admin/AdminOrderService.php` now rejects invalid explicit direct status transitions with `DomainException("Order status transition is not allowed.")`.
+  - cart remove-item transport validation hardened:
+    - added `app/Http/Requests/Cart/RemoveCartItemRequest.php` with:
+      - route `variantId` normalization,
+      - `integer + exists:product_variants,id` validation,
+      - guest token normalization from query/header;
+    - `app/Http/Controllers/Api/V1/CartController.php` switched remove action to typed request DTO flow;
+    - `routes/api.php` cart delete route now includes `->whereNumber('variantId')`.
+  - explicit cart authorization policy boundary introduced:
+    - added `app/Policies/CartPolicy.php`;
+    - mapped `Cart::class -> CartPolicy::class` in `app/Providers/AppServiceProvider.php`;
+    - cart controller now calls `authorize()` explicitly:
+      - `viewAny` for cart reads;
+      - `modify` for cart mutations (auth user or guest-token scope).
+  - policy matrix/guardrails and regressions extended:
+    - `tests/Unit/Architecture/PolicyCompletenessMatrixGuardrailTest.php` now includes `Cart -> CartPolicy` action contract (`viewAny`, `modify`);
+    - `tests/Feature/CartMutationSafetyTest.php` now covers:
+      - remove unknown variant validation rejection,
+      - guest mutation without token forbidden;
+    - `tests/Unit/OrderStatusTransitionPolicyTest.php`, `tests/Unit/AdminOrderServiceStatusEventTest.php`, and `tests/Feature/PhaseOneHardeningTest.php` now cover invalid direct admin status transition rejection.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `42` for `Backlog F` start;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog F` promotion.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="OrderStatusTransitionPolicyTest|AdminOrderServiceStatusEventTest|PhaseOneHardeningTest|CartMutationSafetyTest|PolicyCompletenessMatrixGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - routes/controllers post-change checks passed:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `4`) cart money-expansion slice started:
+  - cart mutation monetary write-path migrated to `Money`:
+    - `app/Services/Cart/CartMutationService.php` now computes `unit_price` and `line_total` through `Money` arithmetic instead of `bcmul` string math;
+    - scalar persistence boundary remains unchanged (`toFloat`) to preserve DB/API compatibility.
+  - cart summary monetary read-path migrated to `Money`:
+    - `app/Services/Cart/CartResultMapper.php` now accumulates subtotal/total via `Money` and converts to float only on response boundary;
+    - item-level `unit_price/line_total` normalization now passes through `Money` before DTO mapping.
+  - value-object capability expanded for quantity scaling:
+    - `app/Domain/ValueObjects/Money.php` now exposes `multiply(int $factor)` with cent-safe deterministic semantics.
+  - deterministic regression coverage extended:
+    - `tests/Unit/Domain/ValueObjects/MoneyTest.php` adds multiplication contract coverage;
+    - `tests/Unit/CartResultMapperTest.php` adds precision aggregation case (`0.1 + 0.2 => 0.3`);
+    - `tests/Feature/CartMutationSafetyTest.php` now asserts persisted `line_total` via `Money` calculation contract.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `43` for `Backlog G` item `4` start;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog G` start.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="MoneyTest|CartResultMapperTest|CartMutationSafetyTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `5`) order/payment money-boundary slice started:
+  - order detail DTO mapping normalized through `Money` while keeping API float contract:
+    - `app/Application/Checkout/Dto/CheckoutOrderResultDto.php`,
+    - `app/Application/Admin/Orders/Dto/AdminOrderDetailResultDto.php`,
+    - `app/Application/Account/Orders/Dto/AccountOrderDetailResultDto.php`
+    now map `subtotal/discount_total/shipping_total/total` via `Money` and convert to float at transport boundary.
+  - payment gateway/service contract moved to explicit typed money amount:
+    - `app/Contracts/PaymentGatewayInterface.php` now requires `Money $amount` in `createPayment(...)`;
+    - `app/Services/Payment/PaymentService.php` now resolves order total as `Money` before gateway invocation and persistence write;
+    - `app/Infrastructure/Payments/FakePaymentGateway.php` updated to consume typed amount and expose normalized amount/currency in payload.
+  - deterministic coverage updated:
+    - `tests/Unit/OrderMoneyDtoMappingTest.php` added to enforce cross-DTO float-boundary consistency after money normalization;
+    - `tests/Unit/GatewayDriverBindingTest.php` updated for typed payment gateway contract.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `44` for `Backlog G` item `5`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog G` items `4/5` start.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="OrderMoneyDtoMappingTest|MoneyTest|CartResultMapperTest|CartMutationSafetyTest|GatewayDriverBindingTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `6`) service-contract boundary slice progressed:
+  - explicit contracts added for cart/checkout core services:
+    - `app/Contracts/CheckoutServiceInterface.php`;
+    - `app/Contracts/CartServiceInterface.php`;
+    - `app/Contracts/CartMutationServiceInterface.php`.
+  - default implementations migrated to explicit contract boundaries:
+    - `app/Services/Checkout/CheckoutService.php` now implements `CheckoutServiceInterface`;
+    - `app/Services/Cart/CartService.php` now implements `CartServiceInterface` and depends on `CartMutationServiceInterface`;
+    - `app/Services/Cart/CartMutationService.php` now implements `CartMutationServiceInterface`.
+  - application container bindings aligned with contracts:
+    - `app/Providers/ApplicationBindingsServiceProvider.php` now binds all three service interfaces to their default implementations.
+  - concrete coupling removed from consumers:
+    - cart command/query handlers,
+    - auth login handler guest cart merge flow,
+    - checkout place-order orchestrator,
+    - performance smoke setup/scenarios,
+    - webhook flow scenario.
+  - deterministic coverage added/updated:
+    - `tests/Unit/ApplicationServiceBindingTest.php` added;
+    - `tests/Feature/CartMutationSafetyTest.php` now resolves mutation service through interface contract.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `45` for `Backlog G` item `6`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog G` items `4/5/6` progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="ApplicationServiceBindingTest|CartMutationSafetyTest|GatewayDriverBindingTest|WebhookFlowSmokeCommandTest|PerformanceSmokeCommandTest|CheckoutPlaceOrderPerformanceSmokeScenario|WebhookFlowScenario|CartShowPerformanceSmokeScenario"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - routes/controllers post-change checks passed:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `7`) repository-contract boundary slice progressed:
+  - explicit repository contracts introduced for remaining admin/catalog read paths:
+    - `app/Application/Admin/Orders/Contracts/AdminOrderReadRepository.php`;
+    - `app/Application/Admin/Products/Contracts/AdminProductReadRepository.php`;
+    - `app/Application/Admin/Promotions/Contracts/AdminPromotionReadRepository.php`;
+    - `app/Application/Admin/Categories/Contracts/AdminCategoryReadRepository.php`;
+    - `app/Application/Catalog/Contracts/CatalogProductReadRepository.php`.
+  - default read repositories migrated to explicit contract implementations:
+    - `app/Repositories/AdminOrderReadRepository.php`;
+    - `app/Repositories/AdminProductReadRepository.php`;
+    - `app/Repositories/PromotionRepository.php`;
+    - `app/Repositories/CategoryRepository.php`;
+    - `app/Repositories/CatalogProductReadRepository.php`.
+  - application container bindings aligned with repository contracts:
+    - `app/Providers/ApplicationBindingsServiceProvider.php` now binds each repository contract to its concrete read implementation.
+  - concrete repository coupling removed from consumers:
+    - admin query handlers (`orders/products/promotions/categories`) now depend on repository contracts;
+    - `app/Services/Catalog/CatalogService.php` now depends on `CatalogProductReadRepository` contract;
+    - admin performance smoke scenarios now depend on repository contracts.
+  - deterministic coverage added:
+    - `tests/Unit/ApplicationRepositoryBindingTest.php` added and enforces container resolution for all five repository contracts.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `46` for `Backlog G` item `7`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog G` items `4/5/6/7` progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="ApplicationRepositoryBindingTest|AdminListFilteringTest|AdminOrderSummaryContractTest|AdminProductVariantsTest|CatalogTest|PerformanceSmokeCommandTest|RepositoryReadBoundaryTest|RepositoryBusinessDecisionBoundaryTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - routes/controllers post-change checks passed:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `8`) observability metric race-safety slice progressed:
+  - `ObservabilityMetricStore` counter increment path hardened against concurrent update loss:
+    - removed `Cache::add + Cache::increment + Cache::get/put` write pattern that could overwrite parallel increments;
+    - `incrementCounter(...)` now uses:
+      - first-write path: `Cache::add(key, value, ttl)`,
+      - existing-key path: `Cache::increment(key, value)`.
+  - compatibility fallback preserved:
+    - if `Cache::increment(...)` returns `false` (store without increment support), fallback additive `put` path remains with strict integer normalization.
+  - deterministic regression verification:
+    - observability metric store, snapshot builder, service logging, and observability report/alert command suites remain green.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `47` for `Backlog G` item `8`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog G` items `4/5/6/7/8` progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="ObservabilityMetricStoreTest|ObservabilityServiceTest|ObservabilitySnapshotBuilderTest|ObservabilityReportCommandTest|ObservabilityAlertCheckCommandTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - routes/controllers post-change checks passed:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog H` (`P1`, item `9`) order state-machine consolidation slice started:
+  - canonical order transition matrix API introduced:
+    - `app/Services/Order/OrderStatusTransitionPolicy.php` now exposes `canTransition(OrderStatus|string $from, OrderStatus|string $to): bool`.
+  - backward compatibility preserved for existing call-sites:
+    - `canTransitionDirectly(...)` retained and delegated to `canTransition(...)`.
+  - full matrix normalized with explicit self-transition semantics:
+    - all `OrderStatus` states now allow self-transition in matrix (`pending`, `paid`, `processing`, `shipped`, `completed`, `cancelled`, `refunded`) consistent with payment/shipment policy style.
+  - order-state semantics clarified in policy contract:
+    - `processing` and `shipped` are kept as explicit manual/admin order states;
+    - webhook-driven resolution remains intentionally collapsed to deterministic terminal/customer-facing outcomes.
+  - canonical API adoption:
+    - `app/Services/Admin/AdminOrderService.php` now uses `canTransition(...)` for admin explicit-status validation.
+  - deterministic coverage strengthened:
+    - `tests/Unit/OrderStatusTransitionPolicyTest.php` now validates full transition matrix across all `OrderStatus::cases()`;
+    - test suite also enforces parity between `canTransition(...)` and `canTransitionDirectly(...)`.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `48` for `Backlog H` item `9`;
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog H` item `9` start.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="OrderStatusTransitionPolicyTest|AdminOrderServiceStatusEventTest|PhaseOneHardeningTest|PaymentWebhookTransitionApplierTest|ShippingWebhookTransitionApplierTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - routes/controllers post-change checks passed:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.
+- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog H` (`P1`, items `10` and `11`) webhook failure observability + exception hierarchy slice progressed:
+  - webhook pipeline failure observability hardened:
+    - `app/Services/Webhook/WebhookProcessingPipeline.php` now logs `webhook.processing_failed` with deterministic context before rethrowing;
+    - failure context includes provider/correlation/event metadata, receipt id, payload hash, pipeline outcome, source, and exception class/message.
+  - deterministic failure-path coverage added:
+    - `tests/Unit/WebhookProcessingPipelineTest.php` added and verifies structured logging plus original throwable propagation.
+  - domain exception taxonomy expanded for explicit type-level monitoring:
+    - added `app/Domain/Exceptions/CartException.php`,
+    - added `app/Domain/Exceptions/CheckoutException.php`,
+    - added `app/Domain/Exceptions/OrderTransitionException.php`.
+  - cart/checkout/admin transition flows migrated from raw `DomainException` to typed domain exceptions:
+    - `app/Services/Cart/CartMutationService.php`,
+    - `app/Services/Cart/CartResolver.php`,
+    - `app/Services/Checkout/CheckoutService.php`,
+    - `app/Services/Checkout/CheckoutCartPreparer.php`,
+    - `app/Services/Checkout/CheckoutDiscountResolver.php`,
+    - `app/Services/Checkout/CheckoutIdempotencyGuard.php`,
+    - `app/Services/Checkout/CheckoutInventoryAllocator.php`,
+    - `app/Services/Checkout/CheckoutOrderFinalizer.php`,
+    - `app/Services/Checkout/CheckoutRequestIdentityResolver.php`,
+    - `app/Services/Admin/AdminOrderService.php`.
+  - deterministic unit coverage aligned with specialized exception types:
+    - `tests/Unit/CheckoutRequestIdentityResolverTest.php` now asserts `CheckoutException`;
+    - `tests/Unit/AdminOrderServiceStatusEventTest.php` now asserts `OrderTransitionException`;
+    - `tests/Unit/CartResolverTest.php` added and asserts `CartException` on missing guest token.
+  - roadmap/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress items `49` (`Backlog H`, item `10`) and `50` (`Backlog H`, item `11`);
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` status updated to reflect `Backlog H` items `9/10/11` progress.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="CartResolverTest|CheckoutRequestIdentityResolverTest|AdminOrderServiceStatusEventTest|WebhookProcessingPipelineTest|PhaseOneHardeningTest|CartCheckoutTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+    - routes/controllers post-change checks passed:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.

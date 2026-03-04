@@ -1,7 +1,7 @@
 # Deep Architecture Audit & Refactoring Plan v2
 
 > Date: 2026-03-04
-> Status: Candidate backlog (not active execution authority)
+> Status: Candidate backlog (not active execution authority; `Backlog F` promoted to active roadmap on 2026-03-04, `Backlog G` progressed with items `4`, `5`, `6`, `7`, `8`, and `Backlog H` progressed with items `9`, `10`, `11` on 2026-03-04)
 > Source-of-truth for architecture execution: `docs/ARCHITECTURE_REFACTOR_NEXT.md`
 > Previous audit: `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md`
 
