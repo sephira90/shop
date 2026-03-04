@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
@@ -87,7 +88,7 @@ class CheckoutOrderFinalizerTest extends TestCase
                 order: $order,
                 idempotency: $idempotency,
                 discountContext: new CheckoutDiscountContextDto(
-                    discountTotal: 10.0,
+                    discountTotal: Money::fromDecimal(10.0, 'USD'),
                     coupon: $coupon,
                     promotion: $promotion,
                 ),

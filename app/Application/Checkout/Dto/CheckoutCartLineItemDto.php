@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Dto;
 
+use App\Domain\ValueObjects\Money;
+
 final readonly class CheckoutCartLineItemDto
 {
     public function __construct(
@@ -11,8 +13,8 @@ final readonly class CheckoutCartLineItemDto
         public string $sku,
         public string $name,
         public int $quantity,
-        public float $unitPrice,
-        public float $lineTotal,
+        public Money $unitPrice,
+        public Money $lineTotal,
     ) {}
 
     /**
@@ -25,8 +27,8 @@ final readonly class CheckoutCartLineItemDto
             'sku' => $this->sku,
             'name' => $this->name,
             'quantity' => $this->quantity,
-            'unit_price' => $this->unitPrice,
-            'line_total' => $this->lineTotal,
+            'unit_price' => $this->unitPrice->toFloat(),
+            'line_total' => $this->lineTotal->toFloat(),
         ];
     }
 
@@ -41,8 +43,8 @@ final readonly class CheckoutCartLineItemDto
             'sku' => $this->sku,
             'name' => $this->name,
             'quantity' => $this->quantity,
-            'unit_price' => $this->unitPrice,
-            'total_price' => $this->lineTotal,
+            'unit_price' => $this->unitPrice->toFloat(),
+            'total_price' => $this->lineTotal->toFloat(),
             'meta' => json_encode(['source_cart' => $cartId], JSON_THROW_ON_ERROR),
             'created_at' => $timestamp,
             'updated_at' => $timestamp,

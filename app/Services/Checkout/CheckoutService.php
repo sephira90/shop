@@ -22,6 +22,7 @@ final class CheckoutService
         private readonly CheckoutIdempotencyGuard $checkoutIdempotencyGuard,
         private readonly CheckoutInventoryAllocator $checkoutInventoryAllocator,
         private readonly CheckoutCartPreparer $checkoutCartPreparer,
+        private readonly CheckoutShippingCostResolver $checkoutShippingCostResolver,
         private readonly CheckoutOrderWriter $checkoutOrderWriter,
         private readonly CheckoutOrderFinalizer $checkoutOrderFinalizer,
     ) {}
@@ -61,7 +62,7 @@ final class CheckoutService
 
             $idempotency = $idempotencyResolution->idempotency;
 
-            $cartPreparation = $this->checkoutCartPreparer->prepare($lockedCart);
+            $cartPreparation = $this->checkoutCartPreparer->prepare($lockedCart, $checkoutInput->currency);
 
             $this->checkoutInventoryAllocator->assertAndConsume(
                 CheckoutInventoryDemandDto::fromRequiredQuantityMap($cartPreparation->requiredQuantityByVariant)
@@ -69,7 +70,7 @@ final class CheckoutService
 
             $discountContext = $this->checkoutDiscountResolver->resolve($checkoutInput, $cartPreparation->subtotal);
             $discountTotal = $discountContext->discountTotal;
-            $shippingTotal = 0.0;
+            $shippingTotal = $this->checkoutShippingCostResolver->resolve($lockedCart, $checkoutInput);
             $order = $this->checkoutOrderWriter->write(new CheckoutOrderWriteInputDto(
                 cart: $lockedCart,
                 checkoutInput: $checkoutInput,

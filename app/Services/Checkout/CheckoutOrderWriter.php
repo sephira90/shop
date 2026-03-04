@@ -17,7 +17,9 @@ final class CheckoutOrderWriter
     public function write(CheckoutOrderWriteInputDto $input): Order
     {
         $subtotal = $input->cartPreparation->subtotal;
-        $total = $subtotal - $input->discountTotal + $input->shippingTotal;
+        $total = $subtotal
+            ->subtract($input->discountTotal)
+            ->add($input->shippingTotal);
 
         $order = Order::query()->create([
             'order_number' => 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
@@ -27,10 +29,10 @@ final class CheckoutOrderWriter
             'payment_status' => PaymentStatus::PENDING->value,
             'shipment_status' => ShipmentStatus::PENDING->value,
             'currency' => $input->checkoutInput->currency,
-            'subtotal' => $subtotal,
-            'discount_total' => $input->discountTotal,
-            'shipping_total' => $input->shippingTotal,
-            'total' => $total,
+            'subtotal' => $subtotal->toFloat(),
+            'discount_total' => $input->discountTotal->toFloat(),
+            'shipping_total' => $input->shippingTotal->toFloat(),
+            'total' => $total->toFloat(),
             'billing_address' => $input->checkoutInput->billingAddress->toArray(),
             'shipping_address' => $input->checkoutInput->shippingAddress->toArray(),
             'cart_snapshot' => $input->cartPreparation->toCartSnapshot(),

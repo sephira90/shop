@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
+use App\Domain\ValueObjects\Money;
 use App\Enums\PromotionType;
 use App\Models\Coupon;
 use App\Models\Promotion;
@@ -14,13 +15,13 @@ use DomainException;
 
 final class CheckoutDiscountResolver
 {
-    public function resolve(CheckoutPlaceOrderInputDto $checkoutInput, float $subtotal): CheckoutDiscountContextDto
+    public function resolve(CheckoutPlaceOrderInputDto $checkoutInput, Money $subtotal): CheckoutDiscountContextDto
     {
         $couponCode = $checkoutInput->couponCode ?? '';
 
         if ($couponCode === '') {
             return new CheckoutDiscountContextDto(
-                discountTotal: 0.0,
+                discountTotal: Money::zero($subtotal->currency()),
                 coupon: null,
                 promotion: null,
             );
@@ -81,7 +82,7 @@ final class CheckoutDiscountResolver
     /**
      * Calculate discount amount by promotion type.
      */
-    private function calculateDiscountTotal(PromotionType|string $type, float $promotionValue, float $subtotal): float
+    private function calculateDiscountTotal(PromotionType|string $type, float $promotionValue, Money $subtotal): Money
     {
         try {
             $promotionType = $type instanceof PromotionType ? $type : PromotionType::from($type);
@@ -90,10 +91,14 @@ final class CheckoutDiscountResolver
         }
 
         $discount = match ($promotionType) {
-            PromotionType::PERCENT => min($subtotal * ($promotionValue / 100), $subtotal),
-            PromotionType::FIXED => min($promotionValue, $subtotal),
+            PromotionType::PERCENT => $subtotal->percentage($promotionValue)->min($subtotal),
+            PromotionType::FIXED => Money::fromDecimal($promotionValue, $subtotal->currency())->min($subtotal),
         };
 
-        return round(max(0.0, $discount), 2);
+        if ($discount->amountCents() <= 0) {
+            return Money::zero($subtotal->currency());
+        }
+
+        return $discount;
     }
 }

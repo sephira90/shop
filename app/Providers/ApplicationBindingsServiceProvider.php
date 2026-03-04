@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Application\Account\Orders\Contracts\AccountOrderReadRepository as AccountOrderReadRepositoryContract;
 use App\Repositories\AccountOrderReadRepository;
+use App\Services\Checkout\CheckoutShippingCostResolver;
+use App\Services\Checkout\FreeCheckoutShippingCostResolver;
 use Illuminate\Support\ServiceProvider;
 
 final class ApplicationBindingsServiceProvider extends ServiceProvider
@@ -16,5 +18,6 @@ final class ApplicationBindingsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AccountOrderReadRepositoryContract::class, AccountOrderReadRepository::class);
+        $this->app->bind(CheckoutShippingCostResolver::class, FreeCheckoutShippingCostResolver::class);
     }
 }

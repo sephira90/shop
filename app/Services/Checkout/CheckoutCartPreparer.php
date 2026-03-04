@@ -6,6 +6,7 @@ namespace App\Services\Checkout;
 
 use App\Application\Checkout\Dto\CheckoutCartLineItemDto;
 use App\Application\Checkout\Dto\CheckoutCartPreparationDto;
+use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Enums\ProductStatus;
 use App\Models\Cart;
@@ -16,7 +17,7 @@ use DomainException;
 
 final class CheckoutCartPreparer
 {
-    public function prepare(Cart $lockedCart): CheckoutCartPreparationDto
+    public function prepare(Cart $lockedCart, string $currency): CheckoutCartPreparationDto
     {
         if ($lockedCart->items->isEmpty()) {
             throw new DomainException('Cart is empty.');
@@ -26,7 +27,7 @@ final class CheckoutCartPreparer
             throw new DomainException('Cart is not active for checkout.');
         }
 
-        $subtotal = 0.0;
+        $subtotal = Money::zero($currency);
         $lineItems = [];
         $requiredQuantityByVariant = [];
 
@@ -45,15 +46,16 @@ final class CheckoutCartPreparer
 
             $variantId = (int) $item->product_variant_id;
             $requiredQuantityByVariant[$variantId] = ($requiredQuantityByVariant[$variantId] ?? 0) + $item->quantity;
-            $subtotal += (float) $item->line_total;
+            $lineTotal = Money::fromDecimal((float) $item->line_total, $currency);
+            $subtotal = $subtotal->add($lineTotal);
 
             $lineItems[] = new CheckoutCartLineItemDto(
                 productVariantId: $variantId,
                 sku: $variant->sku,
                 name: $variant->name,
                 quantity: $item->quantity,
-                unitPrice: (float) $item->unit_price,
-                lineTotal: (float) $item->line_total,
+                unitPrice: Money::fromDecimal((float) $item->unit_price, $currency),
+                lineTotal: $lineTotal,
             );
         }
 

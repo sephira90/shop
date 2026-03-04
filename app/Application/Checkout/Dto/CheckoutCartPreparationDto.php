@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Checkout\Dto;
 
+use App\Domain\ValueObjects\Money;
+
 final readonly class CheckoutCartPreparationDto
 {
     /**
@@ -11,7 +13,7 @@ final readonly class CheckoutCartPreparationDto
      * @param  array<int, CheckoutCartLineItemDto>  $lineItems
      */
     public function __construct(
-        public float $subtotal,
+        public Money $subtotal,
         public array $requiredQuantityByVariant,
         public array $lineItems,
     ) {}
