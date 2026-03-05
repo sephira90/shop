@@ -20,7 +20,7 @@ This file defines mandatory engineering rules for contributors and coding agents
 ## Strict architecture policy (mandatory)
 
 - Architecture quality is non-negotiable and has priority over implementation speed.
-- `docs/ARCHITECTURE.md` defines stable architecture contracts; `docs/AI_REPO_MAP.md` defines execution/navigation entrypoints for AI work. Treat both as mandatory reference before implementation.
+- `docs/ARCHITECTURE.md` defines stable architecture contracts; `docs/REPO_MAP.md` and `docs/DOMAIN_MAP.md` define execution/navigation entrypoints for AI work. Treat them as mandatory reference before implementation.
 - New functionality must follow the project architecture from the first implementation step (layer boundaries, contracts, and module responsibilities are mandatory).
 - Implementation steps must be deep and substantial: prefer closing a coherent architectural slice end-to-end instead of a chain of superficial micro-edits.
 - Each implementation block must carry through the necessary boundaries, contracts, tests, and operational/docs updates required for the result to be genuinely complete.
@@ -176,7 +176,8 @@ After any code change, task is considered complete only when production-readines
 
 ## AI execution navigation
 
-- For each task, first map the flow using `docs/AI_REPO_MAP.md` and edit only the bounded context that owns the behavior.
+- For each task, first map the flow using `docs/REPO_MAP.md` and `docs/DOMAIN_MAP.md` and edit only the bounded context that owns the behavior.
+- For new domain-centric slices, prefer convergence toward `app/Domains/*` modules when backward compatibility can be preserved.
 - Enforce dependency direction from `docs/ARCHITECTURE.md`:
   - controller -> application,
   - application -> contracts/services/repositories,

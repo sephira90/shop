@@ -1,7 +1,7 @@
 # Cursor Rules
 
 Follow `AGENTS.md` as the primary project policy.
-Use `docs/ARCHITECTURE.md` and `docs/AI_REPO_MAP.md` as architecture navigation authority before code changes.
+Use `docs/ARCHITECTURE.md`, `docs/REPO_MAP.md`, and `docs/DOMAIN_MAP.md` as architecture navigation authority before code changes.
 
 ## Required behavior
 
@@ -9,7 +9,8 @@ Use `docs/ARCHITECTURE.md` and `docs/AI_REPO_MAP.md` as architecture navigation 
 - Commit changes in logical blocks (one commit = one coherent concern).
 - Prefer broader coherent execution blocks over shallow fragmented steps when the change can be completed and verified safely.
 - Respect existing architecture and naming conventions.
-- Before implementation, locate the target flow in `docs/AI_REPO_MAP.md` and preserve layer dependency direction from `docs/ARCHITECTURE.md`.
+- Before implementation, locate the target flow in `docs/REPO_MAP.md` + `docs/DOMAIN_MAP.md` and preserve layer dependency direction from `docs/ARCHITECTURE.md`.
+- Prefer new domain slices to align with target modular structure under `app/Domains/*` when it does not require a breaking migration.
 - Always follow the best-architecture standard strictly; no temporary shortcuts that degrade layering, contracts, or maintainability.
 - Implementation steps must be deep and substantial: complete coherent architectural slices, not superficial micro-edits.
 - Each implementation block should carry through the needed boundaries, contracts, tests, and docs/ops updates for a genuinely complete result.

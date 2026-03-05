@@ -5,6 +5,8 @@
 - Active architecture roadmap: `docs/ARCHITECTURE_REFACTOR_NEXT.md`
 - Operational execution log: `docs/REFACTORING_EXECUTION_PLAN.md`
 - Project policy: `AGENTS.md`
+- Repository navigation map: `docs/REPO_MAP.md`
+- Domain dependency map: `docs/DOMAIN_MAP.md`
 
 This document defines stable architecture contracts for implementation and refactoring.
 
@@ -24,6 +26,35 @@ Current bounded contexts:
 - `Application/Cart/*`
 - `Application/Checkout/*`
 - `Application/Webhook/*` (via service boundaries and processing pipeline)
+
+## Modular Monolith Target Layout
+
+Target physical structure (incremental migration, no big-bang rewrite):
+
+```text
+app/
+  Domains/
+    Catalog/
+    Cart/
+    Checkout/
+    Orders/
+    Users/
+    Payments/
+    Webhooks/
+```
+
+Each domain module converges toward internal subfolders:
+
+- `Controllers`
+- `Services`
+- `Repositories`
+- `Models`
+
+Migration policy:
+
+1. Keep current `Application/Services/Repositories` boundaries stable while moving slices incrementally.
+2. Move one coherent flow per block with tests and contract compatibility.
+3. Do not break `/api/v1/*` envelopes or persistence schema contracts during relocation.
 
 ## Layer model
 
