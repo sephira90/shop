@@ -5964,3 +5964,25 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
+- `2026-03-05` - architecture docs current-state synchronization slice completed:
+  - architecture navigation docs updated to reflect runtime state vs target-state convergence:
+    - `docs/ARCHITECTURE.md` now includes `Current implementation snapshot (2026-03-05)`;
+    - `docs/REPO_MAP.md` now includes `Current state snapshot (2026-03-05)` and explicit legacy `/orders/me` API group note;
+    - `docs/DOMAIN_MAP.md` now includes `Current runtime module status (2026-03-05)` with account-order extraction and webhook processing path details;
+    - `docs/AI_REPO_MAP.md` compatibility alias text normalized to stable ASCII separators.
+  - quality-gate execution support adjustments (local environment):
+    - `tests/Feature/PasswordResetFlowTest.php` typing guard added for password broker implementation in reset flow test (`assertInstanceOf`) to satisfy static analysis boundary checks;
+    - local `database/testing.sqlite` file created before `php artisan test` run to satisfy sqlite testing connection contract.
+  - verification:
+    - backend quality checks passed:
+      - `vendor/bin/pint --test`;
+      - `vendor/bin/phpstan analyse --memory-limit=1G`;
+      - `vendor/bin/psalm --no-progress` (with local `XDG_CACHE_HOME`);
+      - `php artisan test`.
+    - frontend quality checks passed:
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.

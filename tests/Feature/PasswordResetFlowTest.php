@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Passwords\PasswordBroker as PasswordBrokerImplementation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -48,7 +49,9 @@ final class PasswordResetFlowTest extends TestCase
         ]);
 
         $newPassword = 'new-secure-password';
-        $token = Password::broker()->createToken($user);
+        $broker = Password::broker();
+        self::assertInstanceOf(PasswordBrokerImplementation::class, $broker);
+        $token = $broker->createToken($user);
 
         $this->postJson('/api/v1/auth/reset-password', [
             'token' => $token,
