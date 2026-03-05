@@ -21,6 +21,19 @@ Target modular-monolith module paths:
 - `app/Domains/Payments`
 - `app/Domains/Webhooks`
 
+## Current runtime module status (`2026-03-05`)
+
+- Active runtime ownership currently lives in `app/Application/*`, `app/Services/*`, `app/Repositories/*`, and `app/Http/*`.
+- `app/Domains/*` directories currently provide the target module skeleton and migration intent (README-level contracts), not full runtime slices yet.
+- Account order reads are already extracted from checkout transport into:
+  - `app/Http/Controllers/Api/V1/Account/AccountOrdersController.php`,
+  - `app/Application/Account/Orders/*`,
+  - `app/Repositories/AccountOrderReadRepository.php`.
+- Webhook ingress is implemented as:
+  - transport -> enqueue handler (`app/Application/Webhook/Commands/*`),
+  - queued processing (`app/Jobs/Process*WebhookJob.php`),
+  - unified pipeline (`app/Services/Webhook/WebhookProcessingPipeline.php`).
+
 ## Domain dependencies
 
 Primary business flow dependency direction:
@@ -79,6 +92,9 @@ Operational integration around order lifecycle:
 
 - Transport and use-case boundaries for authenticated and management APIs.
 - Entry points:
+  - `app/Http/Controllers/Api/V1/Account/*`
+  - `app/Http/Controllers/Api/V1/Auth/*`
+  - `app/Http/Controllers/Api/V1/Admin/*`
   - `app/Application/Account/*`
   - `app/Application/Auth/*`
   - `app/Application/Admin/*`

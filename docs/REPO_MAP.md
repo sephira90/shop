@@ -47,6 +47,18 @@ app/
 
 The migration is incremental and must keep public API and DB contracts stable.
 
+## Current state snapshot (`2026-03-05`)
+
+- Runtime bounded contexts are implemented primarily in `app/Application/*` (`Account`, `Admin`, `Auth`, `Catalog`, `Cart`, `Checkout`, `Webhook`).
+- Business orchestration and transition policies remain in `app/Services/*` with shared domain value objects/exceptions in `app/Domain/*`.
+- `app/Domains/*` is present as a convergence skeleton (README contracts per domain module), with incremental migration still pending per flow.
+- Frontend follows contract-first transport boundaries through:
+  - `resources/js/contracts/api/v1/*`,
+  - `resources/js/mappers/*`,
+  - `resources/js/api/*`.
+- Shared UI primitives are centralized in `resources/js/components/ui/*`; domain-specific UI remains in dedicated folders (`components/admin`, `components/cart`, `components/catalog`, etc.).
+- Operational modules are implemented in `app/Support/Observability/*`, `app/Support/Smoke/*`, `app/Support/Maintenance/*` and exposed via `app/Console/Commands/*`.
+
 ## Backend structure
 
 - `app/Http/Controllers/*` transport only
@@ -67,6 +79,7 @@ Endpoint groups:
 - `/cart`
 - `/checkout`
 - `/account`
+- `/orders/me` (legacy account-order aliases)
 - `/admin`
 - `/webhooks`
 

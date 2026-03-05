@@ -27,6 +27,18 @@ Current bounded contexts:
 - `Application/Checkout/*`
 - `Application/Webhook/*` (via service boundaries and processing pipeline)
 
+## Current implementation snapshot (`2026-03-05`)
+
+- Runtime backend slices are currently implemented through:
+  - `app/Http/*` (transport),
+  - `app/Application/*` (use-case orchestration + DTO boundaries),
+  - `app/Services/*` and `app/Domain/*` (business rules/policies/value objects),
+  - `app/Repositories/*` (read/write persistence boundaries).
+- `app/Domains/*` exists as modular-monolith convergence skeleton (module READMEs) and is the target location for future incremental slice migration.
+- API V1 transport is active for: `Auth`, `Catalog`, `Cart`, `Checkout`, `Account/Orders`, `Admin`, and `Webhook` flows.
+- Operational architecture slices are implemented in `app/Support/Observability/*`, `app/Support/Smoke/*`, and `app/Support/Maintenance/*`, with console entrypoints in `app/Console/Commands/*`.
+- Architecture guardrails are actively enforced in `tests/Unit/Architecture/*` (layer direction, handler DTO boundaries, controller validation boundaries, documentation governance).
+
 ## Modular Monolith Target Layout
 
 Target physical structure (incremental migration, no big-bang rewrite):
