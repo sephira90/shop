@@ -22,6 +22,12 @@
 /storage/framework/testing-tmp
 /database/php-write-test.txt
 /vendor
+# Local workstation tooling
+/.tools
+/composer.cmd
+/storage/.cache
+/storage/.npm-cache
+/database/testing.sqlite
 Homestead.json
 Homestead.yaml
 Thumbs.db
