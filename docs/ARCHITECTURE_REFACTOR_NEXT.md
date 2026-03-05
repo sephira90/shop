@@ -1084,6 +1084,41 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
     - architecture guardrails expanded:
       - `LayerDependencyDirectionGuardrailTest` enforces application/service/repository dependency direction;
       - `AiRepoMapGovernanceGuardrailTest` enforces architecture/repo-map docs presence and rule references.
+52. Promoted repo-map canonicalization slice (`REPO_MAP` + `DOMAIN_MAP`):
+    - introduced canonical repository map docs for AI execution:
+      - `docs/REPO_MAP.md` as repository-wide navigation and entrypoint map,
+      - `docs/DOMAIN_MAP.md` as bounded-context dependency and ownership map.
+    - retained backward compatibility for existing prompts:
+      - `docs/AI_REPO_MAP.md` converted to compatibility alias that points to canonical maps.
+    - synchronized architecture authority and agent policies:
+      - `docs/ARCHITECTURE.md` now references repo/domain maps in authority section;
+      - `.cursorrules` and `AGENTS.md` now require navigation via `REPO_MAP` + `DOMAIN_MAP`.
+    - governance guardrail expanded to enforce:
+      - canonical map docs existence and core sections,
+      - alias continuity,
+      - agent policy references to canonical map docs.
+53. Promoted modular-monolith skeleton target slice:
+    - domain-module skeleton introduced under `app/Domains/*`:
+      - `Catalog`,
+      - `Cart`,
+      - `Checkout`,
+      - `Orders`,
+      - `Users`,
+      - `Payments`,
+      - `Webhooks`.
+    - each domain module now has local README contract for incremental convergence toward:
+      - `Controllers`,
+      - `Services`,
+      - `Repositories`,
+      - `Models`.
+    - architecture docs aligned with target physical layout:
+      - `docs/ARCHITECTURE.md` now includes `Modular Monolith Target Layout` section;
+      - `docs/REPO_MAP.md` now includes target layout section;
+      - `docs/DOMAIN_MAP.md` now references domain-module path mapping.
+    - policy docs aligned with modular convergence:
+      - `.cursorrules` and `AGENTS.md` now explicitly prefer `app/Domains/*` for new domain-centric slices when compatibility permits.
+    - architecture guardrails expanded:
+      - `ModularMonolithSkeletonGuardrailTest` enforces domain skeleton presence and target-layout sections in architecture docs.
 
 ## Locked Constraints
 

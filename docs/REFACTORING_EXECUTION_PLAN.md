@@ -5899,3 +5899,68 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
+- `2026-03-05` — promoted repo-map canonicalization slice (`REPO_MAP` + `DOMAIN_MAP`) with compatibility alias:
+  - canonical AI navigation docs introduced:
+    - `docs/REPO_MAP.md` added as repository-wide AI navigation map;
+    - `docs/DOMAIN_MAP.md` added as bounded-context dependency/ownership map.
+  - compatibility retained for existing prompts:
+    - `docs/AI_REPO_MAP.md` converted to compatibility alias that points to `docs/REPO_MAP.md` and `docs/DOMAIN_MAP.md`.
+  - architecture and policy references synchronized:
+    - `docs/ARCHITECTURE.md` authority section now references repo/domain map docs;
+    - `.cursorrules` now requires implementation navigation through `docs/REPO_MAP.md` + `docs/DOMAIN_MAP.md`;
+    - `AGENTS.md` AI execution navigation now references canonical map docs.
+  - architecture governance guardrail expanded:
+    - `tests/Unit/Architecture/AiRepoMapGovernanceGuardrailTest.php` now enforces:
+      - `ARCHITECTURE`, `REPO_MAP`, `DOMAIN_MAP`, and `AI_REPO_MAP` alias presence,
+      - core section integrity for canonical docs,
+      - agent rule references to canonical docs.
+  - roadmap synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `52`.
+  - verification:
+    - targeted guardrails passed:
+      - `php artisan test --filter="AiRepoMapGovernanceGuardrailTest|LayerDependencyDirectionGuardrailTest|OperationalDocsConfigGuardrailTest|DocumentationAuthorityGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+- `2026-03-05` — promoted modular-monolith skeleton target slice:
+  - modular domain skeleton introduced:
+    - `app/Domains/Catalog/README.md`
+    - `app/Domains/Cart/README.md`
+    - `app/Domains/Checkout/README.md`
+    - `app/Domains/Orders/README.md`
+    - `app/Domains/Users/README.md`
+    - `app/Domains/Payments/README.md`
+    - `app/Domains/Webhooks/README.md`
+  - architecture docs aligned with target physical layout:
+    - `docs/ARCHITECTURE.md` now contains `Modular Monolith Target Layout`;
+    - `docs/REPO_MAP.md` now contains `Target layout`;
+    - `docs/DOMAIN_MAP.md` now maps bounded contexts to `app/Domains/*`.
+  - policy docs aligned with convergence strategy:
+    - `.cursorrules` now prefers `app/Domains/*` for new compatible domain slices;
+    - `AGENTS.md` AI execution navigation includes same modular-convergence rule.
+  - architecture guardrails expanded:
+    - `tests/Unit/Architecture/ModularMonolithSkeletonGuardrailTest.php` added and enforces:
+      - domain skeleton directories/readme contracts,
+      - target-layout sections in `ARCHITECTURE.md` and `REPO_MAP.md`.
+  - roadmap synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with progress item `53`.
+  - verification:
+    - targeted guardrails passed:
+      - `php artisan test --filter="ModularMonolithSkeletonGuardrailTest|AiRepoMapGovernanceGuardrailTest|LayerDependencyDirectionGuardrailTest|OperationalDocsConfigGuardrailTest|DocumentationAuthorityGuardrailTest"`.
+    - full mandatory sequential quality gate passed:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
