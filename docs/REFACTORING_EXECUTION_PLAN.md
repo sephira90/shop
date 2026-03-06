@@ -2,134 +2,134 @@
 
 > Operational execution log only. Active architecture execution source-of-truth: `docs/ARCHITECTURE_REFACTOR_NEXT.md`.
 
-## Цель
+## Р¦РµР»СЊ
 
-Собрать устойчивую, масштабируемую и предсказуемую архитектуру (backend + frontend), сохранив текущий продуктовый функционал и API-контракты.
+РЎРѕР±СЂР°С‚СЊ СѓСЃС‚РѕР№С‡РёРІСѓСЋ, РјР°СЃС€С‚Р°Р±РёСЂСѓРµРјСѓСЋ Рё РїСЂРµРґСЃРєР°Р·СѓРµРјСѓСЋ Р°СЂС…РёС‚РµРєС‚СѓСЂСѓ (backend + frontend), СЃРѕС…СЂР°РЅРёРІ С‚РµРєСѓС‰РёР№ РїСЂРѕРґСѓРєС‚РѕРІС‹Р№ С„СѓРЅРєС†РёРѕРЅР°Р» Рё API-РєРѕРЅС‚СЂР°РєС‚С‹.
 
-## Ключевые принципы
+## РљР»СЋС‡РµРІС‹Рµ РїСЂРёРЅС†РёРїС‹
 
-- Сначала корректность и безопасность, потом скорость.
-- Единый API-контракт ответов и ошибок для всех `/api/v1/*`.
-- Четкое разделение read/write-путей.
-- Изоляция доменных модулей (Catalog, Cart, Checkout, Promotions, Fulfillment, IAM).
-- Любой merge проходит production-ready quality gates.
+- РЎРЅР°С‡Р°Р»Р° РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ Рё Р±РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ, РїРѕС‚РѕРј СЃРєРѕСЂРѕСЃС‚СЊ.
+- Р•РґРёРЅС‹Р№ API-РєРѕРЅС‚СЂР°РєС‚ РѕС‚РІРµС‚РѕРІ Рё РѕС€РёР±РѕРє РґР»СЏ РІСЃРµС… `/api/v1/*`.
+- Р§РµС‚РєРѕРµ СЂР°Р·РґРµР»РµРЅРёРµ read/write-РїСѓС‚РµР№.
+- РР·РѕР»СЏС†РёСЏ РґРѕРјРµРЅРЅС‹С… РјРѕРґСѓР»РµР№ (Catalog, Cart, Checkout, Promotions, Fulfillment, IAM).
+- Р›СЋР±РѕР№ merge РїСЂРѕС…РѕРґРёС‚ production-ready quality gates.
 
-## Приоритеты (по результатам аудита)
+## РџСЂРёРѕСЂРёС‚РµС‚С‹ (РїРѕ СЂРµР·СѓР»СЊС‚Р°С‚Р°Рј Р°СѓРґРёС‚Р°)
 
 ### P0
 
-- Убрать hardcoded fake-gateway binding, перейти на config-driven provider strategy.
-- Перенести dispatch side-effects на `afterCommit` / outbox-паттерн.
-- Сделать атомарный `CatalogVersionService::bump()`.
-- Усилить уникальность внешних идентификаторов для webhook-цепочек.
+- РЈР±СЂР°С‚СЊ hardcoded fake-gateway binding, РїРµСЂРµР№С‚Рё РЅР° config-driven provider strategy.
+- РџРµСЂРµРЅРµСЃС‚Рё dispatch side-effects РЅР° `afterCommit` / outbox-РїР°С‚С‚РµСЂРЅ.
+- РЎРґРµР»Р°С‚СЊ Р°С‚РѕРјР°СЂРЅС‹Р№ `CatalogVersionService::bump()`.
+- РЈСЃРёР»РёС‚СЊ СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚СЊ РІРЅРµС€РЅРёС… РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРІ РґР»СЏ webhook-С†РµРїРѕС‡РµРє.
 
 ### P1
 
-- Перевести account orders на server-driven filtering + pagination.
-- Исправить профильные метрики (не только первая страница заказов).
-- Довести API envelope до строгой единой формы (включая checkout).
-- Унифицировать error pipeline (middleware + exception renderer + helpers).
-- Выровнять webhook ingestion strategy (payment/shipping).
+- РџРµСЂРµРІРµСЃС‚Рё account orders РЅР° server-driven filtering + pagination.
+- РСЃРїСЂР°РІРёС‚СЊ РїСЂРѕС„РёР»СЊРЅС‹Рµ РјРµС‚СЂРёРєРё (РЅРµ С‚РѕР»СЊРєРѕ РїРµСЂРІР°СЏ СЃС‚СЂР°РЅРёС†Р° Р·Р°РєР°Р·РѕРІ).
+- Р”РѕРІРµСЃС‚Рё API envelope РґРѕ СЃС‚СЂРѕРіРѕР№ РµРґРёРЅРѕР№ С„РѕСЂРјС‹ (РІРєР»СЋС‡Р°СЏ checkout).
+- РЈРЅРёС„РёС†РёСЂРѕРІР°С‚СЊ error pipeline (middleware + exception renderer + helpers).
+- Р’С‹СЂРѕРІРЅСЏС‚СЊ webhook ingestion strategy (payment/shipping).
 
 ### P2
 
-- Декомпозировать крупные composable/page в frontend.
-- Вынести UI side-effects (`confirm`, `scrollTo`) из composable в view-layer.
-- Ввести cleanup lifecycle для idempotency/webhook/carts.
+- Р”РµРєРѕРјРїРѕР·РёСЂРѕРІР°С‚СЊ РєСЂСѓРїРЅС‹Рµ composable/page РІ frontend.
+- Р’С‹РЅРµСЃС‚Рё UI side-effects (`confirm`, `scrollTo`) РёР· composable РІ view-layer.
+- Р’РІРµСЃС‚Рё cleanup lifecycle РґР»СЏ idempotency/webhook/carts.
 
-## План реализации
+## РџР»Р°РЅ СЂРµР°Р»РёР·Р°С†РёРё
 
-## Phase 1: Correctness Foundation (3-5 дней)
-
-### Scope
-
-- Закрыть все P0.
-
-### Tasks
-
-- Ввести `payment.driver` и `shipping.driver` + фабрику провайдеров.
-- Вынести побочные эффекты в `afterCommit` или outbox + worker.
-- Переписать `CatalogVersionService::bump()` на атомарный инкремент.
-- Добавить/уточнить индексы и уникальные ограничения для webhook identity.
-
-### Exit Criteria
-
-- Нет dispatch внутри незакоммиченной транзакции.
-- Cache invalidation не теряется при параллельных write.
-- Идентификация webhook-событий детерминирована.
-
-## Phase 2: Contract & Flow Unification (4-6 дней)
+## Phase 1: Correctness Foundation (3-5 РґРЅРµР№)
 
 ### Scope
 
-- Довести API до единообразного контракта.
+- Р—Р°РєСЂС‹С‚СЊ РІСЃРµ P0.
 
 ### Tasks
 
-- Привести `checkout/place-order` к единому envelope.
-- Убрать разрозненные JSON errors в middleware/renderer.
-- Обновить frontend data parsers под final shape.
-- Добавить contract tests на критичные endpoint-ы.
+- Р’РІРµСЃС‚Рё `payment.driver` Рё `shipping.driver` + С„Р°Р±СЂРёРєСѓ РїСЂРѕРІР°Р№РґРµСЂРѕРІ.
+- Р’С‹РЅРµСЃС‚Рё РїРѕР±РѕС‡РЅС‹Рµ СЌС„С„РµРєС‚С‹ РІ `afterCommit` РёР»Рё outbox + worker.
+- РџРµСЂРµРїРёСЃР°С‚СЊ `CatalogVersionService::bump()` РЅР° Р°С‚РѕРјР°СЂРЅС‹Р№ РёРЅРєСЂРµРјРµРЅС‚.
+- Р”РѕР±Р°РІРёС‚СЊ/СѓС‚РѕС‡РЅРёС‚СЊ РёРЅРґРµРєСЃС‹ Рё СѓРЅРёРєР°Р»СЊРЅС‹Рµ РѕРіСЂР°РЅРёС‡РµРЅРёСЏ РґР»СЏ webhook identity.
 
 ### Exit Criteria
 
-- 100% `/api/v1/*` возвращают единый shape.
-- Нет endpoint-specific parsing hacks на frontend.
+- РќРµС‚ dispatch РІРЅСѓС‚СЂРё РЅРµР·Р°РєРѕРјРјРёС‡РµРЅРЅРѕР№ С‚СЂР°РЅР·Р°РєС†РёРё.
+- Cache invalidation РЅРµ С‚РµСЂСЏРµС‚СЃСЏ РїСЂРё РїР°СЂР°Р»Р»РµР»СЊРЅС‹С… write.
+- РРґРµРЅС‚РёС„РёРєР°С†РёСЏ webhook-СЃРѕР±С‹С‚РёР№ РґРµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅР°.
 
-## Phase 3: Domain Scalability (1-2 недели)
+## Phase 2: Contract & Flow Unification (4-6 РґРЅРµР№)
 
 ### Scope
 
-- Усилить доменные границы и поток данных.
+- Р”РѕРІРµСЃС‚Рё API РґРѕ РµРґРёРЅРѕРѕР±СЂР°Р·РЅРѕРіРѕ РєРѕРЅС‚СЂР°РєС‚Р°.
 
 ### Tasks
 
-- Ввести application-layer handlers (Command/Query) для Checkout/Orders/Promotions.
-- Перевести account orders на server-side фильтры/поиск/статусы.
-- Добавить read-model/summary endpoint для profile metrics.
-- Стандартизировать webhook pipeline (ingest -> dedupe -> process -> observe).
+- РџСЂРёРІРµСЃС‚Рё `checkout/place-order` Рє РµРґРёРЅРѕРјСѓ envelope.
+- РЈР±СЂР°С‚СЊ СЂР°Р·СЂРѕР·РЅРµРЅРЅС‹Рµ JSON errors РІ middleware/renderer.
+- РћР±РЅРѕРІРёС‚СЊ frontend data parsers РїРѕРґ final shape.
+- Р”РѕР±Р°РІРёС‚СЊ contract tests РЅР° РєСЂРёС‚РёС‡РЅС‹Рµ endpoint-С‹.
 
 ### Exit Criteria
 
-- Снижение связности сервисов и контроллеров.
-- Предсказуемый high-load профиль по orders/webhooks.
+- 100% `/api/v1/*` РІРѕР·РІСЂР°С‰Р°СЋС‚ РµРґРёРЅС‹Р№ shape.
+- РќРµС‚ endpoint-specific parsing hacks РЅР° frontend.
 
-## Phase 4: Frontend Structural Hardening (1-2 недели)
+## Phase 3: Domain Scalability (1-2 РЅРµРґРµР»Рё)
 
 ### Scope
 
-- Финальная стабилизация frontend архитектуры.
+- РЈСЃРёР»РёС‚СЊ РґРѕРјРµРЅРЅС‹Рµ РіСЂР°РЅРёС†С‹ Рё РїРѕС‚РѕРє РґР°РЅРЅС‹С….
 
 ### Tasks
 
-- Разделить крупные composable на query/mutation/view-model уровни.
-- Вынести UI-only эффекты из composable.
-- Довести каталожную и account-пагинацию до server-driven UX.
-- Добавить integration tests на ключевые сценарии UI-флоу.
+- Р’РІРµСЃС‚Рё application-layer handlers (Command/Query) РґР»СЏ Checkout/Orders/Promotions.
+- РџРµСЂРµРІРµСЃС‚Рё account orders РЅР° server-side С„РёР»СЊС‚СЂС‹/РїРѕРёСЃРє/СЃС‚Р°С‚СѓСЃС‹.
+- Р”РѕР±Р°РІРёС‚СЊ read-model/summary endpoint РґР»СЏ profile metrics.
+- РЎС‚Р°РЅРґР°СЂС‚РёР·РёСЂРѕРІР°С‚СЊ webhook pipeline (ingest -> dedupe -> process -> observe).
 
 ### Exit Criteria
 
-- Нет “god composables”.
-- Стабильные сценарии при смене route/filter/page.
+- РЎРЅРёР¶РµРЅРёРµ СЃРІСЏР·РЅРѕСЃС‚Рё СЃРµСЂРІРёСЃРѕРІ Рё РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ.
+- РџСЂРµРґСЃРєР°Р·СѓРµРјС‹Р№ high-load РїСЂРѕС„РёР»СЊ РїРѕ orders/webhooks.
 
-## Phase 5: Operations & Maintenance (3-4 дня)
+## Phase 4: Frontend Structural Hardening (1-2 РЅРµРґРµР»Рё)
 
 ### Scope
 
-- Поддерживаемость production-потока.
+- Р¤РёРЅР°Р»СЊРЅР°СЏ СЃС‚Р°Р±РёР»РёР·Р°С†РёСЏ frontend Р°СЂС…РёС‚РµРєС‚СѓСЂС‹.
 
 ### Tasks
 
-- Добавить scheduled cleanup: idempotency records, webhook receipts, stale carts.
-- Добавить алерты по SLO для API/webhooks/кэша.
-- Зафиксировать runbook для инцидентов checkout/webhooks.
+- Р Р°Р·РґРµР»РёС‚СЊ РєСЂСѓРїРЅС‹Рµ composable РЅР° query/mutation/view-model СѓСЂРѕРІРЅРё.
+- Р’С‹РЅРµСЃС‚Рё UI-only СЌС„С„РµРєС‚С‹ РёР· composable.
+- Р”РѕРІРµСЃС‚Рё РєР°С‚Р°Р»РѕР¶РЅСѓСЋ Рё account-РїР°РіРёРЅР°С†РёСЋ РґРѕ server-driven UX.
+- Р”РѕР±Р°РІРёС‚СЊ integration tests РЅР° РєР»СЋС‡РµРІС‹Рµ СЃС†РµРЅР°СЂРёРё UI-С„Р»РѕСѓ.
 
 ### Exit Criteria
 
-- Контролируемый рост служебных таблиц.
-- Прозрачный operational мониторинг.
+- РќРµС‚ вЂњgod composablesвЂќ.
+- РЎС‚Р°Р±РёР»СЊРЅС‹Рµ СЃС†РµРЅР°СЂРёРё РїСЂРё СЃРјРµРЅРµ route/filter/page.
 
-## Quality Gates (обязательно после каждого набора изменений)
+## Phase 5: Operations & Maintenance (3-4 РґРЅСЏ)
+
+### Scope
+
+- РџРѕРґРґРµСЂР¶РёРІР°РµРјРѕСЃС‚СЊ production-РїРѕС‚РѕРєР°.
+
+### Tasks
+
+- Р”РѕР±Р°РІРёС‚СЊ scheduled cleanup: idempotency records, webhook receipts, stale carts.
+- Р”РѕР±Р°РІРёС‚СЊ Р°Р»РµСЂС‚С‹ РїРѕ SLO РґР»СЏ API/webhooks/РєСЌС€Р°.
+- Р—Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ runbook РґР»СЏ РёРЅС†РёРґРµРЅС‚РѕРІ checkout/webhooks.
+
+### Exit Criteria
+
+- РљРѕРЅС‚СЂРѕР»РёСЂСѓРµРјС‹Р№ СЂРѕСЃС‚ СЃР»СѓР¶РµР±РЅС‹С… С‚Р°Р±Р»РёС†.
+- РџСЂРѕР·СЂР°С‡РЅС‹Р№ operational РјРѕРЅРёС‚РѕСЂРёРЅРі.
+
+## Quality Gates (РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ РЅР°Р±РѕСЂР° РёР·РјРµРЅРµРЅРёР№)
 
 - `composer run lint`
 - `composer run analyse`
@@ -146,24 +146,24 @@
 - `php artisan app:api-contract-smoke`
 - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
 
-## Выполненный batch #1 (P0/P1)
+## Р’С‹РїРѕР»РЅРµРЅРЅС‹Р№ batch #1 (P0/P1)
 
 1. Atomic cache version bump + tests.
-2. `afterCommit` dispatch для payment/checkout side-effects.
+2. `afterCommit` dispatch РґР»СЏ payment/checkout side-effects.
 3. Server-driven account orders filters + profile metrics endpoint.
 
 ## Progress Log
 
-- `2026-02-21` — создан и принят execution-план рефакторинга (`97544ca`).
-- `2026-02-21` — закрыт Batch #1:
+- `2026-02-21` вЂ” СЃРѕР·РґР°РЅ Рё РїСЂРёРЅСЏС‚ execution-РїР»Р°РЅ СЂРµС„Р°РєС‚РѕСЂРёРЅРіР° (`97544ca`).
+- `2026-02-21` вЂ” Р·Р°РєСЂС‹С‚ Batch #1:
 - atomic `CatalogVersionService::bump()` + unit coverage (`148bdc5`);
-- critical side-effects переведены на `afterCommit` (`37f1087`);
-- account orders переведены на server-driven фильтрацию + summary endpoint (`b41ddce`).
-- `2026-02-21` — усилены инженерные правила:
-- зафиксировано требование коммитов по логическим блокам (`c64bfb7`);
-- добавлены `oxlint`/`oxfmt` и включены в обязательные quality gates в локальных правилах, документации и CI (`ae5e993`);
-- выполнено baseline-форматирование frontend-кода через `oxfmt` (`9056980`).
-- `2026-02-21` — полный production-readiness quality gate прогнан в green:
+- critical side-effects РїРµСЂРµРІРµРґРµРЅС‹ РЅР° `afterCommit` (`37f1087`);
+- account orders РїРµСЂРµРІРµРґРµРЅС‹ РЅР° server-driven С„РёР»СЊС‚СЂР°С†РёСЋ + summary endpoint (`b41ddce`).
+- `2026-02-21` вЂ” СѓСЃРёР»РµРЅС‹ РёРЅР¶РµРЅРµСЂРЅС‹Рµ РїСЂР°РІРёР»Р°:
+- Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅРѕ С‚СЂРµР±РѕРІР°РЅРёРµ РєРѕРјРјРёС‚РѕРІ РїРѕ Р»РѕРіРёС‡РµСЃРєРёРј Р±Р»РѕРєР°Рј (`c64bfb7`);
+- РґРѕР±Р°РІР»РµРЅС‹ `oxlint`/`oxfmt` Рё РІРєР»СЋС‡РµРЅС‹ РІ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ quality gates РІ Р»РѕРєР°Р»СЊРЅС‹С… РїСЂР°РІРёР»Р°С…, РґРѕРєСѓРјРµРЅС‚Р°С†РёРё Рё CI (`ae5e993`);
+- РІС‹РїРѕР»РЅРµРЅРѕ baseline-С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРµ frontend-РєРѕРґР° С‡РµСЂРµР· `oxfmt` (`9056980`).
+- `2026-02-21` вЂ” РїРѕР»РЅС‹Р№ production-readiness quality gate РїСЂРѕРіРЅР°РЅ РІ green:
 - `composer run lint`
 - `composer run analyse`
 - `php artisan test`
@@ -178,76 +178,76 @@
 - `php artisan app:webhook-flow-smoke`
 - `php artisan app:api-contract-smoke`
 - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-21` — `Phase 1` provider strategy batch выполнен:
-- добавлены config-driven драйверы `payment.driver` / `shipping.driver` (`config/payment.php`, `config/shipping.php`, `.env*.example`, `.env.testing`);
-- `AppServiceProvider` переведен на резолвинг gateway-реализаций из config map с явной валидацией драйвера;
-- в `PaymentService` и `ShippingService` удалены hardcoded provider/gateway значения, используется активный driver из конфига;
-- добавлены unit-тесты резолвинга драйверов (`tests/Unit/GatewayDriverBindingTest.php`).
-- `2026-02-21` — для provider strategy batch повторно прогнан полный production-readiness quality gate в green (все команды из секции `Quality Gates`).
-- `2026-02-21` — `Phase 1` webhook identity constraints batch выполнен:
-- добавлена additive миграция с уникальными ограничениями внешних идентификаторов:
+- `2026-02-21` вЂ” `Phase 1` provider strategy batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ config-driven РґСЂР°Р№РІРµСЂС‹ `payment.driver` / `shipping.driver` (`config/payment.php`, `config/shipping.php`, `.env*.example`, `.env.testing`);
+- `AppServiceProvider` РїРµСЂРµРІРµРґРµРЅ РЅР° СЂРµР·РѕР»РІРёРЅРі gateway-СЂРµР°Р»РёР·Р°С†РёР№ РёР· config map СЃ СЏРІРЅРѕР№ РІР°Р»РёРґР°С†РёРµР№ РґСЂР°Р№РІРµСЂР°;
+- РІ `PaymentService` Рё `ShippingService` СѓРґР°Р»РµРЅС‹ hardcoded provider/gateway Р·РЅР°С‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р°РєС‚РёРІРЅС‹Р№ driver РёР· РєРѕРЅС„РёРіР°;
+- РґРѕР±Р°РІР»РµРЅС‹ unit-С‚РµСЃС‚С‹ СЂРµР·РѕР»РІРёРЅРіР° РґСЂР°Р№РІРµСЂРѕРІ (`tests/Unit/GatewayDriverBindingTest.php`).
+- `2026-02-21` вЂ” РґР»СЏ provider strategy batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅ РїРѕР»РЅС‹Р№ production-readiness quality gate РІ green (РІСЃРµ РєРѕРјР°РЅРґС‹ РёР· СЃРµРєС†РёРё `Quality Gates`).
+- `2026-02-21` вЂ” `Phase 1` webhook identity constraints batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅР° additive РјРёРіСЂР°С†РёСЏ СЃ СѓРЅРёРєР°Р»СЊРЅС‹РјРё РѕРіСЂР°РЅРёС‡РµРЅРёСЏРјРё РІРЅРµС€РЅРёС… РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРІ:
   - `payments(gateway, transaction_id)` (`payments_gateway_transaction_unique`);
   - `shipments(provider, tracking_number)` (`shipments_provider_tracking_unique`);
-- `ShippingService` обновлен на поиск shipment по `(provider, tracking_number)` для provider-safe webhook обработки;
-- добавлены feature-тесты ограничений идентичности (`tests/Feature/WebhookIdentityConstraintTest.php`).
-- `2026-02-21` — для webhook identity batch повторно прогнан полный production-readiness quality gate в green (все команды из секции `Quality Gates`).
-- `2026-02-22` — `Phase 2` contract & flow unification batch выполнен:
-- `checkout/place-order` приведен к единому `data`-envelope (убран top-level `payment`, платежный payload вложен в `data.payment`);
-- `bootstrap/app.php` и `EnsureRoleMiddleware` переведены на единый error pipeline через `ApiResponse::error(...)`;
-- убран неиспользуемый `ApiResponse::payload(...)`, в API остались единые response helpers (`data/paginated/error/deleted`);
-- `app:api-contract-smoke` расширен проверкой success-контракта `checkout/place-order` (включая запрет top-level `payment`);
-- обновлены тесты checkout-контракта (`tests/Feature/GuestCheckoutTest.php`) и contract smoke (`tests/Feature/ApiContractSmokeCommandTest.php`).
-- `2026-02-22` — `Phase 2` frontend parser alignment batch выполнен:
-- `placeCheckoutOrder` переведен на строгий mapper checkout-ответа (`resources/js/mappers/checkout.ts`) с обязательной проверкой `data.id`, `data.order_number`, `data.payment.*`;
-- добавлены frontend contract tests для success-shape checkout ответа (`resources/js/tests/api/checkout-api.spec.ts`);
-- добавлены frontend contract tests для error envelope parser (`resources/js/tests/api/response-error.spec.ts`).
-- `2026-02-22` — `Phase 3` checkout application-layer bootstrap batch выполнен:
-- добавлены command/query handlers для checkout-потока:
+- `ShippingService` РѕР±РЅРѕРІР»РµРЅ РЅР° РїРѕРёСЃРє shipment РїРѕ `(provider, tracking_number)` РґР»СЏ provider-safe webhook РѕР±СЂР°Р±РѕС‚РєРё;
+- РґРѕР±Р°РІР»РµРЅС‹ feature-С‚РµСЃС‚С‹ РѕРіСЂР°РЅРёС‡РµРЅРёР№ РёРґРµРЅС‚РёС‡РЅРѕСЃС‚Рё (`tests/Feature/WebhookIdentityConstraintTest.php`).
+- `2026-02-21` вЂ” РґР»СЏ webhook identity batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅ РїРѕР»РЅС‹Р№ production-readiness quality gate РІ green (РІСЃРµ РєРѕРјР°РЅРґС‹ РёР· СЃРµРєС†РёРё `Quality Gates`).
+- `2026-02-22` вЂ” `Phase 2` contract & flow unification batch РІС‹РїРѕР»РЅРµРЅ:
+- `checkout/place-order` РїСЂРёРІРµРґРµРЅ Рє РµРґРёРЅРѕРјСѓ `data`-envelope (СѓР±СЂР°РЅ top-level `payment`, РїР»Р°С‚РµР¶РЅС‹Р№ payload РІР»РѕР¶РµРЅ РІ `data.payment`);
+- `bootstrap/app.php` Рё `EnsureRoleMiddleware` РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РµРґРёРЅС‹Р№ error pipeline С‡РµСЂРµР· `ApiResponse::error(...)`;
+- СѓР±СЂР°РЅ РЅРµРёСЃРїРѕР»СЊР·СѓРµРјС‹Р№ `ApiResponse::payload(...)`, РІ API РѕСЃС‚Р°Р»РёСЃСЊ РµРґРёРЅС‹Рµ response helpers (`data/paginated/error/deleted`);
+- `app:api-contract-smoke` СЂР°СЃС€РёСЂРµРЅ РїСЂРѕРІРµСЂРєРѕР№ success-РєРѕРЅС‚СЂР°РєС‚Р° `checkout/place-order` (РІРєР»СЋС‡Р°СЏ Р·Р°РїСЂРµС‚ top-level `payment`);
+- РѕР±РЅРѕРІР»РµРЅС‹ С‚РµСЃС‚С‹ checkout-РєРѕРЅС‚СЂР°РєС‚Р° (`tests/Feature/GuestCheckoutTest.php`) Рё contract smoke (`tests/Feature/ApiContractSmokeCommandTest.php`).
+- `2026-02-22` вЂ” `Phase 2` frontend parser alignment batch РІС‹РїРѕР»РЅРµРЅ:
+- `placeCheckoutOrder` РїРµСЂРµРІРµРґРµРЅ РЅР° СЃС‚СЂРѕРіРёР№ mapper checkout-РѕС‚РІРµС‚Р° (`resources/js/mappers/checkout.ts`) СЃ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕР№ РїСЂРѕРІРµСЂРєРѕР№ `data.id`, `data.order_number`, `data.payment.*`;
+- РґРѕР±Р°РІР»РµРЅС‹ frontend contract tests РґР»СЏ success-shape checkout РѕС‚РІРµС‚Р° (`resources/js/tests/api/checkout-api.spec.ts`);
+- РґРѕР±Р°РІР»РµРЅС‹ frontend contract tests РґР»СЏ error envelope parser (`resources/js/tests/api/response-error.spec.ts`).
+- `2026-02-22` вЂ” `Phase 3` checkout application-layer bootstrap batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ command/query handlers РґР»СЏ checkout-РїРѕС‚РѕРєР°:
   - `PlaceCheckoutOrderHandler` (+ command/result DTO);
   - `PaginateMyOrdersHandler` (+ query DTO);
   - `GetMyOrdersSummaryHandler` (+ query DTO);
-- `CheckoutController` переведен на application-layer orchestration (тонкий transport-слой без прямой доменной оркестрации).
-- `2026-02-22` — `Phase 3` admin orders application-layer batch выполнен:
-- добавлен модуль `app/Application/Admin/Orders` с command/query handlers:
+- `CheckoutController` РїРµСЂРµРІРµРґРµРЅ РЅР° application-layer orchestration (С‚РѕРЅРєРёР№ transport-СЃР»РѕР№ Р±РµР· РїСЂСЏРјРѕР№ РґРѕРјРµРЅРЅРѕР№ РѕСЂРєРµСЃС‚СЂР°С†РёРё).
+- `2026-02-22` вЂ” `Phase 3` admin orders application-layer batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РјРѕРґСѓР»СЊ `app/Application/Admin/Orders` СЃ command/query handlers:
   - `PaginateAdminOrdersHandler` (+ query DTO);
   - `GetAdminOrderDetailHandler` (+ query DTO);
   - `UpdateAdminOrderStatusHandler` (+ command DTO);
-- `App\Http\Controllers\Api\V1\Admin\OrderController` переведен на application-layer orchestration без прямой зависимости от repository/service.
-- `2026-02-22` — `Phase 3` admin promotions application-layer batch выполнен:
-- добавлен модуль `app/Application/Admin/Promotions` с query/command handlers:
+- `App\Http\Controllers\Api\V1\Admin\OrderController` РїРµСЂРµРІРµРґРµРЅ РЅР° application-layer orchestration Р±РµР· РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ repository/service.
+- `2026-02-22` вЂ” `Phase 3` admin promotions application-layer batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РјРѕРґСѓР»СЊ `app/Application/Admin/Promotions` СЃ query/command handlers:
   - list: `PaginateAdminPromotionsHandler` (+ query DTO);
   - mutation flow: `Create/Update/DeleteAdminPromotionHandler` (+ command DTO);
   - coupons flow: `Create/UpdateAdminPromotionCouponHandler` (+ command DTO);
-- `App\Http\Controllers\Api\V1\Admin\PromotionController` переведен на application-layer orchestration без прямой зависимости от repository/service.
-- `2026-02-22` — `Phase 3` admin products application-layer batch выполнен:
-- добавлен модуль `app/Application/Admin/Products` с query/command handlers:
+- `App\Http\Controllers\Api\V1\Admin\PromotionController` РїРµСЂРµРІРµРґРµРЅ РЅР° application-layer orchestration Р±РµР· РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ repository/service.
+- `2026-02-22` вЂ” `Phase 3` admin products application-layer batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РјРѕРґСѓР»СЊ `app/Application/Admin/Products` СЃ query/command handlers:
   - list/detail: `PaginateAdminProductsHandler`, `GetAdminProductDetailHandler` (+ query DTO);
   - mutation flow: `Create/Update/DeleteAdminProductHandler` (+ command DTO);
-- `App\Http\Controllers\Api\V1\Admin\ProductController` переведен на application-layer orchestration без прямой зависимости от repository/service.
-- `2026-02-22` — `Phase 3` admin categories application-layer batch выполнен:
-- добавлен модуль `app/Application/Admin/Categories` с query/command handlers:
+- `App\Http\Controllers\Api\V1\Admin\ProductController` РїРµСЂРµРІРµРґРµРЅ РЅР° application-layer orchestration Р±РµР· РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ repository/service.
+- `2026-02-22` вЂ” `Phase 3` admin categories application-layer batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РјРѕРґСѓР»СЊ `app/Application/Admin/Categories` СЃ query/command handlers:
   - list/detail: `PaginateAdminCategoriesHandler`, `GetAdminCategoryDetailHandler` (+ query DTO);
   - mutation flow: `Create/Update/DeleteAdminCategoryHandler` (+ command DTO);
-- `App\Http\Controllers\Api\V1\Admin\CategoryController` переведен на application-layer orchestration без прямой зависимости от repository/service.
-- `2026-02-22` — `Phase 3` finalization batch выполнен:
-- зафиксирован архитектурный guardrail-тест `tests/Unit/Architecture/AdminControllerArchitectureTest.php`, проверяющий DI-границы admin-контроллеров (только `App\Application\Admin\...\*Handler`);
-- добавлен итоговый ADR по application-layer conventions и DI boundaries:
+- `App\Http\Controllers\Api\V1\Admin\CategoryController` РїРµСЂРµРІРµРґРµРЅ РЅР° application-layer orchestration Р±РµР· РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ repository/service.
+- `2026-02-22` вЂ” `Phase 3` finalization batch РІС‹РїРѕР»РЅРµРЅ:
+- Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Р№ guardrail-С‚РµСЃС‚ `tests/Unit/Architecture/AdminControllerArchitectureTest.php`, РїСЂРѕРІРµСЂСЏСЋС‰РёР№ DI-РіСЂР°РЅРёС†С‹ admin-РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ (С‚РѕР»СЊРєРѕ `App\Application\Admin\...\*Handler`);
+- РґРѕР±Р°РІР»РµРЅ РёС‚РѕРіРѕРІС‹Р№ ADR РїРѕ application-layer conventions Рё DI boundaries:
   - `docs/adr/ADR-0001-admin-application-layer-conventions.md`;
-  - индекс ADR: `docs/adr/README.md`.
-- `2026-02-22` — `Phase 4` admin integration/UI-flow tests batch выполнен:
-- добавлен integration test-suite `resources/js/tests/composables/use-admin-server-list-flows.spec.ts` для server-driven list flow:
-  - `useAdminOrders`: debounce фильтров и перезагрузка с `page=1` + проверка server params;
-  - `useAdminPromotions`: синхронизация search/status фильтров с перезагрузкой `page=1`;
-  - `useAdminCategories`: синхронизация search/status фильтров и стабильный `per_page=200` contract.
-- `2026-02-22` — `Phase 4` composable layering + UI-effects adapter batch выполнен:
-- добавлен единый injectable контракт UI-сайдэффектов `resources/js/composables/admin/adminUiEffects.ts` (`confirm`, `scrollToTop`);
-- `window.confirm`/`window.scrollTo` удалены из `useAdminProducts`, `useAdminPromotions`, `useAdminCategories`; browser-адаптер инжектируется из `AdminProductsPage.vue`, `AdminPromotionsPage.vue`, `AdminCategoriesPage.vue`;
-- `useAdminPromotions` и `useAdminCategories` декомпозированы на query/mutation/view-model слои:
+  - РёРЅРґРµРєСЃ ADR: `docs/adr/README.md`.
+- `2026-02-22` вЂ” `Phase 4` admin integration/UI-flow tests batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ integration test-suite `resources/js/tests/composables/use-admin-server-list-flows.spec.ts` РґР»СЏ server-driven list flow:
+  - `useAdminOrders`: debounce С„РёР»СЊС‚СЂРѕРІ Рё РїРµСЂРµР·Р°РіСЂСѓР·РєР° СЃ `page=1` + РїСЂРѕРІРµСЂРєР° server params;
+  - `useAdminPromotions`: СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ search/status С„РёР»СЊС‚СЂРѕРІ СЃ РїРµСЂРµР·Р°РіСЂСѓР·РєРѕР№ `page=1`;
+  - `useAdminCategories`: СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ search/status С„РёР»СЊС‚СЂРѕРІ Рё СЃС‚Р°Р±РёР»СЊРЅС‹Р№ `per_page=200` contract.
+- `2026-02-22` вЂ” `Phase 4` composable layering + UI-effects adapter batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РµРґРёРЅС‹Р№ injectable РєРѕРЅС‚СЂР°РєС‚ UI-СЃР°Р№РґСЌС„С„РµРєС‚РѕРІ `resources/js/composables/admin/adminUiEffects.ts` (`confirm`, `scrollToTop`);
+- `window.confirm`/`window.scrollTo` СѓРґР°Р»РµРЅС‹ РёР· `useAdminProducts`, `useAdminPromotions`, `useAdminCategories`; browser-Р°РґР°РїС‚РµСЂ РёРЅР¶РµРєС‚РёСЂСѓРµС‚СЃСЏ РёР· `AdminProductsPage.vue`, `AdminPromotionsPage.vue`, `AdminCategoriesPage.vue`;
+- `useAdminPromotions` Рё `useAdminCategories` РґРµРєРѕРјРїРѕР·РёСЂРѕРІР°РЅС‹ РЅР° query/mutation/view-model СЃР»РѕРё:
   - promotions: `resources/js/composables/admin/promotions/useAdminPromotionsQuery.ts`, `resources/js/composables/admin/promotions/useAdminPromotionsMutations.ts`, `resources/js/composables/admin/promotions/useAdminPromotionsViewModel.ts`;
   - categories: `resources/js/composables/admin/categories/useAdminCategoriesQuery.ts`, `resources/js/composables/admin/categories/useAdminCategoriesMutations.ts`, `resources/js/composables/admin/categories/useAdminCategoriesViewModel.ts`;
-- добавлены composable-level tests для UI effects adapter integration:
+- РґРѕР±Р°РІР»РµРЅС‹ composable-level tests РґР»СЏ UI effects adapter integration:
   - `resources/js/tests/composables/admin-ui-effects-adapter.spec.ts`;
-- для batch прогнаны quality gates в green:
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ quality gates РІ green:
   - `composer run lint`
   - `composer run analyse`
   - `php artisan test`
@@ -262,15 +262,15 @@
 - `php artisan app:webhook-flow-smoke`
 - `php artisan app:api-contract-smoke`
 - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 4` admin products composable decomposition batch выполнен:
-- `useAdminProducts` разделен на query/mutation/view-model слои с сохранением публичного API:
+- `2026-02-22` вЂ” `Phase 4` admin products composable decomposition batch РІС‹РїРѕР»РЅРµРЅ:
+- `useAdminProducts` СЂР°Р·РґРµР»РµРЅ РЅР° query/mutation/view-model СЃР»РѕРё СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј РїСѓР±Р»РёС‡РЅРѕРіРѕ API:
   - `resources/js/composables/admin/products/useAdminProductsQuery.ts`
   - `resources/js/composables/admin/products/useAdminProductsMutations.ts`
   - `resources/js/composables/admin/products/useAdminProductsViewModel.ts`
   - compatibility re-export: `resources/js/composables/admin/useAdminProducts.ts`;
-- product-form category loading перенесен в query-layer (`loadCategories`) с сохранением server-driven пагинационного сбора и `per_page=200`;
-- mutation/view-model слой сохранил текущий UX-контракт (`startEdit`, `removeProduct`, `toggleCatalogVisibility`, `refreshCatalogCache`, variant form helpers);
-- для batch прогнаны quality gates в green:
+- product-form category loading РїРµСЂРµРЅРµСЃРµРЅ РІ query-layer (`loadCategories`) СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј server-driven РїР°РіРёРЅР°С†РёРѕРЅРЅРѕРіРѕ СЃР±РѕСЂР° Рё `per_page=200`;
+- mutation/view-model СЃР»РѕР№ СЃРѕС…СЂР°РЅРёР» С‚РµРєСѓС‰РёР№ UX-РєРѕРЅС‚СЂР°РєС‚ (`startEdit`, `removeProduct`, `toggleCatalogVisibility`, `refreshCatalogCache`, variant form helpers);
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ quality gates РІ green:
   - `composer run lint`
   - `composer run analyse`
   - `php artisan test`
@@ -285,16 +285,16 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 4` admin orders composable decomposition batch выполнен:
-- `useAdminOrders` разделен на query/mutation/view-model слои с сохранением публичного API:
+- `2026-02-22` вЂ” `Phase 4` admin orders composable decomposition batch РІС‹РїРѕР»РЅРµРЅ:
+- `useAdminOrders` СЂР°Р·РґРµР»РµРЅ РЅР° query/mutation/view-model СЃР»РѕРё СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј РїСѓР±Р»РёС‡РЅРѕРіРѕ API:
   - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts`
   - `resources/js/composables/admin/orders/useAdminOrdersMutations.ts`
   - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`
   - compatibility re-export: `resources/js/composables/admin/useAdminOrders.ts`;
-- query-слой выделяет server-driven list/detail + drafts/metrics (`filters`, `loadOrders`, `loadOrderDetail`, `currentDraft`, счетчики статусов);
-- mutation-слой выделяет status update flow (`updateSelectedOrderStatus`) с синхронизацией detail/list моделей;
-- view-model слой инкапсулирует notice/mutation orchestration и UI formatters (`formatPrice`, `formatAddress`, status class mappers);
-- для batch прогнаны quality gates в green:
+- query-СЃР»РѕР№ РІС‹РґРµР»СЏРµС‚ server-driven list/detail + drafts/metrics (`filters`, `loadOrders`, `loadOrderDetail`, `currentDraft`, СЃС‡РµС‚С‡РёРєРё СЃС‚Р°С‚СѓСЃРѕРІ);
+- mutation-СЃР»РѕР№ РІС‹РґРµР»СЏРµС‚ status update flow (`updateSelectedOrderStatus`) СЃ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРµР№ detail/list РјРѕРґРµР»РµР№;
+- view-model СЃР»РѕР№ РёРЅРєР°РїСЃСѓР»РёСЂСѓРµС‚ notice/mutation orchestration Рё UI formatters (`formatPrice`, `formatAddress`, status class mappers);
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ quality gates РІ green:
   - `composer run lint`
   - `composer run analyse`
   - `php artisan test`
@@ -309,24 +309,24 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 4` composable contracts + presentation helpers batch выполнен:
-- вынесен общий mutation-контракт в `resources/js/composables/useAdminMutation.ts`:
-  - экспортированы `ExecuteAdminMutationOptions<TResult>` и `ExecuteAdminMutation`;
-  - дубли типов удалены из admin-модулей mutations/query:
+- `2026-02-22` вЂ” `Phase 4` composable contracts + presentation helpers batch РІС‹РїРѕР»РЅРµРЅ:
+- РІС‹РЅРµСЃРµРЅ РѕР±С‰РёР№ mutation-РєРѕРЅС‚СЂР°РєС‚ РІ `resources/js/composables/useAdminMutation.ts`:
+  - СЌРєСЃРїРѕСЂС‚РёСЂРѕРІР°РЅС‹ `ExecuteAdminMutationOptions<TResult>` Рё `ExecuteAdminMutation`;
+  - РґСѓР±Р»Рё С‚РёРїРѕРІ СѓРґР°Р»РµРЅС‹ РёР· admin-РјРѕРґСѓР»РµР№ mutations/query:
     - `resources/js/composables/admin/categories/useAdminCategoriesMutations.ts`
     - `resources/js/composables/admin/promotions/useAdminPromotionsMutations.ts`
     - `resources/js/composables/admin/products/useAdminProductsMutations.ts`
     - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts`
     - `resources/js/composables/admin/orders/useAdminOrdersMutations.ts`;
-- выделены общие order/profile presentation-форматтеры:
+- РІС‹РґРµР»РµРЅС‹ РѕР±С‰РёРµ order/profile presentation-С„РѕСЂРјР°С‚С‚РµСЂС‹:
   - `resources/js/utils/order-presentation.ts` (`formatMoney`, `formatOrderDate`, `formatOrderAddress`, `orderStatusClass`, `paymentStatusClass`, `shipmentStatusClass`);
-- composable переключены на shared helpers:
+- composable РїРµСЂРµРєР»СЋС‡РµРЅС‹ РЅР° shared helpers:
   - `resources/js/composables/useAccountOrders.ts`
   - `resources/js/composables/useAccountProfile.ts`
   - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`;
-- добавлены unit tests для shared presentation helpers:
+- РґРѕР±Р°РІР»РµРЅС‹ unit tests РґР»СЏ shared presentation helpers:
   - `resources/js/tests/utils/order-presentation.spec.ts`;
-- для batch прогнаны quality gates в green:
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ quality gates РІ green:
   - `composer run lint`
   - `composer run analyse`
   - `php artisan test`
@@ -341,18 +341,18 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 4` account composables decomposition + tests batch выполнен:
-- `useAccountOrders` разделен на query/view-model слои с сохранением публичного API:
+- `2026-02-22` вЂ” `Phase 4` account composables decomposition + tests batch РІС‹РїРѕР»РЅРµРЅ:
+- `useAccountOrders` СЂР°Р·РґРµР»РµРЅ РЅР° query/view-model СЃР»РѕРё СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј РїСѓР±Р»РёС‡РЅРѕРіРѕ API:
   - `resources/js/composables/account/orders/useAccountOrdersQuery.ts`
   - `resources/js/composables/account/orders/useAccountOrdersViewModel.ts`
   - compatibility re-export: `resources/js/composables/useAccountOrders.ts`;
-- в `useAccountOrdersQuery` добавлена опциональная инъекция `route/router` для тестируемости без DOM/router runtime coupling;
-- добавлены composable-level tests для account-потока:
+- РІ `useAccountOrdersQuery` РґРѕР±Р°РІР»РµРЅР° РѕРїС†РёРѕРЅР°Р»СЊРЅР°СЏ РёРЅСЉРµРєС†РёСЏ `route/router` РґР»СЏ С‚РµСЃС‚РёСЂСѓРµРјРѕСЃС‚Рё Р±РµР· DOM/router runtime coupling;
+- РґРѕР±Р°РІР»РµРЅС‹ composable-level tests РґР»СЏ account-РїРѕС‚РѕРєР°:
   - `resources/js/tests/composables/use-account-orders.spec.ts` (route-sync filters, pagination reload, details toggling);
   - `resources/js/tests/composables/use-account-profile.spec.ts` (profile load/update success+error, metrics loading);
-- расширен frontend unit-coverage shared helpers и account-потока:
+- СЂР°СЃС€РёСЂРµРЅ frontend unit-coverage shared helpers Рё account-РїРѕС‚РѕРєР°:
   - total frontend tests: `22 files / 70 tests` (green);
-- для batch прогнаны quality gates в green:
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ quality gates РІ green:
   - `composer run lint`
   - `composer run analyse`
   - `php artisan test`
@@ -367,32 +367,32 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 4` admin mutation-flow stability tests batch выполнен:
-- добавлен integration test-suite `resources/js/tests/composables/use-admin-mutation-flows.spec.ts`:
-  - `products`: проверка стабильности page/filter после `submitProduct` (edit) и fallback до предыдущей страницы после `removeProduct` (delete last item on page);
-  - `promotions`: проверка стабильности page/search/status после `submitPromotion` и fallback-page после `removePromotion`;
-  - `categories`: проверка стабильности page/search/status/`per_page=200` после `submitCategory` и fallback-page после `removeCategory`;
-  - покрыто `6` сценариев (`6` тестов, green).
-- для batch прогнаны frontend quality gates в green:
+- `2026-02-22` вЂ” `Phase 4` admin mutation-flow stability tests batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ integration test-suite `resources/js/tests/composables/use-admin-mutation-flows.spec.ts`:
+  - `products`: РїСЂРѕРІРµСЂРєР° СЃС‚Р°Р±РёР»СЊРЅРѕСЃС‚Рё page/filter РїРѕСЃР»Рµ `submitProduct` (edit) Рё fallback РґРѕ РїСЂРµРґС‹РґСѓС‰РµР№ СЃС‚СЂР°РЅРёС†С‹ РїРѕСЃР»Рµ `removeProduct` (delete last item on page);
+  - `promotions`: РїСЂРѕРІРµСЂРєР° СЃС‚Р°Р±РёР»СЊРЅРѕСЃС‚Рё page/search/status РїРѕСЃР»Рµ `submitPromotion` Рё fallback-page РїРѕСЃР»Рµ `removePromotion`;
+  - `categories`: РїСЂРѕРІРµСЂРєР° СЃС‚Р°Р±РёР»СЊРЅРѕСЃС‚Рё page/search/status/`per_page=200` РїРѕСЃР»Рµ `submitCategory` Рё fallback-page РїРѕСЃР»Рµ `removeCategory`;
+  - РїРѕРєСЂС‹С‚Рѕ `6` СЃС†РµРЅР°СЂРёРµРІ (`6` С‚РµСЃС‚РѕРІ, green).
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ frontend quality gates РІ green:
   - `npm run lint`
   - `npm run lint:ox`
   - `npm run format:ox:check`
   - `npm run type-check`
   - `npm run test -- use-admin-mutation-flows.spec.ts`
   - `npm run build`
-- `2026-02-22` — `Phase 4` account profile composable decomposition batch выполнен:
-- `useAccountProfile` декомпозирован на query/mutation/view-model слои с сохранением публичного API:
+- `2026-02-22` вЂ” `Phase 4` account profile composable decomposition batch РІС‹РїРѕР»РЅРµРЅ:
+- `useAccountProfile` РґРµРєРѕРјРїРѕР·РёСЂРѕРІР°РЅ РЅР° query/mutation/view-model СЃР»РѕРё СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј РїСѓР±Р»РёС‡РЅРѕРіРѕ API:
   - `resources/js/composables/account/profile/useAccountProfileQuery.ts`
   - `resources/js/composables/account/profile/useAccountProfileMutations.ts`
   - `resources/js/composables/account/profile/useAccountProfileViewModel.ts`
   - compatibility re-export: `resources/js/composables/useAccountProfile.ts`;
-- сохранены текущие UI-контракты `AccountProfilePage` (`loadProfile`, `submitProfileUpdate`, `resetProfileForm`, profile computed fields, metrics, notice state);
+- СЃРѕС…СЂР°РЅРµРЅС‹ С‚РµРєСѓС‰РёРµ UI-РєРѕРЅС‚СЂР°РєС‚С‹ `AccountProfilePage` (`loadProfile`, `submitProfileUpdate`, `resetProfileForm`, profile computed fields, metrics, notice state);
 - regression tests green:
   - `resources/js/tests/composables/use-account-profile.spec.ts`
   - `resources/js/tests/composables/use-admin-mutation-flows.spec.ts`;
-- для batch прогнаны full production-readiness quality gates в green:
-  - `composer run lint` (через `C:\composer\composer.bat run lint`)
-  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ green:
+  - `composer run lint` (С‡РµСЂРµР· `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (С‡РµСЂРµР· `C:\composer\composer.bat run analyse`)
   - `php artisan test`
   - `npm run lint`
   - `npm run lint:ox`
@@ -405,33 +405,33 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 4` route-synced server-list abstraction batch выполнен:
-- добавлен общий route-query normalization helper:
+- `2026-02-22` вЂ” `Phase 4` route-synced server-list abstraction batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РѕР±С‰РёР№ route-query normalization helper:
   - `resources/js/queries/route-query.ts` (`toSingleQueryValue`, `normalizePageFromQuery`, `normalizeEnumQuery`);
-- добавлен общий composable для route sync + pagination reload:
+- РґРѕР±Р°РІР»РµРЅ РѕР±С‰РёР№ composable РґР»СЏ route sync + pagination reload:
   - `resources/js/composables/useRouteSyncedPagination.ts`;
-- общий abstraction применен в account/admin list flows:
-  - `useAccountOrdersQuery` переведен на `useRouteSyncedPagination` с сохранением публичного API;
-  - admin query composables получили route-sync интеграцию (опционально через `routeSync`):
+- РѕР±С‰РёР№ abstraction РїСЂРёРјРµРЅРµРЅ РІ account/admin list flows:
+  - `useAccountOrdersQuery` РїРµСЂРµРІРµРґРµРЅ РЅР° `useRouteSyncedPagination` СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј РїСѓР±Р»РёС‡РЅРѕРіРѕ API;
+  - admin query composables РїРѕР»СѓС‡РёР»Рё route-sync РёРЅС‚РµРіСЂР°С†РёСЋ (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ С‡РµСЂРµР· `routeSync`):
     - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts`
     - `resources/js/composables/admin/promotions/useAdminPromotionsQuery.ts`
     - `resources/js/composables/admin/categories/useAdminCategoriesQuery.ts`
     - `resources/js/composables/admin/products/useAdminProductsQuery.ts`;
-  - добавлен shared type-контракт admin route-sync options:
+  - РґРѕР±Р°РІР»РµРЅ shared type-РєРѕРЅС‚СЂР°РєС‚ admin route-sync options:
     - `resources/js/composables/admin/adminRouteSync.ts`;
-- admin pages переведены на URL-синхронизацию filters/page (route+router injection в view-model):
+- admin pages РїРµСЂРµРІРµРґРµРЅС‹ РЅР° URL-СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЋ filters/page (route+router injection РІ view-model):
   - `resources/js/pages/admin/AdminOrdersPage.vue`
   - `resources/js/pages/admin/AdminPromotionsPage.vue`
   - `resources/js/pages/admin/AdminCategoriesPage.vue`
   - `resources/js/pages/admin/AdminProductsPage.vue`;
-- расширены query-level и integration tests:
-  - новый suite: `resources/js/tests/composables/use-route-synced-pagination.spec.ts`;
-  - `resources/js/tests/composables/use-admin-server-list-flows.spec.ts` расширен route-sync сценариями для orders/promotions/categories;
-  - `resources/js/tests/queries/admin/orders-query.spec.ts`, `resources/js/tests/queries/admin/promotions-query.spec.ts`, `resources/js/tests/queries/admin/categories-query.spec.ts`, `resources/js/tests/queries/admin/products-query.spec.ts` расширены parse/build/compare route-query assertions;
-  - `resources/js/tests/composables/use-account-orders.spec.ts` обновлен под общий router-signature;
-- для batch прогнаны full production-readiness quality gates в green:
-  - `composer run lint` (через `C:\composer\composer.bat run lint`)
-  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+- СЂР°СЃС€РёСЂРµРЅС‹ query-level Рё integration tests:
+  - РЅРѕРІС‹Р№ suite: `resources/js/tests/composables/use-route-synced-pagination.spec.ts`;
+  - `resources/js/tests/composables/use-admin-server-list-flows.spec.ts` СЂР°СЃС€РёСЂРµРЅ route-sync СЃС†РµРЅР°СЂРёСЏРјРё РґР»СЏ orders/promotions/categories;
+  - `resources/js/tests/queries/admin/orders-query.spec.ts`, `resources/js/tests/queries/admin/promotions-query.spec.ts`, `resources/js/tests/queries/admin/categories-query.spec.ts`, `resources/js/tests/queries/admin/products-query.spec.ts` СЂР°СЃС€РёСЂРµРЅС‹ parse/build/compare route-query assertions;
+  - `resources/js/tests/composables/use-account-orders.spec.ts` РѕР±РЅРѕРІР»РµРЅ РїРѕРґ РѕР±С‰РёР№ router-signature;
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ green:
+  - `composer run lint` (С‡РµСЂРµР· `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (С‡РµСЂРµР· `C:\composer\composer.bat run analyse`)
   - `php artisan test`
   - `npm run lint`
   - `npm run lint:ox`
@@ -444,23 +444,23 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 5` cleanup lifecycle + ops runbook batch выполнен:
-- добавлен lifecycle cleanup command `app:maintenance-cleanup` с dry-run и retention overrides:
+- `2026-02-22` вЂ” `Phase 5` cleanup lifecycle + ops runbook batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ lifecycle cleanup command `app:maintenance-cleanup` СЃ dry-run Рё retention overrides:
   - `app/Console/Commands/AppMaintenanceCleanupCommand.php`;
   - `config/cleanup.php`;
   - scheduler wiring: `routes/console.php`;
   - feature coverage: `tests/Feature/AppMaintenanceCleanupCommandTest.php`;
-- добавлен config-driven SLO alert scheduling через `app:observability-report`:
-  - `config/observability.php` (`alerts` блок: cron/window/thresholds/required samples);
+- РґРѕР±Р°РІР»РµРЅ config-driven SLO alert scheduling С‡РµСЂРµР· `app:observability-report`:
+  - `config/observability.php` (`alerts` Р±Р»РѕРє: cron/window/thresholds/required samples);
   - scheduler wiring: `routes/console.php`;
   - feature coverage: `tests/Feature/ObservabilityReportCommandTest.php` (scheduler registration assertion);
-  - env templates синхронизированы: `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
-- добавлен operational runbook для инцидентов checkout/webhooks:
+  - env templates СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅС‹: `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
+- РґРѕР±Р°РІР»РµРЅ operational runbook РґР»СЏ РёРЅС†РёРґРµРЅС‚РѕРІ checkout/webhooks:
   - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
-  - README синхронизирован по командам и конфигам (`README.md`).
-- для batch прогнаны full production-readiness quality gates в green:
-  - `composer run lint` (через `C:\composer\composer.bat run lint`)
-  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+  - README СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅ РїРѕ РєРѕРјР°РЅРґР°Рј Рё РєРѕРЅС„РёРіР°Рј (`README.md`).
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ green:
+  - `composer run lint` (С‡РµСЂРµР· `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (С‡РµСЂРµР· `C:\composer\composer.bat run analyse`)
   - `php artisan test`
   - `npm run lint`
   - `npm run lint:ox`
@@ -473,28 +473,28 @@
   - `php artisan app:webhook-flow-smoke`
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
-- `2026-02-22` — `Phase 5` observability alert-routing batch выполнен:
-- добавлен command-wrapper `app:observability-alert-check`:
-  - запускает `app:observability-report` с config-driven SLO thresholds;
-  - при `FAIL` маршрутизирует алерты по каналам и возвращает non-zero статус;
-  - файлы: `app/Console/Commands/AppObservabilityAlertCheckCommand.php`, `routes/console.php`;
-- добавлен alert routing service + email notification:
+- `2026-02-22` вЂ” `Phase 5` observability alert-routing batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ command-wrapper `app:observability-alert-check`:
+  - Р·Р°РїСѓСЃРєР°РµС‚ `app:observability-report` СЃ config-driven SLO thresholds;
+  - РїСЂРё `FAIL` РјР°СЂС€СЂСѓС‚РёР·РёСЂСѓРµС‚ Р°Р»РµСЂС‚С‹ РїРѕ РєР°РЅР°Р»Р°Рј Рё РІРѕР·РІСЂР°С‰Р°РµС‚ non-zero СЃС‚Р°С‚СѓСЃ;
+  - С„Р°Р№Р»С‹: `app/Console/Commands/AppObservabilityAlertCheckCommand.php`, `routes/console.php`;
+- РґРѕР±Р°РІР»РµРЅ alert routing service + email notification:
   - `app/Support/Observability/ObservabilityAlertRouter.php`;
   - `app/Notifications/ObservabilitySloFailureNotification.php`;
-  - поддержаны каналы: `email`, `slack webhook`, `pagerduty events v2`;
-  - добавлен cooldown suppression для защиты от alert storm;
-- расширен observability alerts config и env templates:
+  - РїРѕРґРґРµСЂР¶Р°РЅС‹ РєР°РЅР°Р»С‹: `email`, `slack webhook`, `pagerduty events v2`;
+  - РґРѕР±Р°РІР»РµРЅ cooldown suppression РґР»СЏ Р·Р°С‰РёС‚С‹ РѕС‚ alert storm;
+- СЂР°СЃС€РёСЂРµРЅ observability alerts config Рё env templates:
   - `config/observability.php` (`alerts.email/slack/pagerduty`, `cooldown_minutes`);
   - `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
-- добавлено покрытие alert-routing и scheduler wiring:
+- РґРѕР±Р°РІР»РµРЅРѕ РїРѕРєСЂС‹С‚РёРµ alert-routing Рё scheduler wiring:
   - `tests/Feature/ObservabilityAlertCheckCommandTest.php`;
-  - `tests/Feature/ObservabilityReportCommandTest.php` (scheduler assertion обновлен на `app:observability-alert-check`);
-- документация синхронизирована:
+  - `tests/Feature/ObservabilityReportCommandTest.php` (scheduler assertion РѕР±РЅРѕРІР»РµРЅ РЅР° `app:observability-alert-check`);
+- РґРѕРєСѓРјРµРЅС‚Р°С†РёСЏ СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅР°:
   - `README.md`
   - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
-- для batch прогнаны full production-readiness quality gates в green:
-  - `composer run lint` (через `C:\composer\composer.bat run lint`)
-  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ green:
+  - `composer run lint` (С‡РµСЂРµР· `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (С‡РµСЂРµР· `C:\composer\composer.bat run analyse`)
   - `php artisan test`
   - `npm run lint`
   - `npm run lint:ox`
@@ -508,21 +508,21 @@
   - `php artisan app:api-contract-smoke`
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
-- `2026-02-22` — `Phase 5` on-call drill сценарий + coverage batch выполнен:
-- добавлен выделенный drill smoke orchestration command:
+- `2026-02-22` вЂ” `Phase 5` on-call drill СЃС†РµРЅР°СЂРёР№ + coverage batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ РІС‹РґРµР»РµРЅРЅС‹Р№ drill smoke orchestration command:
   - `app:oncall-drill-smoke` (`app/Console/Commands/AppOncallDrillSmokeCommand.php`);
   - dry-run checks: `app:healthcheck`, `app:observability-report` (alerts-threshold config), `app:maintenance-cleanup --dry-run`;
-  - optional extended checks: `--with-write-smokes` (`app:api-contract-smoke`, `app:webhook-flow-smoke`) с поддержкой `--persist`;
-  - встроена escalation matrix по check-кодам (`severity/owner/next_step`) в output;
-- добавлено feature coverage drill-процесса:
-  - `tests/Feature/OncallDrillSmokeCommandTest.php` (success/failure сценарии);
-- runbook расширен tabletop процедурой и escalation matrix:
+  - optional extended checks: `--with-write-smokes` (`app:api-contract-smoke`, `app:webhook-flow-smoke`) СЃ РїРѕРґРґРµСЂР¶РєРѕР№ `--persist`;
+  - РІСЃС‚СЂРѕРµРЅР° escalation matrix РїРѕ check-РєРѕРґР°Рј (`severity/owner/next_step`) РІ output;
+- РґРѕР±Р°РІР»РµРЅРѕ feature coverage drill-РїСЂРѕС†РµСЃСЃР°:
+  - `tests/Feature/OncallDrillSmokeCommandTest.php` (success/failure СЃС†РµРЅР°СЂРёРё);
+- runbook СЂР°СЃС€РёСЂРµРЅ tabletop РїСЂРѕС†РµРґСѓСЂРѕР№ Рё escalation matrix:
   - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`;
-- README синхронизирован новой командой:
+- README СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅ РЅРѕРІРѕР№ РєРѕРјР°РЅРґРѕР№:
   - `README.md` (`php artisan app:oncall-drill-smoke`).
-- для batch прогнаны full production-readiness quality gates в green:
-  - `composer run lint` (через `C:\composer\composer.bat run lint`)
-  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ green:
+  - `composer run lint` (С‡РµСЂРµР· `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (С‡РµСЂРµР· `C:\composer\composer.bat run analyse`)
   - `php artisan test`
   - `npm run lint`
   - `npm run lint:ox`
@@ -537,27 +537,27 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`
-- `2026-02-22` — `Phase 5` final closeout выполнен:
-- проверены и зафиксированы exit criteria `Phase 5`:
-  - controlled growth служебных таблиц закрыт через cleanup lifecycle (`app:maintenance-cleanup`, scheduler, retention config, feature tests);
-  - прозрачный operational мониторинг закрыт через SLO report + alert routing + on-call drill + incident runbook;
-- оформлен release readiness checklist:
+- `2026-02-22` вЂ” `Phase 5` final closeout РІС‹РїРѕР»РЅРµРЅ:
+- РїСЂРѕРІРµСЂРµРЅС‹ Рё Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅС‹ exit criteria `Phase 5`:
+  - controlled growth СЃР»СѓР¶РµР±РЅС‹С… С‚Р°Р±Р»РёС† Р·Р°РєСЂС‹С‚ С‡РµСЂРµР· cleanup lifecycle (`app:maintenance-cleanup`, scheduler, retention config, feature tests);
+  - РїСЂРѕР·СЂР°С‡РЅС‹Р№ operational РјРѕРЅРёС‚РѕСЂРёРЅРі Р·Р°РєСЂС‹С‚ С‡РµСЂРµР· SLO report + alert routing + on-call drill + incident runbook;
+- РѕС„РѕСЂРјР»РµРЅ release readiness checklist:
   - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` (go/no-go, env/scheduler readiness, quality/smoke verification);
-- `Phase 5` зафиксирован как завершенный, дальнейшие действия вынесены в post-closeout backlog.
-- `2026-02-22` — `Phase 5` follow-up (scheduled on-call drill wiring) выполнен:
-- принято решение и реализовано регулярное расписание `app:oncall-drill-smoke` с env-guard:
+- `Phase 5` Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅ РєР°Рє Р·Р°РІРµСЂС€РµРЅРЅС‹Р№, РґР°Р»СЊРЅРµР№С€РёРµ РґРµР№СЃС‚РІРёСЏ РІС‹РЅРµСЃРµРЅС‹ РІ post-closeout backlog.
+- `2026-02-22` вЂ” `Phase 5` follow-up (scheduled on-call drill wiring) РІС‹РїРѕР»РЅРµРЅ:
+- РїСЂРёРЅСЏС‚Рѕ СЂРµС€РµРЅРёРµ Рё СЂРµР°Р»РёР·РѕРІР°РЅРѕ СЂРµРіСѓР»СЏСЂРЅРѕРµ СЂР°СЃРїРёСЃР°РЅРёРµ `app:oncall-drill-smoke` СЃ env-guard:
   - `config/oncall.php` (`enabled/cron/with_write_smokes/persist`);
   - scheduler wiring: `routes/console.php` (`withoutOverlapping`, config-driven command options);
-  - env templates синхронизированы: `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
-- покрытие scheduler wiring добавлено в:
+  - env templates СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅС‹: `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`;
+- РїРѕРєСЂС‹С‚РёРµ scheduler wiring РґРѕР±Р°РІР»РµРЅРѕ РІ:
   - `tests/Feature/OncallDrillSmokeCommandTest.php` (`test_oncall_drill_command_is_registered_in_scheduler`);
-- документация синхронизирована:
+- РґРѕРєСѓРјРµРЅС‚Р°С†РёСЏ СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅР°:
   - `README.md` (on-call drill schedule config variables);
   - `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md` (drill scheduling section);
   - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` (scheduler readiness updated).
-- для batch прогнаны full production-readiness quality gates в green:
-  - `composer run lint` (через `C:\composer\composer.bat run lint`)
-  - `composer run analyse` (через `C:\composer\composer.bat run analyse`)
+- РґР»СЏ batch РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ green:
+  - `composer run lint` (С‡РµСЂРµР· `C:\composer\composer.bat run lint`)
+  - `composer run analyse` (С‡РµСЂРµР· `C:\composer\composer.bat run analyse`)
   - `php artisan test`
   - `npm run lint`
   - `npm run lint:ox`
@@ -572,15 +572,15 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`
-- `2026-02-22` — подготовлен детальный план декомпозиции page templates на component-level:
+- `2026-02-22` вЂ” РїРѕРґРіРѕС‚РѕРІР»РµРЅ РґРµС‚Р°Р»СЊРЅС‹Р№ РїР»Р°РЅ РґРµРєРѕРјРїРѕР·РёС†РёРё page templates РЅР° component-level:
   - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` (wave-based roadmap, target component map, testing/DoD/commit strategy).
-- `2026-02-22` — `Template Componentization` Wave 1 batch (Admin products + admin orders) выполнен:
-- `AdminProductsPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 1 batch (Admin products + admin orders) РІС‹РїРѕР»РЅРµРЅ:
+- `AdminProductsPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/admin/products/AdminProductsFormCard.vue`
   - `resources/js/components/admin/products/AdminProductsListCard.vue`
   - `resources/js/components/admin/products/AdminProductVariantsSection.vue`
   - `resources/js/components/admin/products/AdminProductVariantCard.vue`;
-- `AdminOrdersPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `AdminOrdersPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/admin/orders/AdminOrdersHeaderCard.vue`
   - `resources/js/components/admin/orders/AdminOrdersMetricsRow.vue`
   - `resources/js/components/admin/orders/AdminOrdersFiltersBar.vue`
@@ -588,10 +588,10 @@
   - `resources/js/components/admin/orders/AdminOrdersPaginationBar.vue`
   - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
   - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`;
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `npm run lint`
   - `npm run lint:ox`
-  - `npm run format:ox` (автофикс после `format:ox:check`)
+  - `npm run format:ox` (Р°РІС‚РѕС„РёРєСЃ РїРѕСЃР»Рµ `format:ox:check`)
   - `npm run format:ox:check`
   - `npm run type-check`
   - `npm run test`
@@ -606,21 +606,21 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 1 finalization batch (Admin categories) выполнен:
-- `AdminCategoriesPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 1 finalization batch (Admin categories) РІС‹РїРѕР»РЅРµРЅ:
+- `AdminCategoriesPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
   - `resources/js/components/admin/categories/AdminCategoriesListCard.vue`
   - `resources/js/components/admin/categories/AdminCategoriesFiltersBar.vue`
   - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
   - `resources/js/components/admin/categories/AdminCategoriesPaginationBar.vue`;
-- сохранены текущие UX/flow контракты:
+- СЃРѕС…СЂР°РЅРµРЅС‹ С‚РµРєСѓС‰РёРµ UX/flow РєРѕРЅС‚СЂР°РєС‚С‹:
   - route-synced filters + pagination (`searchQuery`, `statusFilter`, page navigation);
   - mutation flows `submitCategory`, `startEdit`, `removeCategory`, `resetForm`;
-  - ACL behavior delete-button (`canDeleteCategories`) и notice rendering;
-- повторно выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - ACL behavior delete-button (`canDeleteCategories`) Рё notice rendering;
+- РїРѕРІС‚РѕСЂРЅРѕ РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `npm run lint`
   - `npm run lint:ox`
-  - `npm run format:ox` (автофикс после `format:ox:check`)
+  - `npm run format:ox` (Р°РІС‚РѕС„РёРєСЃ РїРѕСЃР»Рµ `format:ox:check`)
   - `npm run format:ox:check`
   - `npm run type-check`
   - `npm run test`
@@ -635,16 +635,16 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` component-tests + vitest vue-runtime batch выполнен:
-- добавлен component-level test suite:
+- `2026-02-22` вЂ” `Template Componentization` component-tests + vitest vue-runtime batch РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ component-level test suite:
   - `resources/js/tests/components/admin/admin-component-contracts.spec.ts`;
-- покрыты render/emit контракты для новых admin UI-компонентов:
+- РїРѕРєСЂС‹С‚С‹ render/emit РєРѕРЅС‚СЂР°РєС‚С‹ РґР»СЏ РЅРѕРІС‹С… admin UI-РєРѕРјРїРѕРЅРµРЅС‚РѕРІ:
   - `AdminProductsListCard.vue`
   - `AdminOrdersTableCard.vue`
   - `AdminCategoriesListCard.vue`;
-- добавлен `vitest.config.ts` с `@vitejs/plugin-vue` и alias-конфигом для стабильной SFC-трансформации в тестах;
-- итоговый frontend test baseline: `25 files / 96 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РґРѕР±Р°РІР»РµРЅ `vitest.config.ts` СЃ `@vitejs/plugin-vue` Рё alias-РєРѕРЅС„РёРіРѕРј РґР»СЏ СЃС‚Р°Р±РёР»СЊРЅРѕР№ SFC-С‚СЂР°РЅСЃС„РѕСЂРјР°С†РёРё РІ С‚РµСЃС‚Р°С…;
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `25 files / 96 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -661,22 +661,22 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 2.1 batch (account orders + shared tabs) выполнен:
-- `AccountOrdersPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 2.1 batch (account orders + shared tabs) РІС‹РїРѕР»РЅРµРЅ:
+- `AccountOrdersPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
   - `resources/js/components/account/orders/AccountOrdersMetricsRow.vue`
   - `resources/js/components/account/orders/AccountOrdersFiltersBar.vue`
   - `resources/js/components/account/orders/AccountOrderCard.vue`
   - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
   - `resources/js/components/account/orders/AccountOrdersPaginationCard.vue`;
-- добавлен shared account navigation компонент и подключен в account pages:
+- РґРѕР±Р°РІР»РµРЅ shared account navigation РєРѕРјРїРѕРЅРµРЅС‚ Рё РїРѕРґРєР»СЋС‡РµРЅ РІ account pages:
   - `resources/js/components/account/AccountTabsNav.vue`
   - `resources/js/pages/AccountOrdersPage.vue`
   - `resources/js/pages/AccountProfilePage.vue`;
-- добавлен component-level account contract suite:
+- РґРѕР±Р°РІР»РµРЅ component-level account contract suite:
   - `resources/js/tests/components/account/account-orders-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `26 files / 100 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `26 files / 100 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -694,17 +694,17 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 2.2 batch (account profile) выполнен:
-- `AccountProfilePage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 2.2 batch (account profile) РІС‹РїРѕР»РЅРµРЅ:
+- `AccountProfilePage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/account/profile/AccountHeroCard.vue`
   - `resources/js/components/account/profile/AccountMetricsGrid.vue`
   - `resources/js/components/account/profile/AccountProfileFormCard.vue`
   - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`;
-- общий `AccountTabsNav` переиспользуется в `AccountProfilePage` и `AccountOrdersPage`;
-- добавлен component-level account profile contract suite:
+- РѕР±С‰РёР№ `AccountTabsNav` РїРµСЂРµРёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІ `AccountProfilePage` Рё `AccountOrdersPage`;
+- РґРѕР±Р°РІР»РµРЅ component-level account profile contract suite:
   - `resources/js/tests/components/account/account-profile-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `27 files / 104 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `27 files / 104 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -722,16 +722,16 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 3.1 batch (catalog page) выполнен:
-- `CatalogPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 3.1 batch (catalog page) РІС‹РїРѕР»РЅРµРЅ:
+- `CatalogPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/catalog/CatalogFiltersCard.vue`
   - `resources/js/components/catalog/CatalogProductGrid.vue`
   - `resources/js/components/catalog/CatalogProductCard.vue`
   - `resources/js/components/catalog/CatalogEmptyState.vue`;
-- добавлен component-level catalog contract suite:
+- РґРѕР±Р°РІР»РµРЅ component-level catalog contract suite:
   - `resources/js/tests/components/catalog/catalog-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `28 files / 108 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `28 files / 108 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -749,14 +749,14 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 3.2 batch (product page) выполнен:
-- `ProductPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 3.2 batch (product page) РІС‹РїРѕР»РЅРµРЅ:
+- `ProductPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/product/ProductInfoCard.vue`
   - `resources/js/components/product/ProductPurchaseCard.vue`;
-- добавлен component-level product contract suite:
+- РґРѕР±Р°РІР»РµРЅ component-level product contract suite:
   - `resources/js/tests/components/product/product-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `29 files / 110 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `29 files / 110 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -773,16 +773,16 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 3.3 batch (cart page) выполнен:
-- `CartPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 3.3 batch (cart page) РІС‹РїРѕР»РЅРµРЅ:
+- `CartPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/cart/CartSummaryHeader.vue`
   - `resources/js/components/cart/CartItemsTable.vue`
   - `resources/js/components/cart/CartQuantityControl.vue`
   - `resources/js/components/cart/CartEmptyState.vue`;
-- добавлен component-level cart contract suite:
+- РґРѕР±Р°РІР»РµРЅ component-level cart contract suite:
   - `resources/js/tests/components/cart/cart-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `30 files / 114 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `30 files / 114 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -799,14 +799,14 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — smoke command reliability hardening batch выполнен:
-- устранены флейки выбора варианта в smoke-командах на “грязной” базе:
-  - `app:api-contract-smoke`: checkout setup теперь выбирает только активный, опубликованный и доступный по inventory variant;
-  - `app:webhook-flow-smoke`: `findActiveVariant()` теперь требует положительную доступность (`quantity > reserved_quantity`);
-- добавлены регрессионные feature-тесты:
+- `2026-02-22` вЂ” smoke command reliability hardening batch РІС‹РїРѕР»РЅРµРЅ:
+- СѓСЃС‚СЂР°РЅРµРЅС‹ С„Р»РµР№РєРё РІС‹Р±РѕСЂР° РІР°СЂРёР°РЅС‚Р° РІ smoke-РєРѕРјР°РЅРґР°С… РЅР° вЂњРіСЂСЏР·РЅРѕР№вЂќ Р±Р°Р·Рµ:
+  - `app:api-contract-smoke`: checkout setup С‚РµРїРµСЂСЊ РІС‹Р±РёСЂР°РµС‚ С‚РѕР»СЊРєРѕ Р°РєС‚РёРІРЅС‹Р№, РѕРїСѓР±Р»РёРєРѕРІР°РЅРЅС‹Р№ Рё РґРѕСЃС‚СѓРїРЅС‹Р№ РїРѕ inventory variant;
+  - `app:webhook-flow-smoke`: `findActiveVariant()` С‚РµРїРµСЂСЊ С‚СЂРµР±СѓРµС‚ РїРѕР»РѕР¶РёС‚РµР»СЊРЅСѓСЋ РґРѕСЃС‚СѓРїРЅРѕСЃС‚СЊ (`quantity > reserved_quantity`);
+- РґРѕР±Р°РІР»РµРЅС‹ СЂРµРіСЂРµСЃСЃРёРѕРЅРЅС‹Рµ feature-С‚РµСЃС‚С‹:
   - `tests/Feature/ApiContractSmokeCommandTest.php` (`uses_available_variant_for_checkout_setup`);
   - `tests/Feature/WebhookFlowSmokeCommandTest.php` (`uses_variant_with_available_inventory`);
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -823,22 +823,22 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 3.4 + 3.5 batch (checkout + auth pages) выполнен:
-- `CheckoutPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 3.4 + 3.5 batch (checkout + auth pages) РІС‹РїРѕР»РЅРµРЅ:
+- `CheckoutPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/checkout/CheckoutHeader.vue`
   - `resources/js/components/checkout/CheckoutContactFields.vue`
   - `resources/js/components/checkout/CheckoutAddressCard.vue`
   - `resources/js/components/checkout/CheckoutResultNotice.vue`;
-- `AuthPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `AuthPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/auth/AuthHeroCard.vue`
   - `resources/js/components/auth/AuthModeSwitcher.vue`
   - `resources/js/components/auth/AuthLoginForm.vue`
   - `resources/js/components/auth/AuthRegisterForm.vue`;
-- добавлены component-level contract suites:
+- РґРѕР±Р°РІР»РµРЅС‹ component-level contract suites:
   - `resources/js/tests/components/checkout/checkout-component-contracts.spec.ts`
   - `resources/js/tests/components/auth/auth-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `32 files / 122 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `32 files / 122 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -856,19 +856,19 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.1 batch (home + admin dashboard pages) выполнен:
-- `HomePage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.1 batch (home + admin dashboard pages) РІС‹РїРѕР»РЅРµРЅ:
+- `HomePage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/home/HomeHeroSection.vue`
   - `resources/js/components/home/HomeKpiGrid.vue`;
-- `AdminDashboardPage` переведен на orchestration-only template, добавлены feature-компоненты:
+- `AdminDashboardPage` РїРµСЂРµРІРµРґРµРЅ РЅР° orchestration-only template, РґРѕР±Р°РІР»РµРЅС‹ feature-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/admin/dashboard/AdminDashboardHero.vue`
   - `resources/js/components/admin/dashboard/AdminDashboardNavGrid.vue`
   - `resources/js/components/admin/dashboard/AdminDashboardNavCard.vue`;
-- добавлены component-level contract suites:
+- РґРѕР±Р°РІР»РµРЅС‹ component-level contract suites:
   - `resources/js/tests/components/home/home-component-contracts.spec.ts`
   - `resources/js/tests/components/admin/admin-dashboard-component-contracts.spec.ts`;
-- итоговый frontend test baseline: `34 files / 128 tests` (green);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РёС‚РѕРіРѕРІС‹Р№ frontend test baseline: `34 files / 128 tests` (green);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -886,20 +886,20 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.2 batch (shared ui notice/empty/pagination) выполнен:
-- добавлены shared UI-примитивы:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.2 batch (shared ui notice/empty/pagination) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppNotice.vue`
   - `resources/js/components/ui/AppEmptyState.vue`
   - `resources/js/components/ui/AppPaginationBar.vue`;
-- выполнена миграция повторяющихся template-блоков (`>=2` использования) на shared primitives:
-  - notice: auth/account/admin/catalog/checkout (`AuthPage.vue`, `AccountOrdersPage.vue`, `AdminOrdersPage.vue`, `CatalogFiltersCard.vue`, form-card компоненты, `CheckoutResultNotice.vue`);
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ template-Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ) РЅР° shared primitives:
+  - notice: auth/account/admin/catalog/checkout (`AuthPage.vue`, `AccountOrdersPage.vue`, `AdminOrdersPage.vue`, `CatalogFiltersCard.vue`, form-card РєРѕРјРїРѕРЅРµРЅС‚С‹, `CheckoutResultNotice.vue`);
   - empty-state: storefront/account/admin tables/details (`ProductPage.vue`, `CartEmptyState.vue`, `CatalogEmptyState.vue`, `Admin*Table*.vue`, `Promotion*Panel/Table.vue`, `AdminOrderDetailsPanel.vue`);
   - pagination: `AdminOrdersPaginationBar.vue`, `AdminCategoriesPaginationBar.vue`, `AccountOrdersPaginationCard.vue`, `AdminProductsListCard.vue`, `PromotionCampaignTable.vue`;
-- добавлен component-level contract suite для shared UI:
+- РґРѕР±Р°РІР»РµРЅ component-level contract suite РґР»СЏ shared UI:
   - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`;
-- обновлены проектные правила и план по порогу реюза:
-  - `.cursorrules`, `AGENTS.md`, `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` (правило `>=2 использования -> вынос`).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РѕР±РЅРѕРІР»РµРЅС‹ РїСЂРѕРµРєС‚РЅС‹Рµ РїСЂР°РІРёР»Р° Рё РїР»Р°РЅ РїРѕ РїРѕСЂРѕРіСѓ СЂРµСЋР·Р°:
+  - `.cursorrules`, `AGENTS.md`, `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` (РїСЂР°РІРёР»Рѕ `>=2 РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ -> РІС‹РЅРѕСЃ`).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -917,17 +917,17 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.3 batch (shared status/badge primitives) выполнен:
-- добавлены shared UI-примитивы:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.3 batch (shared status/badge primitives) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppStatusChip.vue`
   - `resources/js/components/ui/AppBadge.vue`;
-- выполнена миграция повторяющихся `status-chip/badge` блоков (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ `status-chip/badge` Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - status-chip: `AccountOrderCard.vue`, `AccountHeroCard.vue`, `AdminOrdersTableCard.vue`, `AdminOrderDetailsPanel.vue`, `PromotionCampaignTable.vue`, `PromotionCouponsPanel.vue`;
   - badge: `AdminProductsListCard.vue`, `AdminCategoriesTable.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppStatusChip` и `AppBadge`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.3 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppStatusChip` Рё `AppBadge`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.3 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -944,17 +944,17 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.4 batch (shared layout helpers) выполнен:
-- добавлены shared UI-примитивы:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.4 batch (shared layout helpers) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppMetricCard.vue`
   - `resources/js/components/ui/AppDetailBox.vue`;
-- выполнена миграция повторяющихся `metric-card/order-detail-box` блоков (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ `metric-card/order-detail-box` Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - metric-card: `AccountMetricsGrid.vue`, `AccountOrdersMetricsRow.vue`, `AdminOrdersMetricsRow.vue`, `AdminOrderDetailsPanel.vue`;
   - detail-box: `AccountOrderDetailsTable.vue`, `AdminOrderDetailsPanel.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppMetricCard` и `AppDetailBox`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.4 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppMetricCard` Рё `AppDetailBox`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.4 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -972,15 +972,15 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.5 batch (shared status stack) выполнен:
-- добавлен shared UI-примитив:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.5 batch (shared status stack) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ shared UI-РїСЂРёРјРёС‚РёРІ:
   - `resources/js/components/ui/AppStatusStack.vue`;
-- выполнена миграция повторяющихся групп статусов в order-компонентах:
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ РіСЂСѓРїРї СЃС‚Р°С‚СѓСЃРѕРІ РІ order-РєРѕРјРїРѕРЅРµРЅС‚Р°С…:
   - `AccountOrderCard.vue`, `AdminOrdersTableCard.vue`, `AdminOrderDetailsPanel.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppStatusStack`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.5 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppStatusStack`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.5 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -997,10 +997,10 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.6 batch (shared table section wrapper) выполнен:
-- добавлен shared UI-примитив:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.6 batch (shared table section wrapper) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ shared UI-РїСЂРёРјРёС‚РёРІ:
   - `resources/js/components/ui/AppTableSection.vue`;
-- выполнена миграция повторяющихся `table-wrap/table` блоков (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ `table-wrap/table` Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
   - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
   - `resources/js/components/admin/products/AdminProductsListCard.vue`
@@ -1009,10 +1009,10 @@
   - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
   - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
   - `resources/js/components/cart/CartItemsTable.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppTableSection`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.6 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppTableSection`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.6 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1030,11 +1030,11 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.7 batch (shared actions/stack wrappers) выполнен:
-- добавлены shared UI-примитивы:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.7 batch (shared actions/stack wrappers) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppActionsRow.vue`
   - `resources/js/components/ui/AppStackBetween.vue`;
-- выполнена миграция повторяющихся `actions/actions--top` и `stack stack--between` блоков (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ `actions/actions--top` Рё `stack stack--between` Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/catalog/CatalogFiltersCard.vue`
   - `resources/js/components/cart/CartItemsTable.vue`
   - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`
@@ -1055,10 +1055,10 @@
   - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
   - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
   - `resources/js/components/admin/orders/AdminOrdersHeaderCard.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppActionsRow` и `AppStackBetween`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.7 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppActionsRow` Рё `AppStackBetween`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.7 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1075,11 +1075,11 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.8 batch (shared form/grid layout wrappers) выполнен:
-- добавлены shared UI-примитивы:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.8 batch (shared form/grid layout wrappers) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppFormLayout.vue`
   - `resources/js/components/ui/AppGridTwoColumns.vue`;
-- выполнена миграция повторяющихся `form-grid actions--top` и `grid grid-2` блоков (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ `form-grid actions--top` Рё `grid grid-2` Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/account/profile/AccountProfileFormCard.vue`
   - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
   - `resources/js/components/admin/products/AdminProductsFormCard.vue`
@@ -1093,10 +1093,10 @@
   - `resources/js/pages/CheckoutPage.vue`
   - `resources/js/pages/AuthPage.vue`
   - `resources/js/pages/AccountProfilePage.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppFormLayout` и `AppGridTwoColumns`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.8 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppFormLayout` Рё `AppGridTwoColumns`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.8 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1113,17 +1113,17 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-22` — `Template Componentization` Wave 4.9 batch (shared grid-3 + action-group standardization) выполнен:
-- добавлен shared UI-примитив:
+- `2026-02-22` вЂ” `Template Componentization` Wave 4.9 batch (shared grid-3 + action-group standardization) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅ shared UI-РїСЂРёРјРёС‚РёРІ:
   - `resources/js/components/ui/AppGridThreeColumns.vue`;
-- выполнена миграция повторяющихся `grid grid-3` блоков (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ `grid grid-3` Р±Р»РѕРєРѕРІ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/home/HomeKpiGrid.vue`
   - `resources/js/components/catalog/CatalogProductGrid.vue`
   - `resources/js/components/admin/dashboard/AdminDashboardNavGrid.vue`
   - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
   - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`
   - `resources/js/components/admin/products/AdminProductVariantCard.vue`;
-- завершена миграция raw `div.actions` action-group блоков на `AppActionsRow`:
+- Р·Р°РІРµСЂС€РµРЅР° РјРёРіСЂР°С†РёСЏ raw `div.actions` action-group Р±Р»РѕРєРѕРІ РЅР° `AppActionsRow`:
   - `resources/js/components/account/orders/AccountOrderCard.vue`
   - `resources/js/components/account/profile/AccountHeroCard.vue`
   - `resources/js/components/account/profile/AccountProfileFormCard.vue`
@@ -1137,10 +1137,10 @@
   - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
   - `resources/js/components/cart/CartQuantityControl.vue`
   - `resources/js/components/ui/AppPaginationBar.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppGridThreeColumns`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.9 status).
-- для batch повторно прогнаны full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppGridThreeColumns`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.9 status).
+- РґР»СЏ batch РїРѕРІС‚РѕСЂРЅРѕ РїСЂРѕРіРЅР°РЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1157,12 +1157,12 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`.
-- `2026-02-23` — `Template Componentization` Wave 4.10 batch (shared field/checkbox + submit-reset wrappers) выполнен:
-- добавлены shared UI-примитивы:
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.10 batch (shared field/checkbox + submit-reset wrappers) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppFormField.vue`
   - `resources/js/components/ui/AppCheckboxField.vue`
   - `resources/js/components/ui/AppSubmitResetActions.vue`;
-- выполнена миграция повторов `field` / `checkbox-field` / submit-reset action-pairs (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂРѕРІ `field` / `checkbox-field` / submit-reset action-pairs (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/account/profile/AccountProfileFormCard.vue`
   - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
   - `resources/js/components/admin/products/AdminProductsFormCard.vue`
@@ -1170,14 +1170,14 @@
   - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
   - `resources/js/components/admin/products/AdminProductVariantCard.vue`
   - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppFormField`, `AppCheckboxField`, `AppSubmitResetActions`);
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.10 status).
-- `2026-02-23` — `Template Componentization` Wave 4.11 batch (shared section/muted text wrappers) выполнен:
-- добавлены shared UI-примитивы:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppFormField`, `AppCheckboxField`, `AppSubmitResetActions`);
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.10 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.11 batch (shared section/muted text wrappers) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppSectionTitle.vue`
   - `resources/js/components/ui/AppMutedText.vue`;
-- выполнена миграция повторов `section-title` / `muted` (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂРѕРІ `section-title` / `muted` (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/account/orders/AccountOrderCard.vue`
   - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
   - `resources/js/components/account/orders/AccountOrdersHeaderCard.vue`
@@ -1200,9 +1200,9 @@
   - `resources/js/components/checkout/CheckoutHeader.vue`
   - `resources/js/components/product/ProductInfoCard.vue`
   - `resources/js/components/product/ProductPurchaseCard.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppSectionTitle`, `AppMutedText`);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppSectionTitle`, `AppMutedText`);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1220,12 +1220,12 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.11 status).
-- `2026-02-23` — `Template Componentization` Wave 4.12 batch (shared card/button wrappers) выполнен:
-- добавлены shared UI-примитивы:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.11 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.12 batch (shared card/button wrappers) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
   - `resources/js/components/ui/AppCard.vue`
   - `resources/js/components/ui/AppButton.vue`;
-- выполнена миграция повторов `card` / `btn btn-*` (`>=2` использования):
+- РІС‹РїРѕР»РЅРµРЅР° РјРёРіСЂР°С†РёСЏ РїРѕРІС‚РѕСЂРѕРІ `card` / `btn btn-*` (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - pages orchestration: `resources/js/pages/AuthPage.vue`, `resources/js/pages/CheckoutPage.vue`, `resources/js/pages/CartPage.vue`, `resources/js/pages/AccountOrdersPage.vue`, `resources/js/pages/admin/AdminOrdersPage.vue`;
   - shared/layout: `resources/js/components/AppHeader.vue`, `resources/js/components/home/HomeHeroSection.vue`, `resources/js/components/home/HomeKpiGrid.vue`, `resources/js/components/ui/AppPaginationBar.vue`;
   - account/admin/storefront cards & actions:
@@ -1258,9 +1258,9 @@
     - `resources/js/components/checkout/CheckoutAddressCard.vue`
     - `resources/js/components/product/ProductInfoCard.vue`
     - `resources/js/components/product/ProductPurchaseCard.vue`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppCard`, `AppButton`);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppCard`, `AppButton`);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1278,18 +1278,18 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.12 status).
-- `2026-02-23` — `Template Componentization` Wave 4.13 batch (card-composition hardening + KPI domain wrapper) выполнен:
-- убраны conditional `card`-классы через композицию с `AppCard`:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.12 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.13 batch (card-composition hardening + KPI domain wrapper) РІС‹РїРѕР»РЅРµРЅ:
+- СѓР±СЂР°РЅС‹ conditional `card`-РєР»Р°СЃСЃС‹ С‡РµСЂРµР· РєРѕРјРїРѕР·РёС†РёСЋ СЃ `AppCard`:
   - `resources/js/components/ui/AppEmptyState.vue`
   - `resources/js/components/ui/AppMetricCard.vue`
   - `resources/js/components/ui/AppPaginationBar.vue`;
-- добавлен domain-shared wrapper KPI-card паттерна (`>=2` использования):
+- РґРѕР±Р°РІР»РµРЅ domain-shared wrapper KPI-card РїР°С‚С‚РµСЂРЅР° (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
   - `resources/js/components/home/HomeKpiCard.vue`;
-  - `resources/js/components/home/HomeKpiGrid.vue` переведен на `HomeKpiCard`;
-- расширен component-level contract suite shared UI:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (покрытие `AppPaginationBar` + `wrapInCard`);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - `resources/js/components/home/HomeKpiGrid.vue` РїРµСЂРµРІРµРґРµРЅ РЅР° `HomeKpiCard`;
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РїРѕРєСЂС‹С‚РёРµ `AppPaginationBar` + `wrapInCard`);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1307,14 +1307,14 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.13 status).
-- `2026-02-23` — `Template Componentization` Wave 4.14 batch (shared tone/variant API + AppButton transport hardening) выполнен:
-- унифицированы `tone/variant` API в shared UI с backward compatibility:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.13 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.14 batch (shared tone/variant API + AppButton transport hardening) РІС‹РїРѕР»РЅРµРЅ:
+- СѓРЅРёС„РёС†РёСЂРѕРІР°РЅС‹ `tone/variant` API РІ shared UI СЃ backward compatibility:
   - `resources/js/components/ui/AppStatusChip.vue` (`tone`, fallback `toneClass`);
   - `resources/js/components/ui/AppBadge.vue` (`tone`, fallback `toneClass`);
   - `resources/js/components/ui/AppMetricCard.vue` (`variant`, fallback `soft`);
   - `resources/js/components/ui/AppStatusStack.vue` (`tone` passthrough);
-- статические usages переведены на новый API:
+- СЃС‚Р°С‚РёС‡РµСЃРєРёРµ usages РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РЅРѕРІС‹Р№ API:
   - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
   - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
   - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
@@ -1322,11 +1322,11 @@
   - `resources/js/components/account/orders/AccountOrdersMetricsRow.vue`
   - `resources/js/components/admin/orders/AdminOrdersMetricsRow.vue`
   - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`;
-- усилен `AppButton` как единый transport-layer `button/a/router-link`:
+- СѓСЃРёР»РµРЅ `AppButton` РєР°Рє РµРґРёРЅС‹Р№ transport-layer `button/a/router-link`:
   - `resources/js/components/ui/AppButton.vue` (auto resolve by `to/href`, secure `rel` for external `_blank`, disabled-link semantics, attrs passthrough);
-- расширен component-level contract suite shared UI:
+- СЂР°СЃС€РёСЂРµРЅ component-level contract suite shared UI:
   - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (edge-cases `AppButton`, tone/variant contracts);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1344,22 +1344,22 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.14 status).
-- `2026-02-23` — `Template Componentization` Wave 4.15 batch (AppButton router-link migration + typed presenter rollout) выполнен:
-- завершена миграция `AppButton` c `:as="RouterLink"` на упрощенный `to` API:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.14 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.15 batch (AppButton router-link migration + typed presenter rollout) РІС‹РїРѕР»РЅРµРЅ:
+- Р·Р°РІРµСЂС€РµРЅР° РјРёРіСЂР°С†РёСЏ `AppButton` c `:as="RouterLink"` РЅР° СѓРїСЂРѕС‰РµРЅРЅС‹Р№ `to` API:
   - `resources/js/components/catalog/CatalogProductCard.vue`
   - `resources/js/components/cart/CartItemsTable.vue`
   - `resources/js/components/home/HomeHeroSection.vue`
   - `resources/js/components/account/profile/AccountProfileSummaryCard.vue`;
-- внедрен typed presenter-layer для status/badge конфигурации (без передачи raw CSS-class строк из pages/composables):
+- РІРЅРµРґСЂРµРЅ typed presenter-layer РґР»СЏ status/badge РєРѕРЅС„РёРіСѓСЂР°С†РёРё (Р±РµР· РїРµСЂРµРґР°С‡Рё raw CSS-class СЃС‚СЂРѕРє РёР· pages/composables):
   - shared mapper: `resources/js/utils/order-presentation.ts` (`order/payment/shipment/verification` tone + `productStatusBadgeTone`);
-  - account/admin/product компоненты переведены на `tone` contracts:
+  - account/admin/product РєРѕРјРїРѕРЅРµРЅС‚С‹ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° `tone` contracts:
     - `resources/js/components/account/orders/AccountOrderCard.vue`
     - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
     - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`
     - `resources/js/components/account/profile/AccountHeroCard.vue`
     - `resources/js/components/admin/products/AdminProductsListCard.vue`;
-- обновлены composable/page bindings под `tone` contracts:
+- РѕР±РЅРѕРІР»РµРЅС‹ composable/page bindings РїРѕРґ `tone` contracts:
   - `resources/js/composables/account/orders/useAccountOrdersViewModel.ts`
   - `resources/js/composables/admin/orders/useAdminOrdersViewModel.ts`
   - `resources/js/composables/account/profile/useAccountProfileQuery.ts`
@@ -1369,13 +1369,13 @@
   - `resources/js/pages/admin/AdminOrdersPage.vue`
   - `resources/js/pages/AccountProfilePage.vue`
   - `resources/js/pages/admin/AdminProductsPage.vue`;
-- обновлены tests под migration-path:
+- РѕР±РЅРѕРІР»РµРЅС‹ tests РїРѕРґ migration-path:
   - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`
   - `resources/js/tests/components/account/account-orders-component-contracts.spec.ts`
   - `resources/js/tests/components/account/account-profile-component-contracts.spec.ts`
   - `resources/js/tests/components/admin/admin-component-contracts.spec.ts`
   - `resources/js/tests/utils/order-presentation.spec.ts`;
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1393,21 +1393,21 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.15 status).
-- `2026-02-23` — `Template Componentization` Wave 4.16 batch (semantic filter inputs extraction) выполнен:
-- добавлены shared UI-примитивы для filter/list input semantics:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.15 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.16 batch (semantic filter inputs extraction) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹ РґР»СЏ filter/list input semantics:
   - `resources/js/components/ui/AppSearchInput.vue`
   - `resources/js/components/ui/AppFilterSelect.vue`;
-- повторяющиеся `search + select` блоки переведены на shared-компоненты:
+- РїРѕРІС‚РѕСЂСЏСЋС‰РёРµСЃСЏ `search + select` Р±Р»РѕРєРё РїРµСЂРµРІРµРґРµРЅС‹ РЅР° shared-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/account/orders/AccountOrdersFiltersBar.vue`
   - `resources/js/components/admin/orders/AdminOrdersFiltersBar.vue`
   - `resources/js/components/admin/categories/AdminCategoriesFiltersBar.vue`
   - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
   - `resources/js/components/catalog/CatalogFiltersCard.vue`
   - `resources/js/components/admin/products/AdminProductsListCard.vue`;
-- расширен shared UI contract suite:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppSearchInput` и `AppFilterSelect`);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- СЂР°СЃС€РёСЂРµРЅ shared UI contract suite:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РєРѕРЅС‚СЂР°РєС‚С‹ `AppSearchInput` Рё `AppFilterSelect`);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1425,14 +1425,14 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.16 status).
-- `2026-02-23` — `Template Componentization` Wave 4.17 batch (semantic form inputs extraction) выполнен:
-- добавлены shared UI-примитивы form-ввода:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.16 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.17 batch (semantic form inputs extraction) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹ form-РІРІРѕРґР°:
   - `resources/js/components/ui/AppTextInput.vue`
   - `resources/js/components/ui/AppNumberInput.vue`
   - `resources/js/components/ui/AppDateTimeInput.vue`
   - `resources/js/components/ui/AppTextareaInput.vue`;
-- повторяющиеся text/number/datetime/textarea поля переведены на shared-компоненты:
+- РїРѕРІС‚РѕСЂСЏСЋС‰РёРµСЃСЏ text/number/datetime/textarea РїРѕР»СЏ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° shared-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/admin/products/AdminProductsFormCard.vue`
   - `resources/js/components/admin/products/AdminProductVariantCard.vue`
   - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
@@ -1443,10 +1443,10 @@
   - `resources/js/components/auth/AuthRegisterForm.vue`
   - `resources/js/components/checkout/CheckoutContactFields.vue`
   - `resources/js/components/checkout/CheckoutAddressCard.vue`;
-- `AppNumberInput` усилен typed-adapter поддержкой `v-model.number` (сохранен compatibility path для string/number моделей);
-- расширен shared UI contract suite:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppTextInput`, `AppNumberInput`, `AppDateTimeInput`, `AppTextareaInput`);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- `AppNumberInput` СѓСЃРёР»РµРЅ typed-adapter РїРѕРґРґРµСЂР¶РєРѕР№ `v-model.number` (СЃРѕС…СЂР°РЅРµРЅ compatibility path РґР»СЏ string/number РјРѕРґРµР»РµР№);
+- СЂР°СЃС€РёСЂРµРЅ shared UI contract suite:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РєРѕРЅС‚СЂР°РєС‚С‹ `AppTextInput`, `AppNumberInput`, `AppDateTimeInput`, `AppTextareaInput`);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1464,21 +1464,21 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.17 status).
-- `2026-02-23` — `Template Componentization` Wave 4.18 batch (semantic select inputs extraction) выполнен:
-- добавлены shared UI-примитивы select-уровня:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.17 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.18 batch (semantic select inputs extraction) РІС‹РїРѕР»РЅРµРЅ:
+- РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹ select-СѓСЂРѕРІРЅСЏ:
   - `resources/js/components/ui/AppSelectInput.vue`
   - `resources/js/components/ui/AppEnumSelect.vue`;
-- повторяющиеся enum/dynamic select блоки переведены на shared-компоненты:
+- РїРѕРІС‚РѕСЂСЏСЋС‰РёРµСЃСЏ enum/dynamic select Р±Р»РѕРєРё РїРµСЂРµРІРµРґРµРЅС‹ РЅР° shared-РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `resources/js/components/admin/products/AdminProductsFormCard.vue`
   - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
   - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
   - `resources/js/components/admin/orders/AdminOrderStatusEditor.vue`
   - `resources/js/components/product/ProductPurchaseCard.vue`;
-- `resources/js/components/ui/AppFilterSelect.vue` переведен на композицию через `AppSelectInput`;
-- расширен shared UI contract suite:
-  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppSelectInput`, `AppEnumSelect`);
-- выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+- `resources/js/components/ui/AppFilterSelect.vue` РїРµСЂРµРІРµРґРµРЅ РЅР° РєРѕРјРїРѕР·РёС†РёСЋ С‡РµСЂРµР· `AppSelectInput`;
+- СЂР°СЃС€РёСЂРµРЅ shared UI contract suite:
+  - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РєРѕРЅС‚СЂР°РєС‚С‹ `AppSelectInput`, `AppEnumSelect`);
+- РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
   - `C:\composer\composer.bat run lint`
   - `C:\composer\composer.bat run analyse`
   - `php artisan test`
@@ -1496,11 +1496,11 @@
   - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
   - `php artisan app:observability-alert-check`
   - `php artisan app:oncall-drill-smoke`;
-- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.18 status).
-- `2026-02-23` — обновлены проектные правила строгого архитектурного стандарта:
-  - `.cursorrules`: добавлено обязательное требование всегда строго следовать лучшей архитектуре и не допускать архитектурных shortcuts;
-  - `AGENTS.md`: добавлен детализированный mandatory-раздел по строгой архитектуре (boundary rules backend/frontend, contract/schema discipline, architecture acceptance checklist).
-  - для блока правил повторно выполнен full production-readiness quality gate в строгой последовательности (one-by-one), green:
+- `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.18 status).
+- `2026-02-23` вЂ” РѕР±РЅРѕРІР»РµРЅС‹ РїСЂРѕРµРєС‚РЅС‹Рµ РїСЂР°РІРёР»Р° СЃС‚СЂРѕРіРѕРіРѕ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРіРѕ СЃС‚Р°РЅРґР°СЂС‚Р°:
+  - `.cursorrules`: РґРѕР±Р°РІР»РµРЅРѕ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕРµ С‚СЂРµР±РѕРІР°РЅРёРµ РІСЃРµРіРґР° СЃС‚СЂРѕРіРѕ СЃР»РµРґРѕРІР°С‚СЊ Р»СѓС‡С€РµР№ Р°СЂС…РёС‚РµРєС‚СѓСЂРµ Рё РЅРµ РґРѕРїСѓСЃРєР°С‚СЊ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… shortcuts;
+  - `AGENTS.md`: РґРѕР±Р°РІР»РµРЅ РґРµС‚Р°Р»РёР·РёСЂРѕРІР°РЅРЅС‹Р№ mandatory-СЂР°Р·РґРµР» РїРѕ СЃС‚СЂРѕРіРѕР№ Р°СЂС…РёС‚РµРєС‚СѓСЂРµ (boundary rules backend/frontend, contract/schema discipline, architecture acceptance checklist).
+  - РґР»СЏ Р±Р»РѕРєР° РїСЂР°РІРёР» РїРѕРІС‚РѕСЂРЅРѕ РІС‹РїРѕР»РЅРµРЅ full production-readiness quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1517,23 +1517,23 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`.
-- `2026-02-23` — `Template Componentization` Wave 4.19 batch (semantic checkbox + quantity/read-only hardening) выполнен:
-  - добавлены shared UI-примитивы:
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.19 batch (semantic checkbox + quantity/read-only hardening) РІС‹РїРѕР»РЅРµРЅ:
+  - РґРѕР±Р°РІР»РµРЅС‹ shared UI-РїСЂРёРјРёС‚РёРІС‹:
     - `resources/js/components/ui/AppCheckboxInput.vue`
     - `resources/js/components/ui/AppQuantityInput.vue`;
-  - raw checkbox input переведены на semantic wrapper (`>=2` использования):
+  - raw checkbox input РїРµСЂРµРІРµРґРµРЅС‹ РЅР° semantic wrapper (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
     - `resources/js/components/admin/categories/AdminCategoriesFormCard.vue`
     - `resources/js/components/admin/products/AdminProductsFormCard.vue`
     - `resources/js/components/admin/products/AdminProductVariantCard.vue`
     - `resources/js/components/admin/promotions/PromotionCampaignForm.vue`
     - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`;
-  - закрыт read-only/disabled profile path через shared input:
+  - Р·Р°РєСЂС‹С‚ read-only/disabled profile path С‡РµСЂРµР· shared input:
     - `resources/js/components/account/profile/AccountProfileFormCard.vue`;
-  - cart quantity flow переведен на `AppQuantityInput`:
+  - cart quantity flow РїРµСЂРµРІРµРґРµРЅ РЅР° `AppQuantityInput`:
     - `resources/js/components/cart/CartQuantityControl.vue`;
-  - расширен shared UI contract suite:
-    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракты `AppCheckboxInput`, `AppQuantityInput`);
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - СЂР°СЃС€РёСЂРµРЅ shared UI contract suite:
+    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РєРѕРЅС‚СЂР°РєС‚С‹ `AppCheckboxInput`, `AppQuantityInput`);
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1551,17 +1551,17 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`.
-- `2026-02-23` — `Template Componentization` Wave 4.20 batch (semantic form-shell extraction) выполнен:
-  - добавлен shared UI-примитив:
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.20 batch (semantic form-shell extraction) РІС‹РїРѕР»РЅРµРЅ:
+  - РґРѕР±Р°РІР»РµРЅ shared UI-РїСЂРёРјРёС‚РёРІ:
     - `resources/js/components/ui/AppFormShell.vue`;
-  - повторяющиеся `form class=\"grid actions--top\"` переведены на shared wrapper (`>=2` использования):
+  - РїРѕРІС‚РѕСЂСЏСЋС‰РёРµСЃСЏ `form class=\"grid actions--top\"` РїРµСЂРµРІРµРґРµРЅС‹ РЅР° shared wrapper (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
     - `resources/js/components/auth/AuthLoginForm.vue`
     - `resources/js/components/auth/AuthRegisterForm.vue`
     - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`
     - `resources/js/pages/CheckoutPage.vue`;
-  - расширен shared UI contract suite:
-    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (контракт `AppFormShell`);
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - СЂР°СЃС€РёСЂРµРЅ shared UI contract suite:
+    - `resources/js/tests/components/ui/ui-component-contracts.spec.ts` (РєРѕРЅС‚СЂР°РєС‚ `AppFormShell`);
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1578,19 +1578,19 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`.
-- `2026-02-23` — `Template Componentization` Wave 4.21 batch (shared form/input edge-case contracts) выполнен:
-  - усилено component-level покрытие edge-cases для shared wrappers:
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.21 batch (shared form/input edge-case contracts) РІС‹РїРѕР»РЅРµРЅ:
+  - СѓСЃРёР»РµРЅРѕ component-level РїРѕРєСЂС‹С‚РёРµ edge-cases РґР»СЏ shared wrappers:
     - `resources/js/components/ui/AppFormShell.vue`
     - `resources/js/components/ui/AppTextInput.vue`
     - `resources/js/components/ui/AppNumberInput.vue`
     - `resources/js/components/ui/AppDateTimeInput.vue`
     - `resources/js/components/ui/AppTextareaInput.vue`
     - `resources/js/components/ui/AppSelectInput.vue`;
-  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
-    - `attrs passthrough` для root/native элементов;
-    - `disabled/readonly` состояния для input/textarea/select wrappers;
-    - `AppFormShell` contract без `actions--top` при `withTopSpacing=false`;
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - РІ `resources/js/tests/components/ui/ui-component-contracts.spec.ts` РґРѕР±Р°РІР»РµРЅС‹ РїСЂРѕРІРµСЂРєРё:
+    - `attrs passthrough` РґР»СЏ root/native СЌР»РµРјРµРЅС‚РѕРІ;
+    - `disabled/readonly` СЃРѕСЃС‚РѕСЏРЅРёСЏ РґР»СЏ input/textarea/select wrappers;
+    - `AppFormShell` contract Р±РµР· `actions--top` РїСЂРё `withTopSpacing=false`;
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1607,17 +1607,17 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
-  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.21 status).
-- `2026-02-23` — `Template Componentization` Wave 4.22 batch (checkbox/quantity edge-case contracts + radio inventory) выполнен:
-  - проведена инвентаризация `radio/fieldset` в `resources/js/**/*.{vue,ts}`:
-    - повторов не найдено; `AppRadioInput/AppRadioGroup` оставлены отложенным шагом до порога `>=2`;
-  - усилены component-level edge-case контракты для:
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.21 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.22 batch (checkbox/quantity edge-case contracts + radio inventory) РІС‹РїРѕР»РЅРµРЅ:
+  - РїСЂРѕРІРµРґРµРЅР° РёРЅРІРµРЅС‚Р°СЂРёР·Р°С†РёСЏ `radio/fieldset` РІ `resources/js/**/*.{vue,ts}`:
+    - РїРѕРІС‚РѕСЂРѕРІ РЅРµ РЅР°Р№РґРµРЅРѕ; `AppRadioInput/AppRadioGroup` РѕСЃС‚Р°РІР»РµРЅС‹ РѕС‚Р»РѕР¶РµРЅРЅС‹Рј С€Р°РіРѕРј РґРѕ РїРѕСЂРѕРіР° `>=2`;
+  - СѓСЃРёР»РµРЅС‹ component-level edge-case РєРѕРЅС‚СЂР°РєС‚С‹ РґР»СЏ:
     - `resources/js/components/ui/AppCheckboxInput.vue`
     - `resources/js/components/ui/AppQuantityInput.vue`;
-  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
+  - РІ `resources/js/tests/components/ui/ui-component-contracts.spec.ts` РґРѕР±Р°РІР»РµРЅС‹ РїСЂРѕРІРµСЂРєРё:
     - `AppCheckboxInput`: `attrs passthrough` + model binding;
     - `AppQuantityInput`: `attrs passthrough`, `disabled/readonly`, integer/boundary normalization;
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1634,17 +1634,17 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
-  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.22 status).
-- `2026-02-23` — `Template Componentization` Wave 4.23 batch (search/filter/enum edge-case contracts) выполнен:
-  - усилены component-level edge-case контракты для:
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.22 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.23 batch (search/filter/enum edge-case contracts) РІС‹РїРѕР»РЅРµРЅ:
+  - СѓСЃРёР»РµРЅС‹ component-level edge-case РєРѕРЅС‚СЂР°РєС‚С‹ РґР»СЏ:
     - `resources/js/components/ui/AppSearchInput.vue`
     - `resources/js/components/ui/AppFilterSelect.vue`
     - `resources/js/components/ui/AppEnumSelect.vue`;
-  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
-    - `AppSearchInput`: `attrs passthrough`, `disabled` contract, emit только по `keyup.enter`;
-    - `AppFilterSelect`: `attrs passthrough`, `disabled` на nested select, change/update model flow;
-    - `AppEnumSelect`: `attrs passthrough`, `disabled` на nested select, options mapping и change/update model flow;
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - РІ `resources/js/tests/components/ui/ui-component-contracts.spec.ts` РґРѕР±Р°РІР»РµРЅС‹ РїСЂРѕРІРµСЂРєРё:
+    - `AppSearchInput`: `attrs passthrough`, `disabled` contract, emit С‚РѕР»СЊРєРѕ РїРѕ `keyup.enter`;
+    - `AppFilterSelect`: `attrs passthrough`, `disabled` РЅР° nested select, change/update model flow;
+    - `AppEnumSelect`: `attrs passthrough`, `disabled` РЅР° nested select, options mapping Рё change/update model flow;
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1661,17 +1661,17 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
-  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.23 status).
-- `2026-02-23` — `Template Componentization` Wave 4.24 batch (field/actions edge-case contracts) выполнен:
-  - усилены component-level edge-case контракты для:
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.23 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.24 batch (field/actions edge-case contracts) РІС‹РїРѕР»РЅРµРЅ:
+  - СѓСЃРёР»РµРЅС‹ component-level edge-case РєРѕРЅС‚СЂР°РєС‚С‹ РґР»СЏ:
     - `resources/js/components/ui/AppFormField.vue`
     - `resources/js/components/ui/AppSubmitResetActions.vue`
     - `resources/js/components/ui/AppActionsRow.vue`;
-  - в `resources/js/tests/components/ui/ui-component-contracts.spec.ts` добавлены проверки:
+  - РІ `resources/js/tests/components/ui/ui-component-contracts.spec.ts` РґРѕР±Р°РІР»РµРЅС‹ РїСЂРѕРІРµСЂРєРё:
     - `AppFormField`: `attrs passthrough` + slot stability;
-    - `AppSubmitResetActions`: `withTopSpacing` + attrs passthrough на actions-root;
-    - `AppActionsRow`: attrs/class passthrough + default layout contract без `actions--top`;
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+    - `AppSubmitResetActions`: `withTopSpacing` + attrs passthrough РЅР° actions-root;
+    - `AppActionsRow`: attrs/class passthrough + default layout contract Р±РµР· `actions--top`;
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1688,27 +1688,27 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
-  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.24 status).
-- `2026-02-23` — `Template Componentization` Wave 4.25 batch (table primitives + order-items unification) выполнен:
-  - добавлены shared table-примитивы:
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.24 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.25 batch (table primitives + order-items unification) РІС‹РїРѕР»РЅРµРЅ:
+  - РґРѕР±Р°РІР»РµРЅС‹ shared table-РїСЂРёРјРёС‚РёРІС‹:
     - `resources/js/components/ui/AppTableActionsCell.vue`
     - `resources/js/components/ui/AppTableEmptyStateRow.vue`
     - `resources/js/components/ui/BooleanStatusChip.vue`;
-  - добавлен domain-shared компонент для order-line таблиц:
+  - РґРѕР±Р°РІР»РµРЅ domain-shared РєРѕРјРїРѕРЅРµРЅС‚ РґР»СЏ order-line С‚Р°Р±Р»РёС†:
     - `resources/js/components/orders/OrderItemsTable.vue`;
-  - на shared table-примитивы переведены админ-таблицы (`>=2` использования):
+  - РЅР° shared table-РїСЂРёРјРёС‚РёРІС‹ РїРµСЂРµРІРµРґРµРЅС‹ Р°РґРјРёРЅ-С‚Р°Р±Р»РёС†С‹ (`>=2` РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ):
     - `resources/js/components/admin/orders/AdminOrdersTableCard.vue`
     - `resources/js/components/admin/products/AdminProductsListCard.vue`
     - `resources/js/components/admin/categories/AdminCategoriesTable.vue`
     - `resources/js/components/admin/promotions/PromotionCampaignTable.vue`
     - `resources/js/components/admin/promotions/PromotionCouponsPanel.vue`;
-  - таблицы order items унифицированы через `OrderItemsTable`:
+  - С‚Р°Р±Р»РёС†С‹ order items СѓРЅРёС„РёС†РёСЂРѕРІР°РЅС‹ С‡РµСЂРµР· `OrderItemsTable`:
     - `resources/js/components/account/orders/AccountOrderDetailsTable.vue`
     - `resources/js/components/admin/orders/AdminOrderDetailsPanel.vue`;
-  - расширено component-level contract coverage:
+  - СЂР°СЃС€РёСЂРµРЅРѕ component-level contract coverage:
     - `resources/js/tests/components/ui/ui-component-contracts.spec.ts`
     - `resources/js/tests/components/orders/order-items-table-component-contracts.spec.ts`;
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1725,16 +1725,16 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
-  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.25 status).
-- `2026-02-23` — `Template Componentization` Wave 4.26 batch (UI folder normalization) выполнен:
-  - `resources/js/components/ui` разложен на семантические подпапки:
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.25 status).
+- `2026-02-23` вЂ” `Template Componentization` Wave 4.26 batch (UI folder normalization) РІС‹РїРѕР»РЅРµРЅ:
+  - `resources/js/components/ui` СЂР°Р·Р»РѕР¶РµРЅ РЅР° СЃРµРјР°РЅС‚РёС‡РµСЃРєРёРµ РїРѕРґРїР°РїРєРё:
     - `actions`, `forms`, `layout`, `feedback`, `data-display`, `table`, `typography`;
-  - обновлены import-paths на новый namespace по frontend-коду:
+  - РѕР±РЅРѕРІР»РµРЅС‹ import-paths РЅР° РЅРѕРІС‹Р№ namespace РїРѕ frontend-РєРѕРґСѓ:
     - `resources/js/components/**/*.vue`
     - `resources/js/pages/**/*.vue`
     - `resources/js/tests/components/**/*.spec.ts`;
-  - добавлен `resources/js/components/ui/README.md` с правилами размещения shared UI;
-  - выполнены full production-readiness quality gates в строгой последовательности (one-by-one), green:
+  - РґРѕР±Р°РІР»РµРЅ `resources/js/components/ui/README.md` СЃ РїСЂР°РІРёР»Р°РјРё СЂР°Р·РјРµС‰РµРЅРёСЏ shared UI;
+  - РІС‹РїРѕР»РЅРµРЅС‹ full production-readiness quality gates РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1751,16 +1751,16 @@
     - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`
     - `php artisan app:observability-alert-check`
     - `php artisan app:oncall-drill-smoke`;
-  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` обновлен (Wave 4.26 status).
+  - `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ (Wave 4.26 status).
 
-## Следующий batch
+## РЎР»РµРґСѓСЋС‰РёР№ batch
 
-1. Оставить `AppRadioInput/AppRadioGroup` в backlog до появления подтвержденных `>=2` повторов `radio/fieldset`.
-2. Усилить edge-case контракты layout wrappers (`AppFormLayout`, `AppStackBetween`, `AppTableSection`) и pagination edge-cases (`AppPaginationBar` disabled/loading semantics).
-3. Прогнать следующий full quality gate после batch и зафиксировать изменения в `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` и `docs/REFACTORING_EXECUTION_PLAN.md`.
-- `2026-02-23` — создан отдельный стратегический план глубокого рефакторинга:
-  - добавлен файл `docs/DEEP_REFACTORING_PLAN.md` с волнами `P0/P1/P2`, Definition of Done, рисками, порядком исполнения и quality gate;
-  - выполнен quality gate в строгой последовательности (one-by-one), green:
+1. РћСЃС‚Р°РІРёС‚СЊ `AppRadioInput/AppRadioGroup` РІ backlog РґРѕ РїРѕСЏРІР»РµРЅРёСЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРЅС‹С… `>=2` РїРѕРІС‚РѕСЂРѕРІ `radio/fieldset`.
+2. РЈСЃРёР»РёС‚СЊ edge-case РєРѕРЅС‚СЂР°РєС‚С‹ layout wrappers (`AppFormLayout`, `AppStackBetween`, `AppTableSection`) Рё pagination edge-cases (`AppPaginationBar` disabled/loading semantics).
+3. РџСЂРѕРіРЅР°С‚СЊ СЃР»РµРґСѓСЋС‰РёР№ full quality gate РїРѕСЃР»Рµ batch Рё Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ РёР·РјРµРЅРµРЅРёСЏ РІ `docs/TEMPLATE_COMPONENTIZATION_PLAN.md` Рё `docs/REFACTORING_EXECUTION_PLAN.md`.
+- `2026-02-23` вЂ” СЃРѕР·РґР°РЅ РѕС‚РґРµР»СЊРЅС‹Р№ СЃС‚СЂР°С‚РµРіРёС‡РµСЃРєРёР№ РїР»Р°РЅ РіР»СѓР±РѕРєРѕРіРѕ СЂРµС„Р°РєС‚РѕСЂРёРЅРіР°:
+  - РґРѕР±Р°РІР»РµРЅ С„Р°Р№Р» `docs/DEEP_REFACTORING_PLAN.md` СЃ РІРѕР»РЅР°РјРё `P0/P1/P2`, Definition of Done, СЂРёСЃРєР°РјРё, РїРѕСЂСЏРґРєРѕРј РёСЃРїРѕР»РЅРµРЅРёСЏ Рё quality gate;
+  - РІС‹РїРѕР»РЅРµРЅ quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё (one-by-one), green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1770,24 +1770,24 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.1` completed (frontend race-safety / cancellation):
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P0.1` completed (frontend race-safety / cancellation):
   - `resources/js/composables/useServerPaginatedList.ts`:
-    - добавлены `activeRequestId` + stale-response guard;
-    - добавлен cancel in-flight через `AbortController`;
-    - добавлена фильтрация abort-ошибок (`AbortError` / `CanceledError` / `ERR_CANCELED`);
-    - добавлен cleanup на `onScopeDispose`;
-    - поддержка контекста `fetchPage(params, { signal })` без ломки существующих 1-аргументных call-sites;
-  - list API получили optional `signal` для реального network cancel в admin списках:
+    - РґРѕР±Р°РІР»РµРЅС‹ `activeRequestId` + stale-response guard;
+    - РґРѕР±Р°РІР»РµРЅ cancel in-flight С‡РµСЂРµР· `AbortController`;
+    - РґРѕР±Р°РІР»РµРЅР° С„РёР»СЊС‚СЂР°С†РёСЏ abort-РѕС€РёР±РѕРє (`AbortError` / `CanceledError` / `ERR_CANCELED`);
+    - РґРѕР±Р°РІР»РµРЅ cleanup РЅР° `onScopeDispose`;
+    - РїРѕРґРґРµСЂР¶РєР° РєРѕРЅС‚РµРєСЃС‚Р° `fetchPage(params, { signal })` Р±РµР· Р»РѕРјРєРё СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… 1-Р°СЂРіСѓРјРµРЅС‚РЅС‹С… call-sites;
+  - list API РїРѕР»СѓС‡РёР»Рё optional `signal` РґР»СЏ СЂРµР°Р»СЊРЅРѕРіРѕ network cancel РІ admin СЃРїРёСЃРєР°С…:
     - `resources/js/api/admin/products.ts`
     - `resources/js/api/admin/orders.ts`
     - `resources/js/api/admin/promotions.ts`
     - `resources/js/api/admin/categories.ts`;
   - `resources/js/tests/composables/use-server-paginated-list.spec.ts`:
-    - добавлены тесты на out-of-order response protection;
-    - добавлены тесты на abort previous request без ложного `onError`;
-    - общий coverage composable увеличен (3 -> 5 тестов);
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.1` отмечен как completed;
-  - выполнен full production-readiness quality gate в строгой последовательности, green:
+    - РґРѕР±Р°РІР»РµРЅС‹ С‚РµСЃС‚С‹ РЅР° out-of-order response protection;
+    - РґРѕР±Р°РІР»РµРЅС‹ С‚РµСЃС‚С‹ РЅР° abort previous request Р±РµР· Р»РѕР¶РЅРѕРіРѕ `onError`;
+    - РѕР±С‰РёР№ coverage composable СѓРІРµР»РёС‡РµРЅ (3 -> 5 С‚РµСЃС‚РѕРІ);
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P0.1` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ full production-readiness quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1797,24 +1797,24 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.2` completed (transport purity API controllers):
-  - application-layer orchestration закрыт для:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P0.2` completed (transport purity API controllers):
+  - application-layer orchestration Р·Р°РєСЂС‹С‚ РґР»СЏ:
     - `app/Http/Controllers/Api/V1/Auth/AuthController.php`
     - `app/Http/Controllers/Api/V1/CartController.php`
     - `app/Http/Controllers/Api/V1/CatalogController.php`
     - `app/Http/Controllers/Api/V1/CheckoutController.php`
     - `app/Http/Controllers/Api/V1/Admin/CacheController.php`;
-  - добавлены application handlers/commands для auth/cart/catalog/checkout pay/admin cache:
+  - РґРѕР±Р°РІР»РµРЅС‹ application handlers/commands РґР»СЏ auth/cart/catalog/checkout pay/admin cache:
     - `app/Application/Auth/**`
     - `app/Application/Cart/**`
     - `app/Application/Catalog/**`
     - `app/Application/Checkout/Commands/InitiateCheckoutPayment*`
     - `app/Application/Admin/Cache/Commands/RefreshAdminCatalogCache*`;
-  - архитектурные guardrails расширены:
-    - `tests/Unit/Architecture/AdminControllerArchitectureTest.php` (включен `CacheController`);
-    - `tests/Unit/Architecture/PublicApiControllerArchitectureTest.php` (контракт на handler-only зависимости для `Auth/Cart/Catalog/Checkout`);
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.2` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ guardrails СЂР°СЃС€РёСЂРµРЅС‹:
+    - `tests/Unit/Architecture/AdminControllerArchitectureTest.php` (РІРєР»СЋС‡РµРЅ `CacheController`);
+    - `tests/Unit/Architecture/PublicApiControllerArchitectureTest.php` (РєРѕРЅС‚СЂР°РєС‚ РЅР° handler-only Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РґР»СЏ `Auth/Cart/Catalog/Checkout`);
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P0.2` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1826,24 +1826,24 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.3` completed (unified webhook processing pipeline):
-  - вынесен единый webhook core pipeline:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P0.3` completed (unified webhook processing pipeline):
+  - РІС‹РЅРµСЃРµРЅ РµРґРёРЅС‹Р№ webhook core pipeline:
     - `app/Services/Webhook/WebhookProcessingPipeline.php`
     - `app/Services/Webhook/WebhookProcessorAdapterInterface.php`
     - `app/Services/Webhook/WebhookProcessingOutcome.php`;
-  - payment/shipping специфичная логика оставлена в adapter-слоях:
+  - payment/shipping СЃРїРµС†РёС„РёС‡РЅР°СЏ Р»РѕРіРёРєР° РѕСЃС‚Р°РІР»РµРЅР° РІ adapter-СЃР»РѕСЏС…:
     - `app/Services/Payment/PaymentWebhookAdapter.php`
     - `app/Services/Shipping/ShippingWebhookAdapter.php`;
-  - `PaymentService` и `ShippingService` переведены на общий pipeline (удалено дублирование receipt/hash/dedupe/lock/outcome/observability path):
+  - `PaymentService` Рё `ShippingService` РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РѕР±С‰РёР№ pipeline (СѓРґР°Р»РµРЅРѕ РґСѓР±Р»РёСЂРѕРІР°РЅРёРµ receipt/hash/dedupe/lock/outcome/observability path):
     - `app/Services/Payment/PaymentService.php`
     - `app/Services/Shipping/ShippingService.php`;
-  - `PaymentWebhookController` переведен с прямой зависимости от `PaymentGatewayInterface` на `PaymentWebhookAdapter` для preflight валидации signature/event/transaction:
+  - `PaymentWebhookController` РїРµСЂРµРІРµРґРµРЅ СЃ РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ `PaymentGatewayInterface` РЅР° `PaymentWebhookAdapter` РґР»СЏ preflight РІР°Р»РёРґР°С†РёРё signature/event/transaction:
     - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
-  - стандартизирована outcome-taxonomy webhook (`processed|duplicate|rejected`) через enum `WebhookProcessingOutcome`;
-  - обновлен baseline статанализа (удалены устаревшие ignore-rules для `PaymentService`):
+  - СЃС‚Р°РЅРґР°СЂС‚РёР·РёСЂРѕРІР°РЅР° outcome-taxonomy webhook (`processed|duplicate|rejected`) С‡РµСЂРµР· enum `WebhookProcessingOutcome`;
+  - РѕР±РЅРѕРІР»РµРЅ baseline СЃС‚Р°С‚Р°РЅР°Р»РёР·Р° (СѓРґР°Р»РµРЅС‹ СѓСЃС‚Р°СЂРµРІС€РёРµ ignore-rules РґР»СЏ `PaymentService`):
     - `phpstan-baseline.neon`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.3` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P0.3` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1855,35 +1855,35 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P0.4` completed (observability hygiene):
-  - введен source-dimension (`runtime|smoke`) для observability метрик:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P0.4` completed (observability hygiene):
+  - РІРІРµРґРµРЅ source-dimension (`runtime|smoke`) РґР»СЏ observability РјРµС‚СЂРёРє:
     - `app/Support/Observability/ObservabilityService.php`:
-      - `apiRequest/catalogCache/webhook` теперь принимают `source`;
-      - payload логов содержит `source`;
-      - rolling counters и `snapshot()` разделены по source;
-      - warning hooks (`api_request_slow`, `catalog_cache_slow_miss`, `webhook_slow`, `webhook_lag`) применяются только для `runtime`;
-  - observability report/alert flow обновлен под source-фильтрацию:
+      - `apiRequest/catalogCache/webhook` С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°СЋС‚ `source`;
+      - payload Р»РѕРіРѕРІ СЃРѕРґРµСЂР¶РёС‚ `source`;
+      - rolling counters Рё `snapshot()` СЂР°Р·РґРµР»РµРЅС‹ РїРѕ source;
+      - warning hooks (`api_request_slow`, `catalog_cache_slow_miss`, `webhook_slow`, `webhook_lag`) РїСЂРёРјРµРЅСЏСЋС‚СЃСЏ С‚РѕР»СЊРєРѕ РґР»СЏ `runtime`;
+  - observability report/alert flow РѕР±РЅРѕРІР»РµРЅ РїРѕРґ source-С„РёР»СЊС‚СЂР°С†РёСЋ:
     - `app/Console/Commands/AppObservabilityReportCommand.php`:
-      - добавлен `--source` (`runtime|smoke`);
-      - snapshot строится по выбранному source (по умолчанию `observability.snapshot.default_source`);
+      - РґРѕР±Р°РІР»РµРЅ `--source` (`runtime|smoke`);
+      - snapshot СЃС‚СЂРѕРёС‚СЃСЏ РїРѕ РІС‹Р±СЂР°РЅРЅРѕРјСѓ source (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ `observability.snapshot.default_source`);
     - `app/Console/Commands/AppObservabilityAlertCheckCommand.php`:
-      - в параметры `app:observability-report` добавлен `--source` из `observability.alerts.source`;
+      - РІ РїР°СЂР°РјРµС‚СЂС‹ `app:observability-report` РґРѕР±Р°РІР»РµРЅ `--source` РёР· `observability.alerts.source`;
     - `app/Console/Commands/AppOncallDrillSmokeCommand.php`:
-      - SLO-check для drill также передает `--source`;
-  - smoke-флоу помечены `source=smoke`, чтобы не искажать runtime SLO:
+      - SLO-check РґР»СЏ drill С‚Р°РєР¶Рµ РїРµСЂРµРґР°РµС‚ `--source`;
+  - smoke-С„Р»РѕСѓ РїРѕРјРµС‡РµРЅС‹ `source=smoke`, С‡С‚РѕР±С‹ РЅРµ РёСЃРєР°Р¶Р°С‚СЊ runtime SLO:
     - `app/Console/Commands/AppApiContractSmokeCommand.php` (`observabilityService->apiRequest(..., source: 'smoke')`);
     - `app/Console/Commands/AppWebhookFlowSmokeCommand.php` (`paymentService/shippingService->processWebhook(..., source: 'smoke')`);
-    - `app/Services/Webhook/WebhookProcessingPipeline.php`, `app/Services/Payment/PaymentService.php`, `app/Services/Shipping/ShippingService.php` расширены параметром `source`;
-  - добавлены конфиги/ENV для source-политики:
+    - `app/Services/Webhook/WebhookProcessingPipeline.php`, `app/Services/Payment/PaymentService.php`, `app/Services/Shipping/ShippingService.php` СЂР°СЃС€РёСЂРµРЅС‹ РїР°СЂР°РјРµС‚СЂРѕРј `source`;
+  - РґРѕР±Р°РІР»РµРЅС‹ РєРѕРЅС„РёРіРё/ENV РґР»СЏ source-РїРѕР»РёС‚РёРєРё:
     - `config/observability.php` (`snapshot.default_source`, `alerts.source`);
     - `.env.example`, `.env.testing` (`OBSERVABILITY_SNAPSHOT_SOURCE`, `APP_OBSERVABILITY_ALERTS_SOURCE`);
-  - тестовое покрытие обновлено:
-    - `tests/Unit/ObservabilityServiceTest.php` (source-фильтрация snapshot);
+  - С‚РµСЃС‚РѕРІРѕРµ РїРѕРєСЂС‹С‚РёРµ РѕР±РЅРѕРІР»РµРЅРѕ:
+    - `tests/Unit/ObservabilityServiceTest.php` (source-С„РёР»СЊС‚СЂР°С†РёСЏ snapshot);
     - `tests/Feature/ObservabilityReportCommandTest.php` (runtime-default ignores smoke, explicit smoke source);
     - `tests/Feature/ObservabilityAlertCheckCommandTest.php` (alert-check uses configured source);
     - `tests/Feature/OncallDrillSmokeCommandTest.php` (deterministic source config);
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P0.4` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P0.4` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1895,20 +1895,20 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.1` completed (checkout transactional performance hardening):
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P1.1` completed (checkout transactional performance hardening):
   - `app/Services/Checkout/CheckoutService.php`:
-    - cart preload переведен на `items.variant.product` для устранения per-item product query;
-    - добавлен batch inventory lock/reserve flow:
-      - агрегирование требуемых quantity по `product_variant_id`;
-      - детерминированный порядок резервирования через `ksort` (stable lock order);
-      - единая `lockForUpdate` выборка inventories по списку variant ids;
-      - валидация stock по агрегированным quantity;
-      - детерминированное списание inventory после валидации;
-    - создание `order_items` переведено на bulk insert (`OrderItem::insert`) вместо per-row `create`;
+    - cart preload РїРµСЂРµРІРµРґРµРЅ РЅР° `items.variant.product` РґР»СЏ СѓСЃС‚СЂР°РЅРµРЅРёСЏ per-item product query;
+    - РґРѕР±Р°РІР»РµРЅ batch inventory lock/reserve flow:
+      - Р°РіСЂРµРіРёСЂРѕРІР°РЅРёРµ С‚СЂРµР±СѓРµРјС‹С… quantity РїРѕ `product_variant_id`;
+      - РґРµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅС‹Р№ РїРѕСЂСЏРґРѕРє СЂРµР·РµСЂРІРёСЂРѕРІР°РЅРёСЏ С‡РµСЂРµР· `ksort` (stable lock order);
+      - РµРґРёРЅР°СЏ `lockForUpdate` РІС‹Р±РѕСЂРєР° inventories РїРѕ СЃРїРёСЃРєСѓ variant ids;
+      - РІР°Р»РёРґР°С†РёСЏ stock РїРѕ Р°РіСЂРµРіРёСЂРѕРІР°РЅРЅС‹Рј quantity;
+      - РґРµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅРѕРµ СЃРїРёСЃР°РЅРёРµ inventory РїРѕСЃР»Рµ РІР°Р»РёРґР°С†РёРё;
+    - СЃРѕР·РґР°РЅРёРµ `order_items` РїРµСЂРµРІРµРґРµРЅРѕ РЅР° bulk insert (`OrderItem::insert`) РІРјРµСЃС‚Рѕ per-row `create`;
   - `tests/Feature/CartCheckoutTest.php`:
-    - добавлен регрессионный сценарий `test_checkout_rejects_when_inventory_becomes_insufficient` для инварианта stock-check в момент checkout;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.1` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+    - РґРѕР±Р°РІР»РµРЅ СЂРµРіСЂРµСЃСЃРёРѕРЅРЅС‹Р№ СЃС†РµРЅР°СЂРёР№ `test_checkout_rejects_when_inventory_becomes_insufficient` РґР»СЏ РёРЅРІР°СЂРёР°РЅС‚Р° stock-check РІ РјРѕРјРµРЅС‚ checkout;
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P1.1` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1918,18 +1918,18 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.2` completed (shipment idempotency hardening):
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P1.2` completed (shipment idempotency hardening):
   - `app/Services/Shipping/ShippingService.php`:
-    - `createShipment` переведен в transaction-safe flow с `lockForUpdate` по `orders.id`;
-    - добавлен явный idempotency guard: при наличии shipment по `order_id` возвращается существующая запись без нового provider-вызова;
+    - `createShipment` РїРµСЂРµРІРµРґРµРЅ РІ transaction-safe flow СЃ `lockForUpdate` РїРѕ `orders.id`;
+    - РґРѕР±Р°РІР»РµРЅ СЏРІРЅС‹Р№ idempotency guard: РїСЂРё РЅР°Р»РёС‡РёРё shipment РїРѕ `order_id` РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ СЃСѓС‰РµСЃС‚РІСѓСЋС‰Р°СЏ Р·Р°РїРёСЃСЊ Р±РµР· РЅРѕРІРѕРіРѕ provider-РІС‹Р·РѕРІР°;
   - `app/Jobs/DispatchShipmentJob.php`:
-    - удален pre-check `with('shipments')/isNotEmpty`, дубль-защита централизована в `ShippingService::createShipment`;
-  - добавлены регрессионные тесты на retry/concurrency semantics:
+    - СѓРґР°Р»РµРЅ pre-check `with('shipments')/isNotEmpty`, РґСѓР±Р»СЊ-Р·Р°С‰РёС‚Р° С†РµРЅС‚СЂР°Р»РёР·РѕРІР°РЅР° РІ `ShippingService::createShipment`;
+  - РґРѕР±Р°РІР»РµРЅС‹ СЂРµРіСЂРµСЃСЃРёРѕРЅРЅС‹Рµ С‚РµСЃС‚С‹ РЅР° retry/concurrency semantics:
     - `tests/Feature/ShipmentDispatchIdempotencyTest.php`:
       - `test_shipping_service_create_shipment_is_idempotent_for_same_order`;
       - `test_dispatch_shipment_job_retry_does_not_create_duplicate_shipments`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.2` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P1.2` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1939,17 +1939,17 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.3` completed (strict API contract parsing on frontend):
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P1.3` completed (strict API contract parsing on frontend):
   - `resources/js/api/response.ts`:
-    - добавлен `ApiContractError`;
-    - `normalizeListResponse` ужесточен до strict envelope (`data: []` + `meta: {}`) без legacy nested fallback;
-    - `extractData` ужесточен до strict envelope (`data` обязателен) и теперь выбрасывает `ApiContractError` при drift;
-  - добавлены контрактные тесты отказа на неверный payload:
+    - РґРѕР±Р°РІР»РµРЅ `ApiContractError`;
+    - `normalizeListResponse` СѓР¶РµСЃС‚РѕС‡РµРЅ РґРѕ strict envelope (`data: []` + `meta: {}`) Р±РµР· legacy nested fallback;
+    - `extractData` СѓР¶РµСЃС‚РѕС‡РµРЅ РґРѕ strict envelope (`data` РѕР±СЏР·Р°С‚РµР»РµРЅ) Рё С‚РµРїРµСЂСЊ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ `ApiContractError` РїСЂРё drift;
+  - РґРѕР±Р°РІР»РµРЅС‹ РєРѕРЅС‚СЂР°РєС‚РЅС‹Рµ С‚РµСЃС‚С‹ РѕС‚РєР°Р·Р° РЅР° РЅРµРІРµСЂРЅС‹Р№ payload:
     - `resources/js/tests/api/response-contract.spec.ts`;
-  - обновлены checkout API contract tests под strict parser semantics:
+  - РѕР±РЅРѕРІР»РµРЅС‹ checkout API contract tests РїРѕРґ strict parser semantics:
     - `resources/js/tests/api/checkout-api.spec.ts` (invalid envelope now throws contract error);
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.3` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P1.3` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1959,22 +1959,22 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.4` completed (frontend page orchestration cleanup):
-  - вынесен checkout page business-flow в composable view-model:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P1.4` completed (frontend page orchestration cleanup):
+  - РІС‹РЅРµСЃРµРЅ checkout page business-flow РІ composable view-model:
     - `resources/js/composables/checkout/useCheckoutPageViewModel.ts`;
-    - browser side-effect `localStorage` инъецируется через adapter:
+    - browser side-effect `localStorage` РёРЅСЉРµС†РёСЂСѓРµС‚СЃСЏ С‡РµСЂРµР· adapter:
       - `resources/js/composables/checkout/checkoutPageEffects.ts`;
-    - `resources/js/pages/CheckoutPage.vue` оставлен orchestration-only (`initialize` + bindings);
-  - вынесен auth page business-flow в composable view-model:
+    - `resources/js/pages/CheckoutPage.vue` РѕСЃС‚Р°РІР»РµРЅ orchestration-only (`initialize` + bindings);
+  - РІС‹РЅРµСЃРµРЅ auth page business-flow РІ composable view-model:
     - `resources/js/composables/auth/useAuthPageViewModel.ts`;
-    - browser side-effect `localStorage` инъецируется через adapter:
+    - browser side-effect `localStorage` РёРЅСЉРµС†РёСЂСѓРµС‚СЃСЏ С‡РµСЂРµР· adapter:
       - `resources/js/composables/auth/authPageEffects.ts`;
-    - `resources/js/pages/AuthPage.vue` оставлен orchestration-only (route/router wiring + bindings);
-  - добавлены composable-level regression tests:
+    - `resources/js/pages/AuthPage.vue` РѕСЃС‚Р°РІР»РµРЅ orchestration-only (route/router wiring + bindings);
+  - РґРѕР±Р°РІР»РµРЅС‹ composable-level regression tests:
     - `resources/js/tests/composables/use-checkout-page-view-model.spec.ts`;
     - `resources/js/tests/composables/use-auth-page-view-model.spec.ts`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.4` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P1.4` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -1984,20 +1984,20 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P1.5` completed (repository query-shape deduplication):
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P1.5` completed (repository query-shape deduplication):
   - `app/Repositories/ProductRepository.php`:
-    - устранено дублирование query-shape между catalog list/show path через единый builder:
+    - СѓСЃС‚СЂР°РЅРµРЅРѕ РґСѓР±Р»РёСЂРѕРІР°РЅРёРµ query-shape РјРµР¶РґСѓ catalog list/show path С‡РµСЂРµР· РµРґРёРЅС‹Р№ builder:
       - `newCatalogBaseQuery()`;
       - `catalogWithRelations()`;
       - `applyCatalogVariantProjection()` / `applyActiveVariantFilter()`;
-    - admin list path вынесен в отдельные reuse-helpers:
+    - admin list path РІС‹РЅРµСЃРµРЅ РІ РѕС‚РґРµР»СЊРЅС‹Рµ reuse-helpers:
       - `newAdminListQuery()`;
       - `applyAdminFilters()`;
-    - projection списка/catalog show выровнен с `ProductResource` (включая `brand`, `weight_grams`) и закреплен единым source of truth (`CATALOG_PRODUCT_COLUMNS`, `CATALOG_VARIANT_COLUMNS`);
-  - добавлен регрессионный feature-тест на консистентность projection между list/show:
+    - projection СЃРїРёСЃРєР°/catalog show РІС‹СЂРѕРІРЅРµРЅ СЃ `ProductResource` (РІРєР»СЋС‡Р°СЏ `brand`, `weight_grams`) Рё Р·Р°РєСЂРµРїР»РµРЅ РµРґРёРЅС‹Рј source of truth (`CATALOG_PRODUCT_COLUMNS`, `CATALOG_VARIANT_COLUMNS`);
+  - РґРѕР±Р°РІР»РµРЅ СЂРµРіСЂРµСЃСЃРёРѕРЅРЅС‹Р№ feature-С‚РµСЃС‚ РЅР° РєРѕРЅСЃРёСЃС‚РµРЅС‚РЅРѕСЃС‚СЊ projection РјРµР¶РґСѓ list/show:
     - `tests/Feature/CatalogTest.php::test_catalog_list_and_show_have_consistent_projection_shape`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P1.5` отмечен как completed;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P1.5` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -2007,13 +2007,13 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P2.1` completed (smoke-команды decomposed into scenarios):
-  - добавлен общий smoke support-слой:
-    - `app/Support/Smoke/SmokePersistenceGuard.php` (общий production rollback guard);
-    - `app/Support/Smoke/Api/ApiSmokeHttpClient.php` (единый HTTP-kernel API client + observability `source=smoke`);
-    - `app/Support/Smoke/Api/ApiSmokeAssertions.php` (общие envelope/status/meta assertions);
-    - `app/Support/Smoke/SmokeCheckResult.php` и `app/Support/Smoke/Api/ApiSmokeResponse.php` (typed DTO/value objects);
-  - `app:api-contract-smoke` разложен на scenario-классы:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P2.1` completed (smoke-РєРѕРјР°РЅРґС‹ decomposed into scenarios):
+  - РґРѕР±Р°РІР»РµРЅ РѕР±С‰РёР№ smoke support-СЃР»РѕР№:
+    - `app/Support/Smoke/SmokePersistenceGuard.php` (РѕР±С‰РёР№ production rollback guard);
+    - `app/Support/Smoke/Api/ApiSmokeHttpClient.php` (РµРґРёРЅС‹Р№ HTTP-kernel API client + observability `source=smoke`);
+    - `app/Support/Smoke/Api/ApiSmokeAssertions.php` (РѕР±С‰РёРµ envelope/status/meta assertions);
+    - `app/Support/Smoke/SmokeCheckResult.php` Рё `app/Support/Smoke/Api/ApiSmokeResponse.php` (typed DTO/value objects);
+  - `app:api-contract-smoke` СЂР°Р·Р»РѕР¶РµРЅ РЅР° scenario-РєР»Р°СЃСЃС‹:
     - orchestrator: `app/Console/Commands/AppApiContractSmokeCommand.php`;
     - context/interface: `app/Support/Smoke/ApiContract/ApiContractSmokeContext.php`, `app/Support/Smoke/ApiContract/ApiContractScenario.php`;
     - scenarios:
@@ -2022,16 +2022,16 @@
       - `CheckoutApiContractScenario`;
       - `AdminProductsApiContractScenario`;
       - `PaymentWebhookApiContractScenario`;
-  - `app:webhook-flow-smoke` разложен на command entrypoint + domain scenario:
+  - `app:webhook-flow-smoke` СЂР°Р·Р»РѕР¶РµРЅ РЅР° command entrypoint + domain scenario:
     - orchestrator: `app/Console/Commands/AppWebhookFlowSmokeCommand.php`;
     - core flow: `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P2.1` отмечен как completed;
-  - выполнены target checks:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P2.1` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅС‹ target checks:
     - `php artisan test --filter=ApiContractSmokeCommandTest`
     - `php artisan test --filter=WebhookFlowSmokeCommandTest`
     - `php artisan test --filter=OncallDrillSmokeCommandTest`
     - `php artisan test --filter=PerformanceSmokeTest`
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -2041,10 +2041,10 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P2.2` completed (frontend test architecture split):
-  - монолитный UI contract test разбит на доменные пакеты:
-    - удален `resources/js/tests/components/ui/ui-component-contracts.spec.ts`;
-    - добавлены:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P2.2` completed (frontend test architecture split):
+  - РјРѕРЅРѕР»РёС‚РЅС‹Р№ UI contract test СЂР°Р·Р±РёС‚ РЅР° РґРѕРјРµРЅРЅС‹Рµ РїР°РєРµС‚С‹:
+    - СѓРґР°Р»РµРЅ `resources/js/tests/components/ui/ui-component-contracts.spec.ts`;
+    - РґРѕР±Р°РІР»РµРЅС‹:
       - `resources/js/tests/components/ui/ui-actions-component-contracts.spec.ts`;
       - `resources/js/tests/components/ui/ui-data-display-component-contracts.spec.ts`;
       - `resources/js/tests/components/ui/ui-feedback-component-contracts.spec.ts`;
@@ -2052,12 +2052,12 @@
       - `resources/js/tests/components/ui/ui-layout-component-contracts.spec.ts`;
       - `resources/js/tests/components/ui/ui-table-component-contracts.spec.ts`;
       - `resources/js/tests/components/ui/ui-typography-component-contracts.spec.ts`;
-  - вынесен общий test-helper слой (`mount`, `RouterLinkStub`, pagination fixture):
+  - РІС‹РЅРµСЃРµРЅ РѕР±С‰РёР№ test-helper СЃР»РѕР№ (`mount`, `RouterLinkStub`, pagination fixture):
     - `resources/js/tests/components/ui/helpers/ui-test-helpers.ts`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P2.2` отмечен как completed;
-  - выполнен target check:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P2.2` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅ target check:
     - `npm run test -- resources/js/tests/components/ui` (7 files / 56 tests green);
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -2067,28 +2067,28 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-23` — `Deep Refactoring Plan` Wave `P2.3` completed (performance and ops budgets):
-  - `app:performance-smoke` расширен budget-checks для критичных flow:
+- `2026-02-23` вЂ” `Deep Refactoring Plan` Wave `P2.3` completed (performance and ops budgets):
+  - `app:performance-smoke` СЂР°СЃС€РёСЂРµРЅ budget-checks РґР»СЏ РєСЂРёС‚РёС‡РЅС‹С… flow:
     - `cart_show`;
-    - `checkout_place_order` (transaction rollback mode, чтобы не накапливать данные и не выжигать inventory);
+    - `checkout_place_order` (transaction rollback mode, С‡С‚РѕР±С‹ РЅРµ РЅР°РєР°РїР»РёРІР°С‚СЊ РґР°РЅРЅС‹Рµ Рё РЅРµ РІС‹Р¶РёРіР°С‚СЊ inventory);
     - `admin_products_list`;
-    - сохранены существующие `catalog_list_cold/warm` и `admin_orders_summary`;
-  - добавлены новые пороги и централизованная budget-routing логика:
+    - СЃРѕС…СЂР°РЅРµРЅС‹ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ `catalog_list_cold/warm` Рё `admin_orders_summary`;
+  - РґРѕР±Р°РІР»РµРЅС‹ РЅРѕРІС‹Рµ РїРѕСЂРѕРіРё Рё С†РµРЅС‚СЂР°Р»РёР·РѕРІР°РЅРЅР°СЏ budget-routing Р»РѕРіРёРєР°:
     - `--max-cart-ms/--max-cart-queries`;
     - `--max-checkout-ms/--max-checkout-queries`;
     - `--max-admin-products-ms/--max-admin-products-queries`;
-  - `tests/Feature/PerformanceSmokeTest.php` расширен regression-бюджетами:
+  - `tests/Feature/PerformanceSmokeTest.php` СЂР°СЃС€РёСЂРµРЅ regression-Р±СЋРґР¶РµС‚Р°РјРё:
     - `test_cart_show_query_path_stays_within_budget`;
     - `test_checkout_place_order_query_path_stays_within_budget`;
     - `test_admin_products_list_query_path_stays_within_budget`;
-  - regression checks включены в CI/quality pipeline автоматически:
-    - через `php artisan test` (новые performance feature tests);
-    - через существующий CI smoke-step `php artisan app:performance-smoke` (теперь с расширенным набором budget checks);
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: `P2.3` отмечен как completed;
-  - выполнены target checks:
+  - regression checks РІРєР»СЋС‡РµРЅС‹ РІ CI/quality pipeline Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё:
+    - С‡РµСЂРµР· `php artisan test` (РЅРѕРІС‹Рµ performance feature tests);
+    - С‡РµСЂРµР· СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ CI smoke-step `php artisan app:performance-smoke` (С‚РµРїРµСЂСЊ СЃ СЂР°СЃС€РёСЂРµРЅРЅС‹Рј РЅР°Р±РѕСЂРѕРј budget checks);
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: `P2.3` РѕС‚РјРµС‡РµРЅ РєР°Рє completed;
+  - РІС‹РїРѕР»РЅРµРЅС‹ target checks:
     - `php artisan test --filter=PerformanceSmokeTest`
     - `php artisan app:performance-smoke`
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `C:\composer\composer.bat run lint`
     - `C:\composer\composer.bat run analyse`
     - `php artisan test`
@@ -2098,31 +2098,31 @@
     - `npm run type-check`
     - `npm run test`
     - `npm run build`.
-- `2026-02-24` — `DTO Program` Waves `0/1` completed (foundation + auth pilot):
-  - добавлена архитектурная стратегия DTO:
+- `2026-02-24` вЂ” `DTO Program` Waves `0/1` completed (foundation + auth pilot):
+  - РґРѕР±Р°РІР»РµРЅР° Р°СЂС…РёС‚РµРєС‚СѓСЂРЅР°СЏ СЃС‚СЂР°С‚РµРіРёСЏ DTO:
     - `docs/adr/ADR-0002-dto-strategy.md`;
-    - `docs/adr/README.md` обновлен;
-    - baseline метрики зафиксированы в `docs/DTO_BASELINE_METRICS.md`;
-  - добавлены DTO guardrails:
+    - `docs/adr/README.md` РѕР±РЅРѕРІР»РµРЅ;
+    - baseline РјРµС‚СЂРёРєРё Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅС‹ РІ `docs/DTO_BASELINE_METRICS.md`;
+  - РґРѕР±Р°РІР»РµРЅС‹ DTO guardrails:
     - `tests/Support/Architecture/ArrayPayloadAllowlist.php`;
     - `tests/Unit/Architecture/ApplicationDtoBoundaryTest.php`;
     - `tests/Unit/Architecture/ServiceDtoBoundaryTest.php`;
     - `tests/Unit/Architecture/FrontendApiDtoContractPlanTest.md`;
     - `resources/js/tests/api/dto-boundary.spec.ts`;
-  - выполнен auth DTO pilot (backend):
-    - добавлены DTO:
+  - РІС‹РїРѕР»РЅРµРЅ auth DTO pilot (backend):
+    - РґРѕР±Р°РІР»РµРЅС‹ DTO:
       - `app/Application/Auth/Dto/RegisterAuthInputDto.php`;
       - `app/Application/Auth/Dto/LoginAuthInputDto.php`;
       - `app/Application/Auth/Dto/UpdateAuthProfileInputDto.php`;
       - `app/Application/Auth/Dto/AuthUserDto.php`;
       - `app/Application/Auth/Dto/AuthTokenResultDto.php`;
-    - добавлен mapper:
+    - РґРѕР±Р°РІР»РµРЅ mapper:
       - `app/Application/Auth/Support/AuthUserDtoMapper.php`;
-    - auth requests переведены на `toDto()`:
+    - auth requests РїРµСЂРµРІРµРґРµРЅС‹ РЅР° `toDto()`:
       - `app/Http/Requests/Auth/RegisterRequest.php`;
       - `app/Http/Requests/Auth/LoginRequest.php`;
       - `app/Http/Requests/Auth/UpdateProfileRequest.php`;
-    - auth commands/handlers/controller переведены на typed DTO flow:
+    - auth commands/handlers/controller РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed DTO flow:
       - `app/Application/Auth/Commands/LoginAuthUserCommand.php`;
       - `app/Application/Auth/Commands/RegisterAuthUserCommand.php`;
       - `app/Application/Auth/Commands/UpdateAuthProfileCommand.php`;
@@ -2131,18 +2131,18 @@
       - `app/Application/Auth/Commands/UpdateAuthProfileHandler.php`;
       - `app/Application/Auth/Queries/GetAuthProfileHandler.php`;
       - `app/Http/Controllers/Api/V1/Auth/AuthController.php`;
-  - выполнен auth DTO pilot (frontend):
-    - добавлены typed contracts/assertions/mappers:
+  - РІС‹РїРѕР»РЅРµРЅ auth DTO pilot (frontend):
+    - РґРѕР±Р°РІР»РµРЅС‹ typed contracts/assertions/mappers:
       - `resources/js/contracts/api/v1/auth.ts`;
       - `resources/js/contracts/api/v1/assertions/auth.ts`;
       - `resources/js/mappers/auth.ts`;
       - `resources/js/types/auth.ts`;
       - `resources/js/api/auth.ts`;
-    - `resources/js/stores/auth.ts` переведен на typed auth API pipeline;
-    - добавлен контрактный тест:
+    - `resources/js/stores/auth.ts` РїРµСЂРµРІРµРґРµРЅ РЅР° typed auth API pipeline;
+    - РґРѕР±Р°РІР»РµРЅ РєРѕРЅС‚СЂР°РєС‚РЅС‹Р№ С‚РµСЃС‚:
       - `resources/js/tests/api/auth-contract.spec.ts`;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен разделом `DTO Program (Incremental)` с закрытыми Wave 0/1;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ СЂР°Р·РґРµР»РѕРј `DTO Program (Incremental)` СЃ Р·Р°РєСЂС‹С‚С‹РјРё Wave 0/1;
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`
     - `composer run analyse`
     - `php artisan test`
@@ -2154,8 +2154,8 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-25` — `DTO Program` Wave `2` completed (admin categories/orders/promotions):
-  - backend DTO слой добавлен:
+- `2026-02-25` вЂ” `DTO Program` Wave `2` completed (admin categories/orders/promotions):
+  - backend DTO СЃР»РѕР№ РґРѕР±Р°РІР»РµРЅ:
     - `app/Application/Admin/Categories/Dto/CreateAdminCategoryInputDto.php`
     - `app/Application/Admin/Categories/Dto/UpdateAdminCategoryInputDto.php`
     - `app/Application/Admin/Orders/Dto/UpdateAdminOrderStatusInputDto.php`
@@ -2163,20 +2163,20 @@
     - `app/Application/Admin/Promotions/Dto/UpdateAdminPromotionInputDto.php`
     - `app/Application/Admin/Promotions/Dto/CreateAdminPromotionCouponInputDto.php`
     - `app/Application/Admin/Promotions/Dto/UpdateAdminPromotionCouponInputDto.php`;
-  - admin mutation requests переведены на typed `toDto()`:
+  - admin mutation requests РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed `toDto()`:
     - `CategoryStoreRequest`, `CategoryUpdateRequest`, `OrderStatusUpdateRequest`,
     - `PromotionStoreRequest`, `PromotionUpdateRequest`, `CouponStoreRequest`, `CouponUpdateRequest`;
-  - admin application/service слой переведен на typed DTO signatures:
+  - admin application/service СЃР»РѕР№ РїРµСЂРµРІРµРґРµРЅ РЅР° typed DTO signatures:
     - commands/handlers: categories/orders/promotions mutation flow;
     - services: `AdminCategoryService`, `AdminOrderService`, `AdminPromotionService`, `PromotionCouponSyncService`;
-  - frontend admin API pipeline переведен на typed wire contracts + runtime assertions:
+  - frontend admin API pipeline РїРµСЂРµРІРµРґРµРЅ РЅР° typed wire contracts + runtime assertions:
     - contracts: `resources/js/contracts/api/v1/admin-categories.ts`, `resources/js/contracts/api/v1/admin-orders.ts`, `resources/js/contracts/api/v1/admin-promotions.ts`;
     - assertions: `resources/js/contracts/api/v1/assertions/admin-categories.ts`, `resources/js/contracts/api/v1/assertions/admin-orders.ts`, `resources/js/contracts/api/v1/assertions/admin-promotions.ts`;
     - mappers/api modules: `resources/js/mappers/admin/*`, `resources/js/api/admin/*`;
-    - добавлен contract test: `resources/js/tests/api/admin-contract.spec.ts`;
-  - обновлен DTO allowlist baseline:
+    - РґРѕР±Р°РІР»РµРЅ contract test: `resources/js/tests/api/admin-contract.spec.ts`;
+  - РѕР±РЅРѕРІР»РµРЅ DTO allowlist baseline:
     - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (admin categories/orders/promotions array-contracts removed from allowlist);
-  - выполнены target проверки:
+  - РІС‹РїРѕР»РЅРµРЅС‹ target РїСЂРѕРІРµСЂРєРё:
     - `php artisan test --filter=AdminCategoryCrudTest`
     - `php artisan test --filter=AdminPromotionCouponFlowTest`
     - `php artisan test --filter=AdminPromotionValidationTest`
@@ -2184,10 +2184,10 @@
     - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test --filter=ApplicationDtoBoundaryTest`
     - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test --filter=ServiceDtoBoundaryTest`
     - `npm run test -- resources/js/tests/api/admin-contract.spec.ts resources/js/tests/api/auth-contract.spec.ts resources/js/tests/api/dto-boundary.spec.ts`;
-  - выполнен post-change quality gate в строгой последовательности, green:
+  - РІС‹РїРѕР»РЅРµРЅ post-change quality gate РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`
     - `composer run analyse`
-    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения)
+    - `php artisan test` (РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё СЃ `DB_DATABASE=:memory:` Рё `php -d sys_temp_dir=...` РёР·-Р·Р° SQLite file-lock/disk I/O РѕРіСЂР°РЅРёС‡РµРЅРёСЏ)
     - `npm run lint`
     - `npm run lint:ox`
     - `npm run format:ox:check`
@@ -2196,35 +2196,35 @@
     - `npm run build`
     - `php artisan optimize:clear`
     - `php artisan route:list --path=api/v1/admin/promotions`;
-  - дополнительные smoke-checks:
+  - РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ smoke-checks:
     - `php artisan app:healthcheck`
     - `php artisan app:performance-smoke`
     - `php artisan app:webhook-flow-smoke`
     - `php artisan app:api-contract-smoke`
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`.
-- `2026-02-27` — `DTO Program` Wave `3` completed (admin products DTO):
-  - backend typed DTO flow для admin products mutation-пути:
-    - добавлены DTO:
+- `2026-02-27` вЂ” `DTO Program` Wave `3` completed (admin products DTO):
+  - backend typed DTO flow РґР»СЏ admin products mutation-РїСѓС‚Рё:
+    - РґРѕР±Р°РІР»РµРЅС‹ DTO:
       - `app/Application/Admin/Products/Dto/CreateAdminProductInputDto.php`;
       - `app/Application/Admin/Products/Dto/UpdateAdminProductInputDto.php`;
       - `app/Application/Admin/Products/Dto/AdminProductVariantInputDto.php`;
       - `app/Application/Admin/Products/Dto/AdminProductVariantInventoryInputDto.php`;
-    - `ProductStoreRequest` и `ProductUpdateRequest` переведены на `toDto()`;
-    - `CreateAdminProductCommand`/`UpdateAdminProductCommand` и handlers переведены на typed input DTO;
-    - `AdminCatalogService` переписан на typed signatures без array payload contracts;
+    - `ProductStoreRequest` Рё `ProductUpdateRequest` РїРµСЂРµРІРµРґРµРЅС‹ РЅР° `toDto()`;
+    - `CreateAdminProductCommand`/`UpdateAdminProductCommand` Рё handlers РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed input DTO;
+    - `AdminCatalogService` РїРµСЂРµРїРёСЃР°РЅ РЅР° typed signatures Р±РµР· array payload contracts;
   - frontend typed product contract pipeline:
-    - добавлены contracts/assertions:
+    - РґРѕР±Р°РІР»РµРЅС‹ contracts/assertions:
       - `resources/js/contracts/api/v1/admin-products.ts`;
       - `resources/js/contracts/api/v1/assertions/admin-products.ts`;
-    - обновлены `resources/js/api/admin/products.ts`, `resources/js/mappers/admin/products.ts`, `resources/js/types/admin-products.ts`, `resources/js/validators/admin/products.ts`;
-    - `resources/js/tests/api/admin-contract.spec.ts` расширен product contract assertions;
-  - обновлены архитектурные guardrails:
-    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (удалены products array payload/service allowlist entries, baseline снижен);
-    - `docs/DTO_IMPLEMENTATION_PLAN.md`: Wave 3 отмечен completed;
-  - выполнены проверки в последовательности, green:
-    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp .\\vendor\\bin\\pint --test` (эквивалент `composer run lint` в этом окружении);
+    - РѕР±РЅРѕРІР»РµРЅС‹ `resources/js/api/admin/products.ts`, `resources/js/mappers/admin/products.ts`, `resources/js/types/admin-products.ts`, `resources/js/validators/admin/products.ts`;
+    - `resources/js/tests/api/admin-contract.spec.ts` СЂР°СЃС€РёСЂРµРЅ product contract assertions;
+  - РѕР±РЅРѕРІР»РµРЅС‹ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ guardrails:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (СѓРґР°Р»РµРЅС‹ products array payload/service allowlist entries, baseline СЃРЅРёР¶РµРЅ);
+    - `docs/DTO_IMPLEMENTATION_PLAN.md`: Wave 3 РѕС‚РјРµС‡РµРЅ completed;
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
+    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp .\\vendor\\bin\\pint --test` (СЌРєРІРёРІР°Р»РµРЅС‚ `composer run lint` РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё);
     - `composer run analyse`;
-    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test` (с `DB_DATABASE=:memory:`);
+    - `php -d sys_temp_dir=c:/OSPanel/home/shop.ru/storage/framework/testing-tmp artisan test` (СЃ `DB_DATABASE=:memory:`);
     - `npm run lint`;
     - `npm run lint:ox`;
     - `npm run format:ox:check`;
@@ -2233,8 +2233,8 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `DTO Program` Wave `4` completed (cart + checkout DTO):
-  - backend cart/checkout DTO слой добавлен:
+- `2026-02-27` вЂ” `DTO Program` Wave `4` completed (cart + checkout DTO):
+  - backend cart/checkout DTO СЃР»РѕР№ РґРѕР±Р°РІР»РµРЅ:
     - `app/Application/Cart/Dto/CartUpsertItemInputDto.php`;
     - `app/Application/Cart/Dto/RemoveCartItemInputDto.php`;
     - `app/Application/Cart/Dto/CartItemResultDto.php`;
@@ -2244,18 +2244,18 @@
     - `app/Application/Checkout/Dto/CheckoutPlaceOrderInputDto.php`;
     - `app/Application/Checkout/Dto/CheckoutPaymentResultDto.php`;
     - `app/Application/Checkout/Dto/CheckoutPlaceOrderResultDto.php`;
-  - transport/application/service слой переведен на typed DTO contracts:
-    - requests: `UpsertCartItemRequest`, `PlaceOrderRequest` переведены на `toDto()`;
-    - cart flow: `UpsertCartItemCommand`, `RemoveCartItemCommand` и handlers + `GetCurrentCartHandler` возвращают `CartResultDto`;
-    - `CartService::payload()` заменен на `CartService::toResultDto(...)`;
-    - checkout flow: `PlaceCheckoutOrderCommand` хранит `CheckoutPlaceOrderInputDto`;
-    - `PlaceCheckoutOrderHandler` возвращает `CheckoutPlaceOrderResultDto`;
-    - `CheckoutService::placeOrder(...)` переведен на typed input DTO;
-    - `CartController` и `CheckoutController` используют typed DTO на входе/выходе;
-  - smoke integration path синхронизирован с новым typed checkout contract:
+  - transport/application/service СЃР»РѕР№ РїРµСЂРµРІРµРґРµРЅ РЅР° typed DTO contracts:
+    - requests: `UpsertCartItemRequest`, `PlaceOrderRequest` РїРµСЂРµРІРµРґРµРЅС‹ РЅР° `toDto()`;
+    - cart flow: `UpsertCartItemCommand`, `RemoveCartItemCommand` Рё handlers + `GetCurrentCartHandler` РІРѕР·РІСЂР°С‰Р°СЋС‚ `CartResultDto`;
+    - `CartService::payload()` Р·Р°РјРµРЅРµРЅ РЅР° `CartService::toResultDto(...)`;
+    - checkout flow: `PlaceCheckoutOrderCommand` С…СЂР°РЅРёС‚ `CheckoutPlaceOrderInputDto`;
+    - `PlaceCheckoutOrderHandler` РІРѕР·РІСЂР°С‰Р°РµС‚ `CheckoutPlaceOrderResultDto`;
+    - `CheckoutService::placeOrder(...)` РїРµСЂРµРІРµРґРµРЅ РЅР° typed input DTO;
+    - `CartController` Рё `CheckoutController` РёСЃРїРѕР»СЊР·СѓСЋС‚ typed DTO РЅР° РІС…РѕРґРµ/РІС‹С…РѕРґРµ;
+  - smoke integration path СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅ СЃ РЅРѕРІС‹Рј typed checkout contract:
     - `app/Console/Commands/AppPerformanceSmokeCommand.php`;
     - `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`;
-  - frontend cart/checkout typed pipeline выполнен:
+  - frontend cart/checkout typed pipeline РІС‹РїРѕР»РЅРµРЅ:
     - contracts/assertions:
       - `resources/js/contracts/api/v1/cart.ts`;
       - `resources/js/contracts/api/v1/checkout.ts`;
@@ -2266,17 +2266,17 @@
       - `resources/js/api/cart.ts`, `resources/js/api/checkout.ts`;
       - `resources/js/stores/cart.ts`;
       - `resources/js/types/cart.ts`, `resources/js/types/checkout.ts`;
-    - добавлен контрактный тест: `resources/js/tests/api/cart-checkout-contract.spec.ts`;
-  - обновлены архитектурные guardrails:
-    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (baseline снижен, cart/checkout array contracts удалены из allowlist);
-    - `docs/DTO_IMPLEMENTATION_PLAN.md`: Wave 4 отмечен completed;
-  - выполнены проверки в строгой последовательности, green:
+    - РґРѕР±Р°РІР»РµРЅ РєРѕРЅС‚СЂР°РєС‚РЅС‹Р№ С‚РµСЃС‚: `resources/js/tests/api/cart-checkout-contract.spec.ts`;
+  - РѕР±РЅРѕРІР»РµРЅС‹ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ guardrails:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (baseline СЃРЅРёР¶РµРЅ, cart/checkout array contracts СѓРґР°Р»РµРЅС‹ РёР· allowlist);
+    - `docs/DTO_IMPLEMENTATION_PLAN.md`: Wave 4 РѕС‚РјРµС‡РµРЅ completed;
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`;
     - `composer run analyse`;
-    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `php artisan test` (РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё СЃ `DB_DATABASE=:memory:` Рё `php -d sys_temp_dir=...` РёР·-Р·Р° SQLite file-lock/disk I/O РѕРіСЂР°РЅРёС‡РµРЅРёСЏ);
     - `npm run lint`;
     - `npm run lint:ox`;
-    - `npm run format:ox:check` (после `npm run format:ox` для исправления трех файлов);
+    - `npm run format:ox:check` (РїРѕСЃР»Рµ `npm run format:ox` РґР»СЏ РёСЃРїСЂР°РІР»РµРЅРёСЏ С‚СЂРµС… С„Р°Р№Р»РѕРІ);
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`;
@@ -2284,31 +2284,31 @@
     - `php artisan app:performance-smoke`;
     - `php artisan app:webhook-flow-smoke`;
     - `php artisan app:api-contract-smoke`;
-    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (Р»РѕРєР°Р»СЊРЅРѕ Р±РµР· runtime webhook samples; РѕР¶РёРґР°РµРјРѕ fail);
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `DTO Program` Wave `5` started: `Catalog` sub-wave completed (typed filter DTO):
-  - catalog read-path переведен с array filters на typed DTO contracts:
-    - добавлен `app/Application/Catalog/Dto/CatalogProductListFilterDto.php`;
-    - `PaginateCatalogProductsQuery` переведен с `array $filters` на `CatalogProductListFilterDto`;
-    - `PaginateCatalogProductsHandler` вызывает `CatalogService::list($query->filter, ...)`;
-    - `CatalogService::list(...)` принимает typed DTO и использует `toCachePayload()` для deterministic cache-key;
-    - `ProductRepository::paginateCatalog(...)` и `applyFilters(...)` переведены на typed DTO;
-    - `CatalogController@index` строит filter через `CatalogProductListFilterDto::fromValidated(...)`;
-  - observability/smoke orchestration выровнен под новый contract:
-    - `app/Console/Commands/AppPerformanceSmokeCommand.php` использует typed catalog filter DTO;
-  - архитектурные guardrails усилены:
+- `2026-02-27` вЂ” `DTO Program` Wave `5` started: `Catalog` sub-wave completed (typed filter DTO):
+  - catalog read-path РїРµСЂРµРІРµРґРµРЅ СЃ array filters РЅР° typed DTO contracts:
+    - РґРѕР±Р°РІР»РµРЅ `app/Application/Catalog/Dto/CatalogProductListFilterDto.php`;
+    - `PaginateCatalogProductsQuery` РїРµСЂРµРІРµРґРµРЅ СЃ `array $filters` РЅР° `CatalogProductListFilterDto`;
+    - `PaginateCatalogProductsHandler` РІС‹Р·С‹РІР°РµС‚ `CatalogService::list($query->filter, ...)`;
+    - `CatalogService::list(...)` РїСЂРёРЅРёРјР°РµС‚ typed DTO Рё РёСЃРїРѕР»СЊР·СѓРµС‚ `toCachePayload()` РґР»СЏ deterministic cache-key;
+    - `ProductRepository::paginateCatalog(...)` Рё `applyFilters(...)` РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed DTO;
+    - `CatalogController@index` СЃС‚СЂРѕРёС‚ filter С‡РµСЂРµР· `CatalogProductListFilterDto::fromValidated(...)`;
+  - observability/smoke orchestration РІС‹СЂРѕРІРЅРµРЅ РїРѕРґ РЅРѕРІС‹Р№ contract:
+    - `app/Console/Commands/AppPerformanceSmokeCommand.php` РёСЃРїРѕР»СЊР·СѓРµС‚ typed catalog filter DTO;
+  - Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ guardrails СѓСЃРёР»РµРЅС‹:
     - `tests/Support/Architecture/ArrayPayloadAllowlist.php`:
-      - `BASELINE_APPLICATION_ARRAY_PAYLOAD_COUNT` снижен до `0`;
-      - `PaginateCatalogProductsQuery` удален из payload allowlist;
-      - `CatalogService` удален из service array payload allowlist;
-  - `docs/DTO_IMPLEMENTATION_PLAN.md` обновлен: Wave 5 отмечен как in-progress с закрытым catalog sub-wave;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: добавлен статус Wave 5 (in progress);
-  - выполнены проверки в строгой последовательности, green:
+      - `BASELINE_APPLICATION_ARRAY_PAYLOAD_COUNT` СЃРЅРёР¶РµРЅ РґРѕ `0`;
+      - `PaginateCatalogProductsQuery` СѓРґР°Р»РµРЅ РёР· payload allowlist;
+      - `CatalogService` СѓРґР°Р»РµРЅ РёР· service array payload allowlist;
+  - `docs/DTO_IMPLEMENTATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: Wave 5 РѕС‚РјРµС‡РµРЅ РєР°Рє in-progress СЃ Р·Р°РєСЂС‹С‚С‹Рј catalog sub-wave;
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: РґРѕР±Р°РІР»РµРЅ СЃС‚Р°С‚СѓСЃ Wave 5 (in progress);
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`;
-    - `composer run analyse` (после фикса `AppPerformanceSmokeCommand` для typed filter DTO);
-    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `composer run analyse` (РїРѕСЃР»Рµ С„РёРєСЃР° `AppPerformanceSmokeCommand` РґР»СЏ typed filter DTO);
+    - `php artisan test` (РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё СЃ `DB_DATABASE=:memory:` Рё `php -d sys_temp_dir=...` РёР·-Р·Р° SQLite file-lock/disk I/O РѕРіСЂР°РЅРёС‡РµРЅРёСЏ);
     - `npm run lint`;
     - `npm run lint:ox`;
     - `npm run format:ox:check`;
@@ -2319,34 +2319,34 @@
     - `php artisan app:performance-smoke`;
     - `php artisan app:webhook-flow-smoke`;
     - `php artisan app:api-contract-smoke`;
-    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (Р»РѕРєР°Р»СЊРЅРѕ Р±РµР· runtime webhook samples; РѕР¶РёРґР°РµРјРѕ fail);
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `DTO Program` Wave `5` progress: `Payment/Shipping` result DTO sub-wave completed:
-  - integration DTO добавлены:
+- `2026-02-27` вЂ” `DTO Program` Wave `5` progress: `Payment/Shipping` result DTO sub-wave completed:
+  - integration DTO РґРѕР±Р°РІР»РµРЅС‹:
     - `app/Services/Payment/Dto/PaymentCreationResultDto.php`;
     - `app/Services/Shipping/Dto/ShipmentCreationResultDto.php`;
-  - gateway contracts переведены на typed return DTO:
+  - gateway contracts РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed return DTO:
     - `app/Contracts/PaymentGatewayInterface.php`:
       - `createPayment(...): PaymentCreationResultDto`;
     - `app/Contracts/ShippingGatewayInterface.php`:
       - `createShipment(...): ShipmentCreationResultDto`;
-  - fake gateway implementations синхронизированы с новыми контрактами:
+  - fake gateway implementations СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅС‹ СЃ РЅРѕРІС‹РјРё РєРѕРЅС‚СЂР°РєС‚Р°РјРё:
     - `app/Infrastructure/Payments/FakePaymentGateway.php`;
     - `app/Infrastructure/Shipping/FakeShippingGateway.php`;
-  - сервисы мигрированы с array-shape на typed DTO fields:
+  - СЃРµСЂРІРёСЃС‹ РјРёРіСЂРёСЂРѕРІР°РЅС‹ СЃ array-shape РЅР° typed DTO fields:
     - `app/Services/Payment/PaymentService.php`;
     - `app/Services/Shipping/ShippingService.php`;
-  - тестовые стабы и архитектурный allowlist обновлены:
+  - С‚РµСЃС‚РѕРІС‹Рµ СЃС‚Р°Р±С‹ Рё Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Р№ allowlist РѕР±РЅРѕРІР»РµРЅС‹:
     - `tests/Unit/GatewayDriverBindingTest.php`;
-    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (добавлены service-level DTO classes, так как test-scan охватывает `app/Services/**` и фиксирует `array` constructor params).
-  - `docs/DTO_IMPLEMENTATION_PLAN.md` обновлен: Payment/Shipping в Wave 5 отмечен completed;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: Payment/Shipping result DTO migration отмечен completed;
-  - выполнены проверки в строгой последовательности, green:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (РґРѕР±Р°РІР»РµРЅС‹ service-level DTO classes, С‚Р°Рє РєР°Рє test-scan РѕС…РІР°С‚С‹РІР°РµС‚ `app/Services/**` Рё С„РёРєСЃРёСЂСѓРµС‚ `array` constructor params).
+  - `docs/DTO_IMPLEMENTATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: Payment/Shipping РІ Wave 5 РѕС‚РјРµС‡РµРЅ completed;
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: Payment/Shipping result DTO migration РѕС‚РјРµС‡РµРЅ completed;
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`;
     - `composer run analyse`;
-    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `php artisan test` (РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё СЃ `DB_DATABASE=:memory:` Рё `php -d sys_temp_dir=...` РёР·-Р·Р° SQLite file-lock/disk I/O РѕРіСЂР°РЅРёС‡РµРЅРёСЏ);
     - `npm run lint`;
     - `npm run lint:ox`;
     - `npm run format:ox:check`;
@@ -2357,27 +2357,27 @@
     - `php artisan app:performance-smoke`;
     - `php artisan app:webhook-flow-smoke`;
     - `php artisan app:api-contract-smoke`;
-    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (Р»РѕРєР°Р»СЊРЅРѕ Р±РµР· runtime webhook samples; РѕР¶РёРґР°РµРјРѕ fail);
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `DTO Program` Wave `5` completed: `Webhook typed payload adapters` sub-wave:
-  - integration webhook DTO добавлены:
+- `2026-02-27` вЂ” `DTO Program` Wave `5` completed: `Webhook typed payload adapters` sub-wave:
+  - integration webhook DTO РґРѕР±Р°РІР»РµРЅС‹:
     - `app/Services/Payment/Dto/PaymentWebhookPayloadDto.php`;
     - `app/Services/Shipping/Dto/ShippingWebhookPayloadDto.php`;
-  - adapter internals переведены на typed parse-step:
+  - adapter internals РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed parse-step:
     - `app/Services/Payment/PaymentWebhookAdapter.php`;
     - `app/Services/Shipping/ShippingWebhookAdapter.php`;
-  - pipeline контракт сохранен универсальным без breaking changes:
-    - `WebhookProcessorAdapterInterface` и `WebhookProcessingPipeline` продолжают работать с transport array payload, но adapter logic больше не опирается напрямую на raw array;
-  - архитектурный allowlist обновлен под новые service-level DTO:
-    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (добавлены webhook payload DTO classes);
-  - `docs/DTO_IMPLEMENTATION_PLAN.md` обновлен: Wave 5 отмечен completed;
-  - `docs/DEEP_REFACTORING_PLAN.md` обновлен: Wave 5 отмечен completed;
-  - выполнены проверки в строгой последовательности, green:
+  - pipeline РєРѕРЅС‚СЂР°РєС‚ СЃРѕС…СЂР°РЅРµРЅ СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рј Р±РµР· breaking changes:
+    - `WebhookProcessorAdapterInterface` Рё `WebhookProcessingPipeline` РїСЂРѕРґРѕР»Р¶Р°СЋС‚ СЂР°Р±РѕС‚Р°С‚СЊ СЃ transport array payload, РЅРѕ adapter logic Р±РѕР»СЊС€Рµ РЅРµ РѕРїРёСЂР°РµС‚СЃСЏ РЅР°РїСЂСЏРјСѓСЋ РЅР° raw array;
+  - Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Р№ allowlist РѕР±РЅРѕРІР»РµРЅ РїРѕРґ РЅРѕРІС‹Рµ service-level DTO:
+    - `tests/Support/Architecture/ArrayPayloadAllowlist.php` (РґРѕР±Р°РІР»РµРЅС‹ webhook payload DTO classes);
+  - `docs/DTO_IMPLEMENTATION_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: Wave 5 РѕС‚РјРµС‡РµРЅ completed;
+  - `docs/DEEP_REFACTORING_PLAN.md` РѕР±РЅРѕРІР»РµРЅ: Wave 5 РѕС‚РјРµС‡РµРЅ completed;
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`;
     - `composer run analyse`;
-    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `php artisan test` (РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё СЃ `DB_DATABASE=:memory:` Рё `php -d sys_temp_dir=...` РёР·-Р·Р° SQLite file-lock/disk I/O РѕРіСЂР°РЅРёС‡РµРЅРёСЏ);
     - `npm run lint`;
     - `npm run lint:ox`;
     - `npm run format:ox:check`;
@@ -2388,29 +2388,29 @@
     - `php artisan app:performance-smoke`;
     - `php artisan app:webhook-flow-smoke`;
     - `php artisan app:api-contract-smoke`;
-    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (Р»РѕРєР°Р»СЊРЅРѕ Р±РµР· runtime webhook samples; РѕР¶РёРґР°РµРјРѕ fail);
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `DTO Program` Wave `6` progress: `catalog + account/orders frontend typed contract hardening` completed:
-  - добавлены frontend wire DTO contracts:
+- `2026-02-27` вЂ” `DTO Program` Wave `6` progress: `catalog + account/orders frontend typed contract hardening` completed:
+  - РґРѕР±Р°РІР»РµРЅС‹ frontend wire DTO contracts:
     - `resources/js/contracts/api/v1/catalog.ts`;
     - `resources/js/contracts/api/v1/account-orders.ts`;
-  - добавлены runtime assertion guards:
+  - РґРѕР±Р°РІР»РµРЅС‹ runtime assertion guards:
     - `resources/js/contracts/api/v1/assertions/catalog.ts`;
     - `resources/js/contracts/api/v1/assertions/account-orders.ts`;
-  - API modules переведены на typed parse pipeline без `unknown` в domain-слое:
+  - API modules РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed parse pipeline Р±РµР· `unknown` РІ domain-СЃР»РѕРµ:
     - `resources/js/api/catalog.ts`;
     - `resources/js/api/account/orders.ts`;
-  - mappers переведены на typed wire DTO input:
+  - mappers РїРµСЂРµРІРµРґРµРЅС‹ РЅР° typed wire DTO input:
     - `resources/js/mappers/catalog.ts`;
     - `resources/js/mappers/account/orders.ts`;
-    - `resources/js/mappers/common.ts` очищен (legacy `unknown` parser helpers removed from mapper layer);
-  - добавлены TS contract tests:
+    - `resources/js/mappers/common.ts` РѕС‡РёС‰РµРЅ (legacy `unknown` parser helpers removed from mapper layer);
+  - РґРѕР±Р°РІР»РµРЅС‹ TS contract tests:
     - `resources/js/tests/api/catalog-account-contract.spec.ts`;
-  - документация обновлена:
-    - `docs/DTO_IMPLEMENTATION_PLAN.md` (Wave 6 frontend-пункты отмечены completed; strict backend allowlist removal pending);
-  - выполнены проверки в строгой последовательности, green:
+  - РґРѕРєСѓРјРµРЅС‚Р°С†РёСЏ РѕР±РЅРѕРІР»РµРЅР°:
+    - `docs/DTO_IMPLEMENTATION_PLAN.md` (Wave 6 frontend-РїСѓРЅРєС‚С‹ РѕС‚РјРµС‡РµРЅС‹ completed; strict backend allowlist removal pending);
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint`;
     - `composer run analyse`;
     - `php artisan test`;
@@ -2422,7 +2422,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `DTO Program` Wave `6` completed: `backend strict guardrails` (allowlist cleanup + typed service payload contracts):
+- `2026-02-27` вЂ” `DTO Program` Wave `6` completed: `backend strict guardrails` (allowlist cleanup + typed service payload contracts):
   - application layer strict boundary finalized:
     - added `app/Application/Checkout/Dto/MyOrdersSummaryResultDto.php`;
     - `app/Application/Checkout/Queries/GetMyOrdersSummaryHandler.php` migrated from `handle(): array` to typed result DTO;
@@ -2460,10 +2460,10 @@
     - `tests/Support/Architecture/ArrayPayloadAllowlist.php`: `BASELINE_FRONTEND_UNKNOWN_USAGE_COUNT=5`.
   - planning docs updated:
     - `docs/DTO_IMPLEMENTATION_PLAN.md` (Wave 6 marked completed).
-  - выполнены проверки в строгой последовательности, green:
+  - РІС‹РїРѕР»РЅРµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ СЃС‚СЂРѕРіРѕР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё, green:
     - `composer run lint` (after auto-fix via `php -d sys_temp_dir=... .\vendor\bin\pint ...`);
     - `composer run analyse`;
-    - `php artisan test` (в этом окружении с `DB_DATABASE=:memory:` и `php -d sys_temp_dir=...` из-за SQLite file-lock/disk I/O ограничения);
+    - `php artisan test` (РІ СЌС‚РѕРј РѕРєСЂСѓР¶РµРЅРёРё СЃ `DB_DATABASE=:memory:` Рё `php -d sys_temp_dir=...` РёР·-Р·Р° SQLite file-lock/disk I/O РѕРіСЂР°РЅРёС‡РµРЅРёСЏ);
     - `npm run lint`;
     - `npm run lint:ox`;
     - `npm run format:ox:check`;
@@ -2474,11 +2474,11 @@
     - `php artisan app:performance-smoke`;
     - `php artisan app:webhook-flow-smoke`;
     - `php artisan app:api-contract-smoke`;
-    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (локально без runtime webhook samples; ожидаемо fail);
+    - `php artisan app:observability-report --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples` (Р»РѕРєР°Р»СЊРЅРѕ Р±РµР· runtime webhook samples; РѕР¶РёРґР°РµРјРѕ fail);
     - `php artisan app:observability-report --source=smoke --minutes=120 --max-api-slow-rate=0.30 --max-webhook-lag-warn-rate=0.30 --require-api-samples --require-webhook-samples`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` execution started (`Wave 1` batch: webhook transport purity):
+- `2026-02-27` вЂ” `Architecture Refactor Next` execution started (`Wave 1` batch: webhook transport purity):
   - active architecture plan persisted:
     - `docs/ARCHITECTURE_REFACTOR_NEXT.md`;
   - webhook ingestion moved to application-layer handlers:
@@ -2507,7 +2507,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 1` batch: auth password + email verification application handlers):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 1` batch: auth password + email verification application handlers):
   - auth password/verification application layer added:
     - `app/Application/Auth/Dto/ForgotAuthPasswordInputDto.php`;
     - `app/Application/Auth/Dto/ResetAuthPasswordInputDto.php`;
@@ -2541,7 +2541,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 1` batch: full API V1 controller guardrail coverage):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 1` batch: full API V1 controller guardrail coverage):
   - `PublicApiControllerArchitectureTest` migrated to automatic controller discovery under `app/Http/Controllers/Api/V1/**`:
     - manual allowlist removed;
     - new helper `discoverApiV1ControllerClasses()` resolves all controller classes and fails on autoload mismatch;
@@ -2562,7 +2562,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 2` batch: api-contract smoke webhook parity):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 2` batch: api-contract smoke webhook parity):
   - shipping webhook API contract scenario added for parity with payment:
     - `app/Support/Smoke/ApiContract/Scenarios/ShippingWebhookApiContractScenario.php`;
     - validates `/api/v1/webhooks/shipping` missing-signature behavior (`400` + error envelope);
@@ -2585,7 +2585,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 2` batch: webhook parity feature tests):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 2` batch: webhook parity feature tests):
   - payment webhook feature coverage expanded:
     - added `missing signature` contract case;
     - added `duplicate replay` idempotency case (same `event_id` + same payload -> dedupe via single `webhook_receipts` record);
@@ -2610,8 +2610,8 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` governance formalization:
-  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` explicitly закреплен как active architecture execution source-of-truth (`Execution Authority` section).
+- `2026-02-27` вЂ” `Architecture Refactor Next` governance formalization:
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` explicitly Р·Р°РєСЂРµРїР»РµРЅ РєР°Рє active architecture execution source-of-truth (`Execution Authority` section).
   - historical plans marked as archival references (not active execution authority):
     - `docs/ARCHITECTURE_REFACTOR_PLAN.md`;
     - `docs/DEEP_REFACTORING_PLAN.md`;
@@ -2620,7 +2620,7 @@
   - `docs/REFACTORING_EXECUTION_PLAN.md` explicitly marked as operational execution log only.
   - checks:
     - docs-only governance update; runtime quality gate commands were not executed.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 2` batch: webhook ingress prevalidation + centralized error mapping):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 2` batch: webhook ingress prevalidation + centralized error mapping):
   - unified webhook ingress prevalidation introduced to remove duplicated parse/verify logic across enqueue handlers and pipeline:
     - added ingress metadata DTO:
       - `app/Services/Webhook/Dto/WebhookIngressMetadataDto.php`;
@@ -2661,7 +2661,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 3` batch: dead-code removal guardrail):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 3` batch: dead-code removal guardrail):
   - legacy artifacts neutralized:
     - physically removed legacy files:
       - `app/Application/Auth/Support/AuthUserPayloadBuilder.php`;
@@ -2683,7 +2683,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 3` batch: enum-based admin order status input contract):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 3` batch: enum-based admin order status input contract):
   - `UpdateAdminOrderStatusInputDto` migrated from nullable strings to enum fields:
     - `status: ?OrderStatus`;
     - `paymentStatus: ?PaymentStatus`;
@@ -2708,7 +2708,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 3` batch: `app/Filters/*` -> application `*FilterDto` migration):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 3` batch: `app/Filters/*` -> application `*FilterDto` migration):
   - legacy filter contracts migrated from `app/Filters/*` into application-layer DTOs:
     - `app/Application/Admin/Categories/Dto/AdminCategoryListFilterDto.php`;
     - `app/Application/Admin/Orders/Dto/AdminOrderListFilterDto.php`;
@@ -2750,7 +2750,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 3` batch: scalar-safe `toArray()` transport boundaries):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 3` batch: scalar-safe `toArray()` transport boundaries):
   - scalar transport boundary aligned for gateway result DTOs:
     - `app/Services/Payment/Dto/PaymentCreationResultDto.php`:
       - `toArray()['status']` changed from enum object to scalar enum value (`$this->status->value`);
@@ -2774,7 +2774,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout discount resolver extraction):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: checkout discount resolver extraction):
   - checkout discount/coupon resolution logic extracted from `CheckoutService` into dedicated module:
     - added typed discount context DTO:
       - `app/Services/Checkout/Dto/CheckoutDiscountContextDto.php`;
@@ -2798,7 +2798,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — API contract fix (`admin products`: variant `attributes` object|null):
+- `2026-02-27` вЂ” API contract fix (`admin products`: variant `attributes` object|null):
   - backend product resource response normalized to strict contract boundary:
     - `app/Http/Resources/ProductResource.php` now emits variant `attributes` as:
       - object (`{}` / associative object) for object-like payloads,
@@ -2821,7 +2821,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout idempotency guard extraction):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: checkout idempotency guard extraction):
   - checkout idempotency decision flow extracted from `CheckoutService` into dedicated module:
     - added typed resolution DTO:
       - `app/Services/Checkout/Dto/CheckoutIdempotencyResolutionDto.php`;
@@ -2850,7 +2850,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout inventory allocator extraction):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: checkout inventory allocator extraction):
   - inventory validation/consumption path extracted from `CheckoutService` into dedicated module:
     - added service:
       - `app/Services/Checkout/CheckoutInventoryAllocator.php`;
@@ -2875,7 +2875,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: status transition policies extraction + checkout orchestration split finalization):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: status transition policies extraction + checkout orchestration split finalization):
   - transition matrices extracted from webhook adapters into dedicated policy boundaries:
     - `app/Services/Payment/PaymentStatusTransitionPolicy.php`;
     - `app/Services/Shipping/ShipmentStatusTransitionPolicy.php`;
@@ -2908,7 +2908,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: `CartService` decomposition into resolver/mutation/result-mapper boundaries):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: `CartService` decomposition into resolver/mutation/result-mapper boundaries):
   - cart service decomposition completed with explicit service boundaries:
     - `app/Services/Cart/CartResolver.php`:
       - owns cart resolution flows (`resolve`, `resolveForCheckout`) for user/guest scenarios.
@@ -2938,7 +2938,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 4` batch: admin/manual order status flow adopts transition policies):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: admin/manual order status flow adopts transition policies):
   - admin status update service aligned with transition policy boundaries:
     - `app/Services/Admin/AdminOrderService.php` now injects and uses:
       - `OrderStatusTransitionPolicy`,
@@ -2968,7 +2968,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: checkout command ORM return leakage removal):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: checkout command ORM return leakage removal):
   - checkout payment initiation application boundary hardened:
     - `app/Application/Checkout/Commands/InitiateCheckoutPaymentHandler.php` migrated from `Payment` model return to typed DTO `CheckoutPaymentResultDto`.
   - transport layer aligned to typed command result:
@@ -2993,7 +2993,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: admin categories ORM/paginator return leakage removal):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: admin categories ORM/paginator return leakage removal):
   - admin categories application boundary hardened:
     - `app/Application/Admin/Categories/Commands/CreateAdminCategoryHandler.php` migrated from `Category` model return to `AdminCategoryResultDto`;
     - `app/Application/Admin/Categories/Commands/UpdateAdminCategoryHandler.php` migrated from `Category` model return to `AdminCategoryResultDto`;
@@ -3022,7 +3022,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — project engineering governance update (`architecture-first for new functionality`):
+- `2026-02-27` вЂ” project engineering governance update (`architecture-first for new functionality`):
   - project rules strengthened in `AGENTS.md`:
     - added explicit mandatory rule: new functionality must follow project architecture from the first implementation step (layer boundaries, contracts, module responsibilities).
   - checks executed in strict sequence, green:
@@ -3035,7 +3035,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: admin products ORM/paginator return leakage removal):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: admin products ORM/paginator return leakage removal):
   - admin products application boundary hardened:
     - `app/Application/Admin/Products/Commands/CreateAdminProductHandler.php` migrated from `Product` model return to `AdminProductResultDto`;
     - `app/Application/Admin/Products/Commands/UpdateAdminProductHandler.php` migrated from `Product` model return to `AdminProductResultDto`;
@@ -3066,7 +3066,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: admin promotions ORM/paginator return leakage removal):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: admin promotions ORM/paginator return leakage removal):
   - admin promotions application boundary hardened:
     - `app/Application/Admin/Promotions/Commands/CreateAdminPromotionHandler.php` migrated from `Promotion` model return to `AdminPromotionResultDto`;
     - `app/Application/Admin/Promotions/Commands/UpdateAdminPromotionHandler.php` migrated from `Promotion` model return to `AdminPromotionResultDto`;
@@ -3096,7 +3096,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-27` — `Architecture Refactor Next` progress (`Wave 5` batch: admin orders ORM/paginator return leakage removal):
+- `2026-02-27` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: admin orders ORM/paginator return leakage removal):
   - admin orders application boundary hardened:
     - `app/Application/Admin/Orders/Queries/PaginateAdminOrdersHandler.php` migrated from `LengthAwarePaginator` return to `AdminOrderPaginatedResultDto`;
     - `app/Application/Admin/Orders/Queries/GetAdminOrderDetailHandler.php` migrated from `Order` model return to `AdminOrderDetailResultDto`;
@@ -3127,7 +3127,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 5` batch: catalog + checkout query boundary hardening and global handler guardrail):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: catalog + checkout query boundary hardening and global handler guardrail):
   - catalog application boundary hardened:
     - `app/Application/Catalog/Queries/PaginateCatalogProductsHandler.php` migrated from `LengthAwarePaginator` return to `CatalogProductPaginatedResultDto`;
     - `app/Application/Catalog/Queries/GetCatalogProductBySlugHandler.php` migrated from `?Product` return to `?CatalogProductResultDto`;
@@ -3169,7 +3169,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 5` batch: auth repository-contract boundary hardening):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 5` batch: auth repository-contract boundary hardening):
   - auth persistence/query responsibilities moved behind repository contracts:
     - `app/Application/Auth/Contracts/AuthUserRepository.php`;
     - `app/Application/Auth/Contracts/AuthPasswordBrokerRepository.php`;
@@ -3206,7 +3206,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin route-query schema consolidation):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin route-query schema consolidation):
   - frontend route-query duplication reduced via shared schema-driven helper:
     - added `resources/js/queries/admin/route-query-schema.ts` with reusable parsing/building/comparison API:
       - `parseAdminRouteFilters(...)`,
@@ -3233,7 +3233,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin route-sync loader consolidation):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin route-sync loader consolidation):
   - frontend route-sync orchestration duplication reduced via shared loader:
     - `resources/js/composables/admin/adminRouteSync.ts` extended with `useAdminRouteSyncedLoader(...)` to centralize:
       - route-query replace/parse/apply flow;
@@ -3259,7 +3259,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin orders detail race-safety hardening):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin orders detail race-safety hardening):
   - admin order detail loading made race-safe against out-of-order responses:
     - `resources/js/composables/admin/orders/useAdminOrdersQuery.ts` migrated from generic mutation-wrapper detail loading to explicit request lifecycle:
       - request-id guard for stale response rejection;
@@ -3286,7 +3286,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin orders detail-state decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin orders detail-state decomposition):
   - admin orders query responsibilities split into explicit modules:
     - extracted `resources/js/composables/admin/orders/useAdminOrderDetailsState.ts` to own:
       - selected-order state;
@@ -3314,7 +3314,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin orders derived-state decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin orders derived-state decomposition):
   - admin orders derived projections extracted into dedicated module:
     - added `resources/js/composables/admin/orders/useAdminOrdersDerivedState.ts` to own:
       - filtered list projection;
@@ -3341,7 +3341,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin orders filter-state decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin orders filter-state decomposition):
   - admin orders filter policy extracted into dedicated module:
     - added `resources/js/composables/admin/orders/useAdminOrdersFilterState.ts` to own:
       - default vs route-sourced initial filter state;
@@ -3368,7 +3368,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin list-state decomposition + promotions/categories state-slice extraction):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin list-state decomposition + promotions/categories state-slice extraction):
   - admin orders list orchestration extracted into dedicated module:
     - added `resources/js/composables/admin/orders/useAdminOrdersListState.ts` to own:
       - server list loading lifecycle;
@@ -3403,7 +3403,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin products query state-slice decomposition + route-sync flow coverage):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin products query state-slice decomposition + route-sync flow coverage):
   - admin products query responsibilities split into explicit state slices:
     - added `resources/js/composables/admin/products/useAdminProductsFilterState.ts` for route/default filter state and route-apply/read helpers;
     - added `resources/js/composables/admin/products/useAdminProductsListState.ts` for list loading lifecycle and route-sync loader integration;
@@ -3429,7 +3429,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin products mutation decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin products mutation decomposition):
   - admin products mutation responsibilities split into explicit modules:
     - added `resources/js/composables/admin/products/useAdminProductFormState.ts` for:
       - editable form state lifecycle;
@@ -3459,7 +3459,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin promotions mutation decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin promotions mutation decomposition):
   - admin promotions mutation responsibilities split into explicit modules:
     - added `resources/js/composables/admin/promotions/useAdminPromotionFormState.ts` for:
       - promotion edit form lifecycle;
@@ -3490,7 +3490,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin categories mutation decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin categories mutation decomposition):
   - admin categories mutation responsibilities split into explicit modules:
     - added `resources/js/composables/admin/categories/useAdminCategoryFormState.ts` for:
       - category form lifecycle;
@@ -3514,7 +3514,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin mutation-context + status-sync + CRUD pagination primitive consolidation):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin mutation-context + status-sync + CRUD pagination primitive consolidation):
   - shared admin mutation/notice context extracted and applied across view-models:
     - added `resources/js/composables/admin/useAdminMutationContext.ts` for explicit `queryNotice` / `mutationNotice` adapters and shared `executeMutation` wiring;
     - migrated:
@@ -3547,7 +3547,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin delete-pipeline consolidation + route-sync duplicate-reload hardening):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin delete-pipeline consolidation + route-sync duplicate-reload hardening):
   - repeated admin delete mutation flow centralized into shared primitive:
     - added `resources/js/composables/admin/adminDeleteMutationPipeline.ts` for:
       - optional permission denial guard;
@@ -3581,7 +3581,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin submit-pipeline + ui-mutation-context consolidation):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin submit-pipeline + ui-mutation-context consolidation):
   - repeated admin create/update submit flow centralized into shared primitive:
     - added `resources/js/composables/admin/adminSubmitMutationPipeline.ts` for:
       - editing-id based create/update branching;
@@ -3615,7 +3615,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6` batch: admin simple-action mutation pipeline consolidation):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6` batch: admin simple-action mutation pipeline consolidation):
   - repeated action-style admin mutation flow centralized into shared primitive:
     - added `resources/js/composables/admin/adminActionMutationPipeline.ts` for:
       - success-message resolution;
@@ -3643,7 +3643,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 4` batch: checkout request-identity + finalization extraction):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: checkout request-identity + finalization extraction):
   - checkout residual non-orchestration responsibilities extracted from `CheckoutService`:
     - added `app/Services/Checkout/CheckoutRequestIdentityResolver.php` with internal DTO `app/Services/Checkout/Dto/CheckoutRequestIdentityDto.php` for:
       - scope-key derivation (`user:*` / `guest:*`);
@@ -3676,7 +3676,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 4` batch: payment webhook ingress + transition decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: payment webhook ingress + transition decomposition):
   - payment webhook adapter responsibilities split into explicit boundaries:
     - added `app/Services/Payment/PaymentWebhookIngressResolver.php` for:
       - provider event/transaction extraction into `PaymentWebhookPayloadDto`;
@@ -3710,7 +3710,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 4` batch: shipping webhook ingress + transition decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 4` batch: shipping webhook ingress + transition decomposition):
   - shipping webhook adapter responsibilities split into explicit boundaries:
     - added `app/Services/Shipping/ShippingWebhookIngressResolver.php` for:
       - provider event/tracking extraction into `ShippingWebhookPayloadDto`;
@@ -3744,7 +3744,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 7` batch: observability store + snapshot modularization):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 7` batch: observability store + snapshot modularization):
   - `ObservabilityService` internal responsibilities split into explicit modules:
     - added `app/Support/Observability/ObservabilityMetricStore.php` for:
       - rolling cache bucket persistence;
@@ -3781,7 +3781,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 7` batch: observability alert-router channel decomposition):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 7` batch: observability alert-router channel decomposition):
   - `ObservabilityAlertRouter` responsibilities split into explicit boundaries:
     - added typed observability alert DTOs:
       - `app/Support/Observability/Dto/ObservabilityAlertPayloadDto.php`;
@@ -3824,7 +3824,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 6 residual + Wave 8` batch: admin notice contracts + operations hardening):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 6 residual + Wave 8` batch: admin notice contracts + operations hardening):
   - low-yield admin frontend residual duplication removed:
     - shared admin notice adapter contracts exported from `resources/js/composables/admin/useAdminMutationContext.ts`;
     - query/list/form/mutation modules for admin categories/products/promotions/orders migrated from local duplicated notice interfaces to shared contracts.
@@ -3862,7 +3862,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` governance normalization (`Wave 6 closed + Wave 9 cut as next active roadmap block`):
+- `2026-02-28` вЂ” `Architecture Refactor Next` governance normalization (`Wave 6 closed + Wave 9 cut as next active roadmap block`):
   - active roadmap corrected so implementation-wave status matches completed execution:
     - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now marks Wave 6 decomposition/testing items as `completed`;
     - route-sync duplicate-reload suppression coverage is recorded in Wave 6 completion notes.
@@ -3881,7 +3881,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 9` batch: operational command boundaries + drift guardrails):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 9` batch: operational command boundaries + drift guardrails):
   - operational command execution extracted behind explicit support boundaries:
     - added shared nested command executor:
       - `app/Support/Operations/ConsoleCommandRunner.php`;
@@ -3923,7 +3923,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — project engineering governance update (`deep and substantial implementation steps made explicit`):
+- `2026-02-28` вЂ” project engineering governance update (`deep and substantial implementation steps made explicit`):
   - project rules strengthened so execution depth is mandatory, not implied:
     - `AGENTS.md` now explicitly requires deep, substantial implementation steps and end-to-end closure of coherent architectural slices;
     - `AGENTS.md` now forbids shallow step fragmentation when a larger coherent block can be completed and verified safely;
@@ -3940,7 +3940,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 10` batch: observability report command modularization):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 10` batch: observability report command modularization):
   - observability report command responsibilities split into explicit support boundaries:
     - added option parsing boundary:
       - `app/Support/Observability/ObservabilityReportOptionsResolver.php`;
@@ -3981,7 +3981,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 11` batch: smoke command scenario modularization):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 11` batch: smoke command scenario modularization):
   - smoke commands reduced to orchestration-only shells over explicit support boundaries:
     - `app/Console/Commands/AppApiContractSmokeCommand.php` now delegates to:
       - `app/Support/Smoke/ApiContract/ApiContractSmokeOptionsResolver.php`;
@@ -4029,7 +4029,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 12` batch: shared smoke infrastructure consolidation):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 12` batch: shared smoke infrastructure consolidation):
   - shared smoke execution contracts extracted and normalized:
     - `app/Support/Smoke/Dto/SmokeExecutionOptionsDto.php`;
     - `app/Support/Smoke/Dto/SmokeCommandOutputDto.php`;
@@ -4079,7 +4079,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 13` batch: command contract and scheduler guardrails):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 13` batch: command contract and scheduler guardrails):
   - shared nested command invocation contract extracted for operational command composition:
     - `app/Support/Operations/Dto/ConsoleCommandInvocationDto.php`;
     - `app/Support/Observability/ObservabilityReportCommandInvocationFactory.php`.
@@ -4116,7 +4116,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-02-28` — `Architecture Refactor Next` progress (`Wave 14` batch: release and CI guardrails):
+- `2026-02-28` вЂ” `Architecture Refactor Next` progress (`Wave 14` batch: release and CI guardrails):
   - canonical composer aliases added for release-quality and smoke verification:
     - `quality:backend`;
     - `quality:frontend`;
@@ -4148,14 +4148,14 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — architecture audit + roadmap refresh saved to active source-of-truth:
+- `2026-03-01` вЂ” architecture audit + roadmap refresh saved to active source-of-truth:
   - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated after deep audit with new priority waves:
-    - `Wave 15` — account orders module extraction and summary/detail split;
-    - `Wave 16` — category selector decoupling and shared option query;
-    - `Wave 17` — maintenance cleanup resource strategy and scale safety;
-    - `Wave 18` — read repository boundary split and product write decomposition;
-    - `Wave 19` — infrastructure provider hygiene and container guardrails;
-    - `Wave 20` — archive and documentation hygiene.
+    - `Wave 15` вЂ” account orders module extraction and summary/detail split;
+    - `Wave 16` вЂ” category selector decoupling and shared option query;
+    - `Wave 17` вЂ” maintenance cleanup resource strategy and scale safety;
+    - `Wave 18` вЂ” read repository boundary split and product write decomposition;
+    - `Wave 19` вЂ” infrastructure provider hygiene and container guardrails;
+    - `Wave 20` вЂ” archive and documentation hygiene.
   - confirmed findings recorded in active roadmap:
     - account order reads still lag behind admin parity and remain coupled to checkout transport;
     - admin category selectors still depend on management-list contracts;
@@ -4164,7 +4164,7 @@
   - targeted regression checks executed during audit, green:
     - `php artisan test --filter="AppMaintenanceCleanupCommandTest|AccountOrdersApiTest|AdminCategoryCrudTest"`;
     - `npm run test -- resources/js/tests/composables/use-account-orders.spec.ts resources/js/tests/queries/account-orders-query.spec.ts resources/js/tests/queries/admin/categories-query.spec.ts resources/js/tests/composables/admin/use-admin-categories-list-state.spec.ts`.
-- `2026-03-01` — active roadmap strengthened with protected-baseline and execution-completion sections:
+- `2026-03-01` вЂ” active roadmap strengthened with protected-baseline and execution-completion sections:
   - `docs/ARCHITECTURE_REFACTOR_NEXT.md` expanded with:
     - `Architectural Strengths To Preserve`;
     - `Audit Snapshot (2026-03-01)`;
@@ -4179,7 +4179,7 @@
     - which measurable end-state marks completion of the refactor program.
   - checks executed:
     - none; documentation-only roadmap refinement.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 15` batch: account orders module extraction and read-model split):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 15` batch: account orders module extraction and read-model split):
   - backend account-order read transport extracted from `CheckoutController` into `app/Http/Controllers/Api/V1/Account/AccountOrdersController.php`.
   - canonical account-order endpoints added:
     - `GET /api/v1/account/orders`;
@@ -4232,7 +4232,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 16` batch: category selector decoupling and shared option query):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 16` batch: category selector decoupling and shared option query):
   - backend selector endpoint added:
     - `GET /api/v1/admin/categories/options`.
   - selector-specific backend read-model introduced via:
@@ -4282,7 +4282,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 17` batch: maintenance cleanup resource strategy and scale safety):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 17` batch: maintenance cleanup resource strategy and scale safety):
   - cleanup resource strategy introduced:
     - `app/Support/Maintenance/Contracts/MaintenanceCleanupResource.php`;
     - `app/Support/Maintenance/MaintenanceCleanupPlanFactory.php`;
@@ -4321,7 +4321,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 18` batch: read repository boundary split and product write decomposition):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 18` batch: read repository boundary split and product write decomposition):
   - mixed read repositories split into bounded read-model paths:
     - `app/Repositories/AdminOrderReadRepository.php`;
     - `app/Repositories/AdminProductReadRepository.php`;
@@ -4372,7 +4372,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — admin list query boolean normalization follow-up:
+- `2026-03-01` вЂ” admin list query boolean normalization follow-up:
   - fixed admin category list failure for browser query strings like `/admin/categories?status=active` by normalizing `is_active=true|false` before FormRequest validation instead of rejecting serialized boolean strings;
   - shared request concern added:
     - `app/Http/Requests/Concerns/NormalizesBooleanQueryInput.php`;
@@ -4393,7 +4393,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — admin boolean input boundary hardening:
+- `2026-03-01` вЂ” admin boolean input boundary hardening:
   - extended `app/Http/Requests/Concerns/NormalizesBooleanQueryInput.php` into a shared recursive normalizer for top-level, nested, and wildcard boolean input paths;
   - applied normalization to remaining admin requests with boolean validation rules:
     - `app/Http/Requests/Admin/CategoryStoreRequest.php`;
@@ -4428,7 +4428,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — catalog numeric price sorting fix:
+- `2026-03-01` вЂ” catalog numeric price sorting fix:
   - fixed catalog product sorting by price in `app/Repositories/CatalogProductReadRepository.php` so `price_asc` and `price_desc` order by numeric value rather than lexical string order;
   - aligned catalog variant projection ordering to numeric `price asc` so catalog cards expose the cheapest active variant first;
   - added feature regression coverage in `tests/Feature/CatalogTest.php` for:
@@ -4445,7 +4445,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — admin product read-model ordering hardening:
+- `2026-03-01` вЂ” admin product read-model ordering hardening:
   - audited admin products after the catalog numeric-price fix and confirmed that admin list/detail do not currently expose a public `sort=price_*` contract;
   - hardened the actual admin-side risk by moving admin product detail loading onto `app/Repositories/AdminProductReadRepository.php` and standardizing the canonical admin eager-load shape for:
     - `category:id,name,slug`;
@@ -4465,7 +4465,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 19` batch: infrastructure provider hygiene and container guardrails):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 19` batch: infrastructure provider hygiene and container guardrails):
   - split container bindings out of `app/Providers/AppServiceProvider.php` into dedicated provider modules:
     - `app/Providers/ApplicationBindingsServiceProvider.php`;
     - `app/Providers/AuthBindingsServiceProvider.php`;
@@ -4490,7 +4490,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 20` batch: archive and documentation hygiene):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 20` batch: archive and documentation hygiene):
   - normalized archival banners on historical plan documents so each explicitly forbids active-use drift and points to `docs/ARCHITECTURE_REFACTOR_NEXT.md`:
     - `docs/ARCHITECTURE_REFACTOR_PLAN.md`;
     - `docs/DEEP_REFACTORING_PLAN.md`;
@@ -4522,7 +4522,7 @@
     - `npm run test`;
     - `npm run build`;
     - `php artisan test --filter="OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 21` batch: transport validation consistency):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 21` batch: transport validation consistency):
   - extracted catalog list validation from `app/Http/Controllers/Api/V1/CatalogController.php` into dedicated `app/Http/Requests/Catalog/CatalogIndexRequest.php`;
   - catalog list transport parsing now uses typed request accessors:
     - `CatalogIndexRequest::filter()`;
@@ -4552,7 +4552,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — authenticated-user transport boundary hardening:
+- `2026-03-01` вЂ” authenticated-user transport boundary hardening:
   - strengthened `app/Http/Controllers/Concerns/ResolvesAuthenticatedUser.php` with:
     - `resolveAuthenticatedUser()` for guest-capable endpoints;
     - `requireAuthenticatedUser()` for auth-required API controller actions with centralized `401` API response handling.
@@ -4580,7 +4580,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 22` batch: frontend price formatting and utility consolidation):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 22` batch: frontend price formatting and utility consolidation):
   - added canonical currency-aware formatter:
     - `resources/js/utils/format.ts` (`formatPrice(value, currency?, locale?)`).
   - normalized legacy formatter path:
@@ -4625,7 +4625,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 23` batch: static analysis hardening):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 23` batch: static analysis hardening):
   - eliminated the PHPStan level 6 baseline completely:
     - removed `phpstan-baseline.neon`;
     - `phpstan.neon` now includes only Larastan extension wiring and level-6 paths.
@@ -4675,7 +4675,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — `Architecture Refactor Next` progress (`Wave 24` batch: architecture guardrail expansion):
+- `2026-03-01` вЂ” `Architecture Refactor Next` progress (`Wave 24` batch: architecture guardrail expansion):
   - expanded repository boundary guardrails with:
     - `tests/Unit/Architecture/RepositoryBusinessDecisionBoundaryTest.php`,
     asserting read repositories:
@@ -4707,7 +4707,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — post-wave type-safety hardening (`PHPStan level 7 upgrade`):
+- `2026-03-01` вЂ” post-wave type-safety hardening (`PHPStan level 7 upgrade`):
   - added shared typed console helper in `tests/TestCase.php`:
     - `artisanCommand(...)` now returns `Illuminate\Testing\PendingCommand`, removing `PendingCommand|int` ambiguity from fluent command assertions.
   - migrated command-heavy feature tests to the typed helper:
@@ -4753,7 +4753,7 @@
     - `npm run test`;
     - `npm run build`;
     - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-01` — post-wave strict type hardening (`PHPStan level 8 upgrade`):
+- `2026-03-01` вЂ” post-wave strict type hardening (`PHPStan level 8 upgrade`):
   - tightened remaining level 8 nullable/return-type gaps in application and service code:
     - `app/Application/Auth/Support/AuthUserDtoMapper.php`;
     - `app/Application/Checkout/Dto/CheckoutPaymentResultDto.php`;
@@ -4781,7 +4781,7 @@
     - `npm run test`;
     - `npm run build`;
     - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-01` — post-wave strict type hardening (`PHPStan level 9 upgrade`):
+- `2026-03-01` вЂ” post-wave strict type hardening (`PHPStan level 9 upgrade`):
   - introduced shared strict-typing normalization in:
     - `app/Support/Data/TypedValue.php`;
     - `tests/TestCase.php`.
@@ -4818,7 +4818,7 @@
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`;
     - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-01` — phpstan config alignment correction:
+- `2026-03-01` вЂ” phpstan config alignment correction:
   - investigated a mismatch between docs/log claims and the actual working-tree config:
     - `phpstan.neon` was still pinned at level `8`;
     - `docs/ARCHITECTURE_REFACTOR_NEXT.md` and this execution log already claimed level `9`;
@@ -4827,7 +4827,7 @@
     - the codebase had been hardened to pass level `9`, but the config file itself had not been persisted from level `8` to level `9`.
   - corrective action:
     - `phpstan.neon` updated from level `8` to level `9` so the checked-in config now matches the validated and documented state.
-- `2026-03-01` — post-wave strict type hardening (`PHPStan level 10 upgrade`):
+- `2026-03-01` вЂ” post-wave strict type hardening (`PHPStan level 10 upgrade`):
   - closed remaining level 10 strictness gaps around transport payload normalization, middleware return boundaries, provider resource resolution, relation eager-load closures, and schema/test helper typing:
     - `app/Application/Checkout/Dto/CheckoutPaymentResultDto.php`;
     - `app/Http/Controllers/Api/V1/Webhook/PaymentWebhookController.php`;
@@ -4857,7 +4857,7 @@
     - `npm run build`;
     - `php artisan optimize:clear`;
     - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-01` — Psalm integrated into the canonical backend analysis gate:
+- `2026-03-01` вЂ” Psalm integrated into the canonical backend analysis gate:
   - installed `vimeo/psalm` and pinned it to `6.4.1`, which is the latest version verified runnable on the current local CLI runtime (`PHP 8.4.1`);
   - newer upstream Psalm releases were not adopted in this repository state because they require a newer PHP 8.4 patch level at runtime, which would break local parity for the checked-in toolchain;
   - versioned `psalm.xml` added with an initial strict-but-green configuration:
@@ -4903,7 +4903,7 @@
     - `npm run type-check`;
     - `npm run test`;
     - `npm run build`.
-- `2026-03-01` — deep architecture audit converted into aligned execution backlog:
+- `2026-03-01` вЂ” deep architecture audit converted into aligned execution backlog:
   - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md` was reframed from a generic refactoring plan into an aligned backlog input:
     - explicit execution-alignment rules added;
     - promotion rules added;
@@ -4916,7 +4916,7 @@
   - verification:
     - docs-only governance update; runtime quality gate commands were not executed.
     - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"` passed green.
-- `2026-03-01` — promoted audit `Backlog A` completed as the next safety slice:
+- `2026-03-01` вЂ” promoted audit `Backlog A` completed as the next safety slice:
   - cart mutation concurrency hardened:
     - `app/Services/Cart/CartMutationService.php` now wraps `upsertItem()` and `removeItem()` in explicit transactions with locked cart/item state;
     - stale in-memory cart state no longer controls `CartItem` upsert decisions;
@@ -4952,7 +4952,7 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
-- `2026-03-02` — promoted audit `Backlog B` completed as backend boundary-hygiene slice:
+- `2026-03-02` вЂ” promoted audit `Backlog B` completed as backend boundary-hygiene slice:
   - DomainException handling centralized at transport boundary:
     - `bootstrap/app.php` now maps `\DomainException` to `422` for `/api/*`;
     - inline controller catches removed from:
@@ -4997,7 +4997,7 @@
       - `npm run build`;
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-02` — promoted audit `Backlog C` completed as frontend consistency slice:
+- `2026-03-02` вЂ” promoted audit `Backlog C` completed as frontend consistency slice:
   - assertion primitives consolidated across API V1 contracts:
     - shared helper module added:
       - `resources/js/contracts/api/v1/assertions/primitives.ts`;
@@ -5053,7 +5053,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-03` — promoted audit `Backlog D` progressed via deep-domain checkout foundation slice (`items 9 and 10`):
+- `2026-03-03` вЂ” promoted audit `Backlog D` progressed via deep-domain checkout foundation slice (`items 9 and 10`):
   - checkout orchestration extracted from application handler:
     - new service boundary introduced:
       - `app/Services/Checkout/CheckoutPlaceOrderOrchestrator.php`;
@@ -5088,7 +5088,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-03` — promoted audit `Backlog D` progressed via payment-status domain extraction slice (`item 8` foundation):
+- `2026-03-03` вЂ” promoted audit `Backlog D` progressed via payment-status domain extraction slice (`item 8` foundation):
   - payment-status business logic removed from Eloquent model boundary:
     - extracted domain service:
       - `app/Domain/Order/OrderPaymentStatusResolver.php`;
@@ -5118,7 +5118,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog D` progressed via checkout-scoped money value-object foundation (`item 7` foundation):
+- `2026-03-04` вЂ” promoted audit `Backlog D` progressed via checkout-scoped money value-object foundation (`item 7` foundation):
   - domain money boundary introduced:
     - added `app/Domain/ValueObjects/Money.php` (`cents + currency`) with deterministic arithmetic/rounding semantics and explicit currency guards.
   - checkout core internals migrated from float arithmetic to `Money`:
@@ -5153,7 +5153,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` started via factory foundation slice (`item 20` foundation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` started via factory foundation slice (`item 20` foundation):
   - added model factories for isolated test setup without mandatory catalog seeding:
     - `database/factories/CategoryFactory.php`;
     - `database/factories/ProductFactory.php`;
@@ -5188,7 +5188,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via checkout feature factory adoption (`item 20` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via checkout feature factory adoption (`item 20` continuation):
   - checkout feature tests decoupled from `CatalogSeeder` bootstrap:
     - `tests/Feature/GuestCheckoutTest.php`;
     - `tests/Feature/CouponCheckoutTest.php`;
@@ -5216,7 +5216,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via webhook feature factory adoption (`item 20` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via webhook feature factory adoption (`item 20` continuation):
   - webhook feature tests decoupled from `CatalogSeeder`:
     - `tests/Feature/PaymentWebhookTest.php`;
     - `tests/Feature/ShippingWebhookTest.php`.
@@ -5245,7 +5245,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via catalog/hardening feature factory adoption (`item 20` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via catalog/hardening feature factory adoption (`item 20` continuation):
   - catalog feature tests decoupled from `CatalogSeeder`:
     - `tests/Feature/CatalogTest.php` now prepares active catalog state with factory fixture helper.
   - phase-one hardening storefront/cart/checkout setup decoupled from `CatalogSeeder`:
@@ -5273,7 +5273,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via admin-promotion/performance feature factory adoption (`item 20` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via admin-promotion/performance feature factory adoption (`item 20` continuation):
   - remaining feature tests decoupled from `CatalogSeeder`:
     - `tests/Feature/AdminPromotionCouponFlowTest.php` now uses `CreatesCatalogVariant` for checkout-capable variant setup in promotion/coupon checkout flow;
     - `tests/Feature/PerformanceSmokeTest.php` now builds deterministic catalog fixtures with factories (`CreatesCatalogVariant`) for catalog/admin-product query budgets.
@@ -5298,7 +5298,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via status-transition domain-event foundation (`item 21` foundation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via status-transition domain-event foundation (`item 21` foundation):
   - transition events introduced with `afterCommit` dispatch contract:
     - `app/Events/OrderStatusChanged.php`;
     - `app/Events/PaymentStatusChanged.php`;
@@ -5340,7 +5340,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via status-transition metrics subscribers (`item 21` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via status-transition metrics subscribers (`item 21` continuation):
   - status-transition metric listeners added:
     - `app/Listeners/RecordOrderStatusTransitionMetric.php`;
     - `app/Listeners/RecordPaymentStatusTransitionMetric.php`;
@@ -5379,7 +5379,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via order-status notification side-effects (`item 21` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via order-status notification side-effects (`item 21` continuation):
   - dedicated order-status side-effect listener introduced:
     - `app/Listeners/QueueOrderStatusSideEffects.php` now handles `OrderStatusChanged` and dispatches queued customer notification flow for selected statuses.
   - queued notification delivery flow added:
@@ -5416,7 +5416,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via order-status notification config-contract hardening (`item 21` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via order-status notification config-contract hardening (`item 21` continuation):
   - order-status notification policy moved to explicit config:
     - added `config/orders.php` with `orders.status_notifications.notifiable_statuses`.
   - listener now resolves notification scope from config with enum-safe validation:
@@ -5443,7 +5443,7 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via docker-compose foundation (`item 22` start):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via docker-compose foundation (`item 22` start):
   - local docker compose entrypoint added:
     - `docker-compose.yml` now provides root-level local stack (`app`, `nginx`, `db` MySQL 8.4, `redis` Redis 7).
   - compose contract guardrail added:
@@ -5470,7 +5470,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via status-transition typed-source boundary hardening (`item 21` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via status-transition typed-source boundary hardening (`item 21` continuation):
   - typed transition-source contract introduced:
     - added `app/Domain/Order/StatusTransitionSource.php` with explicit cases:
       - `payment_webhook`,
@@ -5522,7 +5522,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via docker-ops alias parity (`item 22` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via docker-ops alias parity (`item 22` continuation):
   - canonical local docker aliases added to composer scripts:
     - `ops:docker-up` (`docker compose up --build -d`);
     - `ops:docker-down` (`docker compose down`);
@@ -5552,7 +5552,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted audit `Backlog E` progressed via docker release-doc/runbook parity (`item 22` continuation):
+- `2026-03-04` вЂ” promoted audit `Backlog E` progressed via docker release-doc/runbook parity (`item 22` continuation):
   - release checklist docker alias parity added:
     - `docs/PHASE5_RELEASE_READINESS_CHECKLIST.md` now includes:
       - `composer run ops:docker-up`;
@@ -5583,7 +5583,7 @@
       - `npm run build`.
     - docs guardrails passed:
       - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest"`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog F` (`P0`, items `1-3`) safety slice started:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog F` (`P0`, items `1-3`) safety slice started:
   - admin direct order-status transition guard added:
     - `app/Services/Order/OrderStatusTransitionPolicy.php` expanded with explicit `canTransitionDirectly(from, to)` state matrix and promoted to `final readonly`;
     - `app/Services/Admin/AdminOrderService.php` now rejects invalid explicit direct status transitions with `DomainException("Order status transition is not allowed.")`.
@@ -5625,7 +5625,7 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `4`) cart money-expansion slice started:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `4`) cart money-expansion slice started:
   - cart mutation monetary write-path migrated to `Money`:
     - `app/Services/Cart/CartMutationService.php` now computes `unit_price` and `line_total` through `Money` arithmetic instead of `bcmul` string math;
     - scalar persistence boundary remains unchanged (`toFloat`) to preserve DB/API compatibility.
@@ -5654,7 +5654,7 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `5`) order/payment money-boundary slice started:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `5`) order/payment money-boundary slice started:
   - order detail DTO mapping normalized through `Money` while keeping API float contract:
     - `app/Application/Checkout/Dto/CheckoutOrderResultDto.php`,
     - `app/Application/Admin/Orders/Dto/AdminOrderDetailResultDto.php`,
@@ -5683,7 +5683,7 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `6`) service-contract boundary slice progressed:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `6`) service-contract boundary slice progressed:
   - explicit contracts added for cart/checkout core services:
     - `app/Contracts/CheckoutServiceInterface.php`;
     - `app/Contracts/CartServiceInterface.php`;
@@ -5722,7 +5722,7 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `7`) repository-contract boundary slice progressed:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `7`) repository-contract boundary slice progressed:
   - explicit repository contracts introduced for remaining admin/catalog read paths:
     - `app/Application/Admin/Orders/Contracts/AdminOrderReadRepository.php`;
     - `app/Application/Admin/Products/Contracts/AdminProductReadRepository.php`;
@@ -5762,7 +5762,7 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `8`) observability metric race-safety slice progressed:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog G` (`P1`, item `8`) observability metric race-safety slice progressed:
   - `ObservabilityMetricStore` counter increment path hardened against concurrent update loss:
     - removed `Cache::add + Cache::increment + Cache::get/put` write pattern that could overwrite parallel increments;
     - `incrementCounter(...)` now uses:
@@ -5791,7 +5791,7 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog H` (`P1`, item `9`) order state-machine consolidation slice started:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog H` (`P1`, item `9`) order state-machine consolidation slice started:
   - canonical order transition matrix API introduced:
     - `app/Services/Order/OrderStatusTransitionPolicy.php` now exposes `canTransition(OrderStatus|string $from, OrderStatus|string $to): bool`.
   - backward compatibility preserved for existing call-sites:
@@ -5825,7 +5825,7 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-04` — promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog H` (`P1`, items `10` and `11`) webhook failure observability + exception hierarchy slice progressed:
+- `2026-03-04` вЂ” promoted `Deep Architecture Audit & Refactoring Plan v2` `Backlog H` (`P1`, items `10` and `11`) webhook failure observability + exception hierarchy slice progressed:
   - webhook pipeline failure observability hardened:
     - `app/Services/Webhook/WebhookProcessingPipeline.php` now logs `webhook.processing_failed` with deterministic context before rethrowing;
     - failure context includes provider/correlation/event metadata, receipt id, payload hash, pipeline outcome, source, and exception class/message.
@@ -5869,7 +5869,7 @@
     - routes/controllers post-change checks passed:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
-- `2026-03-05` — promoted AI execution-governance architecture slice (repo map + dependency guardrails):
+- `2026-03-05` вЂ” promoted AI execution-governance architecture slice (repo map + dependency guardrails):
   - canonical architecture contract docs introduced:
     - `docs/ARCHITECTURE.md` with layer model, dependency rules, and reliability contracts;
     - `docs/AI_REPO_MAP.md` with bounded-context map and task entrypoints for implementation navigation.
@@ -5899,7 +5899,7 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
-- `2026-03-05` — promoted repo-map canonicalization slice (`REPO_MAP` + `DOMAIN_MAP`) with compatibility alias:
+- `2026-03-05` вЂ” promoted repo-map canonicalization slice (`REPO_MAP` + `DOMAIN_MAP`) with compatibility alias:
   - canonical AI navigation docs introduced:
     - `docs/REPO_MAP.md` added as repository-wide AI navigation map;
     - `docs/DOMAIN_MAP.md` added as bounded-context dependency/ownership map.
@@ -5929,7 +5929,7 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
-- `2026-03-05` — promoted modular-monolith skeleton target slice:
+- `2026-03-05` вЂ” promoted modular-monolith skeleton target slice:
   - modular domain skeleton introduced:
     - `app/Domains/Catalog/README.md`
     - `app/Domains/Cart/README.md`
@@ -5986,3 +5986,179 @@
       - `npm run type-check`;
       - `npm run test`;
       - `npm run build`.
+- `2026-03-05` - active roadmap direction policy synchronized for modular-monolith convergence:
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` updated with explicit single-direction policy:
+    - execution direction is fixed to the active architecture-first wave flow;
+    - end-state target is incremental convergence to modular monolith under `app/Domains/*`;
+    - every newly promoted block must declare modular-monolith convergence impact with API/DB compatibility preservation.
+  - execution progress synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now includes progress item `54` for the direction-policy lock.
+  - verification:
+    - backend quality checks passed (alias-equivalent commands used in this local shell):
+      - `vendor/bin/pint --test`;
+      - `vendor/bin/phpstan analyse --memory-limit=1G`;
+      - `vendor/bin/psalm --no-progress` (with local `XDG_CACHE_HOME`);
+      - `php artisan test`.
+    - frontend quality checks passed:
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+
+- `2026-03-05` - roadmap/docs reality-alignment block completed (deep code-audit synchronization):
+  - planning documents synchronized with verified runtime/code reality:
+    - docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md:
+      - added Reality Check Addendum (2026-03-05);
+      - marked item 1 as closed;
+      - marked item 40 as false-positive closed;
+      - marked item 42 as partially/mostly closed by after-commit event/listener contracts;
+      - narrowed active safety focus to items 39, 41, 43 + high-concurrency 44, 45.
+    - docs/ARCHITECTURE_REFACTOR_NEXT.md:
+      - added execution progress item 55 as active promoted safety-concurrency alignment block;
+      - explicitly tied next block to modular-monolith convergence readiness for Cart and Orders boundaries.
+  - execution policy alignment:
+    - retained single-direction architecture-first flow;
+    - avoided promoting already-closed or false-positive findings into active implementation queue.
+  - verification/checks executed for this logical block:
+    - documentation consistency checks via repository search and direct file inspection (`rg`, targeted file reads);
+    - git diff review of changed planning docs.
+  - quality-gate note:
+    - documentation-only block; no runtime/backend/frontend code paths were changed.
+
+- `2026-03-05` - planning consistency normalization block completed:
+  - internal plan conflicts resolved for execution clarity:
+    - docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md:
+      - item 1 status normalized to partially closed (explicit direct guard exists, auto-derived path still open);
+      - item 42 status normalized to closed (verified) across addendum/backlog wording;
+      - Backlog F2 de-duplicated (39 removed to avoid overlap with Backlog F).
+    - docs/ARCHITECTURE_REFACTOR_NEXT.md:
+      - header date refreshed to 2026-03-05;
+      - summary line updated to reflect active continuation through promoted block 55.
+  - verification/checks executed for this logical block:
+    - documentation consistency checks via targeted file inspection (`rg`, direct section reads);
+    - git diff review for modified planning docs.
+  - full mandatory sequential quality gate executed and passed:
+    - `vendor/bin/pint --test`;
+    - `vendor/bin/phpstan analyse --memory-limit=1G`;
+    - `vendor/bin/psalm --no-progress`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+  - quality-gate note:
+    - documentation-only changes; runtime/backend/frontend code paths were not modified, but full gate was still executed per policy.
+
+- `2026-03-05` - promoted safety-concurrency alignment block progressed (`55`, closure slice for items `44` and `45`):
+  - backend safety hardening implemented:
+    - `app/Services/Cart/CartResolver.php` authenticated branch now runs in `DB::transaction()` with `lockForUpdate()` on user and active-cart lookup;
+    - `app/Services/Admin/AdminOrderService.php::updateStatus(...)` now runs in `DB::transaction()` and reloads order row with `lockForUpdate()`.
+  - typed failure contracts added for stale/missing rows:
+    - `CartException::authenticatedUserNotFound()`;
+    - `OrderTransitionException::orderNotFoundForStatusUpdate()`.
+  - deterministic regressions extended:
+    - `tests/Unit/CartResolverTest.php` adds authenticated missing-user assertion;
+    - `tests/Unit/AdminOrderServiceStatusEventTest.php` adds stale-order update assertion.
+  - planning docs synchronized:
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` marks items `44` and `45` as closed (verified);
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` adds execution progress item `56` and keeps active remainder of block `55`: items `39`, `41`, `43`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="CartResolverTest|AdminOrderServiceStatusEventTest"`.
+    - full mandatory sequential quality gate passed (command-equivalent execution in this shell):
+      - `vendor/bin/pint --test`;
+      - `vendor/bin/phpstan analyse --memory-limit=1G`;
+      - `vendor/bin/psalm --no-progress`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+  - environment note:
+    - `composer run lint` / `composer run analyse` were not reliable in this local shell due temp-directory permissions for vendor wrappers; equivalent underlying commands were executed with project-local temp/cache paths.
+
+- `2026-03-05` - promoted safety-concurrency alignment block progressed (`55`, closure slice for item `39`):
+  - cart ownership hardening implemented on write boundary:
+    - `app/Contracts/CartServiceInterface.php` and `app/Contracts/CartMutationServiceInterface.php` mutation contracts now accept caller ownership context (`?User`, `?string $guestToken`);
+    - `app/Services/Cart/CartMutationService.php` now asserts ownership before writes and throws `CartException::cartOwnershipMismatch()` on mismatch.
+  - cart application handlers aligned with ownership context propagation:
+    - `app/Application/Cart/Commands/UpsertCartItemHandler.php`;
+    - `app/Application/Cart/Commands/RemoveCartItemHandler.php`.
+  - deterministic regression coverage extended:
+    - `tests/Feature/CartMutationSafetyTest.php` now verifies:
+      - mismatched authenticated owner context is rejected;
+      - mismatched guest-token context is rejected.
+  - planning docs synchronized:
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` marks item `39` as closed (verified) and keeps `41/43` as active P0 remainder;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` adds execution progress item `57` and narrows active block `55` remainder to `41/43`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="CartMutationSafetyTest|CartResolverTest|CartCheckoutTest"`.
+    - full mandatory sequential quality gate passed (command-equivalent execution in this shell):
+      - `vendor/bin/pint --test`;
+      - `vendor/bin/phpstan analyse --memory-limit=1G`;
+      - `vendor/bin/psalm --no-progress`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+  - environment note:
+    - `composer run lint` / `composer run analyse` were not reliable in this local shell due temp-directory permissions for vendor wrappers; equivalent underlying commands were executed with project-local temp/cache paths.
+
+- `2026-03-06` - promoted safety-concurrency alignment block progressed (`55`, closure slice for item `41`):
+  - promotion/coupon counter mass-assignment hardening implemented:
+    - `app/Models/Promotion.php` no longer exposes `usage_count` in `$fillable`;
+    - `app/Models/Coupon.php` no longer exposes `redeemed_count` in `$fillable`.
+  - counter semantics preserved on explicit business path:
+    - `app/Services/Checkout/CheckoutOrderFinalizer.php` remains the explicit counter mutation boundary through atomic increment operations.
+  - deterministic regression coverage extended:
+    - `tests/Unit/Architecture/PromotionCounterFillableGuardrailTest.php` added to lock the counter denylist;
+    - `tests/Feature/AdminPromotionCouponFlowTest.php` now verifies admin write payloads cannot reset counters.
+  - planning docs synchronized:
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` marks item `41` as closed (verified) and leaves item `43` as the only active P0 remainder;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` adds execution progress item `58` and narrows active block `55` remainder to `43`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="AdminPromotionCouponFlowTest|PromotionCounterFillableGuardrailTest|CouponCheckoutTest|CheckoutOrderFinalizerTest"`.
+- `2026-03-06` - `Architecture Refactor Next` progress (`Promoted safety-concurrency alignment block`, item `43` inventory restore on cancellation closure):
+  - shared order cancellation compensation boundary added:
+    - `app/Services/Order/OrderInventoryReleaseService.php` now aggregates order-item quantities by variant, locks matching inventory rows, and restores consumed `Inventory.quantity`;
+    - release is idempotent at transition level because callers invoke it only on the first `not-cancelled -> cancelled` state change.
+  - runtime cancellation sources aligned on the shared boundary:
+    - `app/Services/Admin/AdminOrderService.php` now restores inventory before persisting direct or derived `cancelled` transitions;
+    - `app/Services/Payment/PaymentWebhookTransitionApplier.php` now restores inventory when failed-payment resolution moves an order into `cancelled`.
+  - typed failure surface extended:
+    - `app/Domain/Exceptions/OrderTransitionException.php` adds explicit missing-inventory-row failure for cancellation release corruption cases.
+  - deterministic regression coverage extended:
+    - `tests/Unit/AdminOrderServiceStatusEventTest.php` verifies repeated admin cancellation restores inventory only once;
+    - `tests/Unit/PaymentWebhookTransitionApplierTest.php` verifies failed-payment cancellation restores inventory;
+    - `tests/Feature/PhaseOneHardeningTest.php` and `tests/Feature/PaymentWebhookTest.php` cover admin API and payment webhook API end-to-end release paths.
+  - planning docs synchronized:
+    - `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` marks item `43` as closed (verified) and marks `Backlog F2` complete;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` adds progress item `59`, completes promoted block `55`, and points next priority to `Backlog F3` item `77`.
+  - verification:
+    - targeted regressions passed:
+      - `php artisan test --filter="AdminOrderServiceStatusEventTest|PaymentWebhookTransitionApplierTest|PhaseOneHardeningTest|PaymentWebhookTest"`.
+    - full quality gate passed sequentially:
+      - `vendor/bin/pint --test`;
+      - `vendor/bin/phpstan analyse --memory-limit=1G`;
+      - `vendor/bin/psalm --no-progress`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+  - local shell notes:
+    - `composer run lint` remains unreliable in this environment because `vendor/laravel/pint/builds/pint` fails phar temp decompression; equivalent underlying command was executed via `php -d sys_temp_dir=storage/tmp vendor/bin/pint --test`;
+    - `npm run format:ox:check`, `npm run test`, and `npm run build` required unsandboxed reruns due local `spawn EPERM` process restrictions while launching external formatter / esbuild subprocesses.

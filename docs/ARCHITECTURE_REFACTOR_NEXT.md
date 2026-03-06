@@ -1,6 +1,6 @@
 # Architecture Refactor Next (Architecture-First)
 
-Date: `2026-03-01`
+Date: `2026-03-05`
 Status: `Active`
 Priority mode: `Architecture-first`
 
@@ -12,7 +12,7 @@ Priority mode: `Architecture-first`
 
 ## Summary
 
-DTO migration and the first refactor waves are completed, and the March 1 execution program is now materially closed for the current wave set:
+DTO migration and the first refactor waves are completed; the March 1 baseline is closed, and execution now continues through promoted block `55` (safety-concurrency alignment):
 
 - PHPStan now runs clean at level 10 without `phpstan-baseline.neon`;
 - canonical backend static analysis now runs through `composer run analyse` as `PHPStan + Psalm`;
@@ -23,6 +23,12 @@ DTO migration and the first refactor waves are completed, and the March 1 execut
   DomainException mapping is centralized in the global API exception renderer, coupon policy completeness is enforced, admin cache refresh now includes policy authorization, and checkout discount datetime checks no longer depend on raw Eloquent attributes.
 
 Goal of this program: close those gaps without breaking `/api/v1/*` response envelope (`data/meta/error`) and with strict quality-gate enforcement after each logical block.
+
+## Direction Policy
+
+1. Program direction is singular: move strictly through the active plan waves and promoted backlog blocks in architecture-first order.
+2. End-state target for this single direction is incremental convergence to modular monolith physical layout under `app/Domains/*`.
+3. Each newly promoted block must explicitly state how it advances modular-monolith convergence while preserving current API/DB backward compatibility.
 
 ## Architectural Strengths To Preserve
 
@@ -1119,6 +1125,91 @@ Goal of this program: close those gaps without breaking `/api/v1/*` response env
       - `.cursorrules` and `AGENTS.md` now explicitly prefer `app/Domains/*` for new domain-centric slices when compatibility permits.
     - architecture guardrails expanded:
       - `ModularMonolithSkeletonGuardrailTest` enforces domain skeleton presence and target-layout sections in architecture docs.
+54. Roadmap direction clarified as a single plan-aligned track toward modular monolith:
+    - the active roadmap now explicitly fixes one execution direction (architecture-first wave flow only);
+    - modular-monolith convergence is locked as the end-state target for this direction;
+    - new promoted blocks must declare convergence impact and preserve compatibility constraints.
+55. Promoted safety-concurrency alignment block started (`2026-03-05`, based on verified code reality from `DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` addendum):
+    - active scope for the next implementation block:
+      - item `39` (cart ownership policy completeness),
+      - item `41` (promotion/coupon counter write-hardening),
+      - item `43` (inventory restore on cancellation),
+      - item `44` (authenticated cart resolver race safety),
+      - item `45` (admin order update row-lock/transaction safety).
+    - explicitly de-scoped from active safety backlog:
+      - item `40` as false-positive closed,
+      - item `42` as mostly closed by current after-commit contracts (kept only as guardrail regression watch),
+      - item `47` retained as business-rule decision item, not silent refactor.
+    - modular-monolith convergence impact (explicit):
+      - this block hardens ownership and transaction contracts in `Cart` and `Orders` before physical migration into `app/Domains/*`,
+      - reducing hidden coupling/race semantics before module extraction keeps future `Domains/Cart` and `Domains/Orders` boundaries deterministic.
+56. Promoted safety-concurrency alignment block progressed (`2026-03-05`, items `44` and `45` closure slice):
+    - authenticated cart resolve path hardened:
+      - `CartResolver::resolve(...)` authenticated branch now runs inside `DB::transaction(...)`;
+      - user row is reloaded with `lockForUpdate()` before active-cart lookup;
+      - active cart lookup uses `lockForUpdate()` and typed missing-user branch now throws `CartException::authenticatedUserNotFound()`.
+    - admin order update path hardened:
+      - `AdminOrderService::updateStatus(...)` now runs fully inside `DB::transaction(...)`;
+      - order row is reloaded with `lockForUpdate()` before transition evaluation/update;
+      - stale order id now fails fast with typed `OrderTransitionException::orderNotFoundForStatusUpdate()`.
+    - deterministic regression coverage extended:
+      - `CartResolverTest` adds authenticated missing-user assertion;
+      - `AdminOrderServiceStatusEventTest` adds stale-order update assertion.
+    - active remainder in promoted block `55`:
+      - item `39` (cart ownership policy completeness),
+      - item `41` (promotion/coupon counter write-hardening),
+      - item `43` (inventory restore on cancellation).
+    - modular-monolith convergence impact (explicit):
+      - transaction/locking semantics for future `Domains/Cart` and `Domains/Orders` extraction are now explicit and test-covered,
+      - reducing race-condition ambiguity before module-boundary relocation.
+57. Promoted safety-concurrency alignment block progressed (`2026-03-05`, item `39` ownership-guard closure slice):
+    - cart mutation ownership guard added on write boundary:
+      - `CartService` / `CartMutationService` mutation methods now accept request ownership context (`user`, `guestToken`);
+      - mutation path now rejects owner/token mismatch before write operations with typed `CartException::cartOwnershipMismatch()`.
+    - application cart mutation handlers aligned:
+      - `UpsertCartItemHandler` and `RemoveCartItemHandler` now forward caller ownership context into mutation boundary.
+    - deterministic regression coverage extended:
+      - `CartMutationSafetyTest` now verifies:
+        - mismatched authenticated owner context is rejected;
+        - mismatched guest-token context is rejected.
+    - active remainder in promoted block `55`:
+      - item `41` (promotion/coupon counter write-hardening),
+      - item `43` (inventory restore on cancellation).
+    - modular-monolith convergence impact (explicit):
+      - ownership invariants for future `Domains/Cart` write services are now explicit at mutation contracts,
+      - reducing implicit trust on transport-only policy checks before module extraction.
+58. Promoted safety-concurrency alignment block progressed (`2026-03-06`, item `41` counter hardening closure slice):
+    - promotion/coupon counter mass-assignment surface reduced:
+      - `Promotion::$fillable` no longer includes `usage_count`;
+      - `Coupon::$fillable` no longer includes `redeemed_count`.
+    - counter mutation path remains explicit:
+      - checkout completion still updates counters only through atomic increment operations in `CheckoutOrderFinalizer`.
+    - deterministic regression coverage extended:
+      - `PromotionCounterFillableGuardrailTest` now locks the counter denylist at model boundary;
+      - `AdminPromotionCouponFlowTest` now verifies admin write payloads cannot reset promotion/coupon counters.
+    - active remainder in promoted block `55`:
+      - item `43` (inventory restore on cancellation).
+    - modular-monolith convergence impact (explicit):
+      - future `Domains/Checkout` and `Domains/Orders` write paths no longer depend on permissive model mass-assignment for counter state,
+      - narrowing hidden write surface before module extraction keeps promotion/coupon state transitions explicit.
+59. Promoted safety-concurrency alignment block completed (`2026-03-06`, item `43` inventory-release closure slice):
+    - shared order cancellation inventory boundary introduced:
+      - `OrderInventoryReleaseService::release(Order $order)` now aggregates order-item quantities by variant and restores consumed `Inventory.quantity` under `lockForUpdate()`;
+      - release executes only on the first `not-cancelled -> cancelled` transition, preventing double restore on repeated self-transitions.
+    - all real cancellation sources in current runtime are aligned:
+      - `AdminOrderService` now invokes the shared release boundary before persisting direct or derived `cancelled` transitions;
+      - `PaymentWebhookTransitionApplier` now invokes the same release boundary when failed-payment resolution moves an order into `cancelled`.
+    - deterministic regression coverage extended:
+      - `AdminOrderServiceStatusEventTest` now verifies single-release semantics for repeated admin cancellation;
+      - `PaymentWebhookTransitionApplierTest` now verifies failed-payment cancellation restores inventory;
+      - `PhaseOneHardeningTest` and `PaymentWebhookTest` now cover the admin API and webhook API end-to-end restore paths.
+    - promoted block `55` is now complete:
+      - closed items: `39`, `41`, `43`, `44`, `45`.
+    - next promoted priority per locked ordering:
+      - `Backlog F3` starting with item `77` (token lifecycle / auth hardening).
+    - modular-monolith convergence impact (explicit):
+      - cancellation compensation is now centralized as an explicit `Orders` boundary instead of being implicit in transport-specific mutation paths,
+      - reducing hidden checkout-orders-payment coupling before future `Domains/Orders` extraction.
 
 ## Locked Constraints
 
@@ -1598,6 +1689,12 @@ DoD:
    - deep domain expansion;
    - platform enablement.
 4. Deep domain items such as `Money`, `app/Domain`, checkout orchestrator expansion, and broader domain-event rollout require separate approval and must not be bundled into quick-win slices.
+5. Security findings captured in `docs/DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` items `77-83` are candidate backlog only until explicit promotion into this file.
+6. Security promotion order inside that intake is fixed:
+   - token/session lifecycle;
+   - auth credential hardening + audit trail;
+   - sensitive mass-assignment surface + transport security baseline;
+   - data-at-rest minimization/encryption + guardrails.
 
 ## Mandatory Test Matrix
 
