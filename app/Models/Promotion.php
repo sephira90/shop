@@ -22,7 +22,6 @@ class Promotion extends Model
         'starts_at',
         'ends_at',
         'usage_limit',
-        'usage_count',
     ];
 
     /**

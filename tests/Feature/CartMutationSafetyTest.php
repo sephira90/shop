@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Contracts\CartMutationServiceInterface;
+use App\Domain\Exceptions\CartException;
 use App\Domain\ValueObjects\Money;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\User;
 use Database\Factories\InventoryFactory;
 use Database\Factories\ProductFactory;
 use Database\Factories\ProductVariantFactory;
@@ -95,5 +97,47 @@ class CartMutationSafetyTest extends TestCase
             'product_variant_id' => $variant->id,
             'quantity' => 1,
         ])->assertForbidden();
+    }
+
+    public function test_upsert_item_rejects_mismatched_authenticated_cart_owner_context(): void
+    {
+        $owner = User::factory()->create();
+        $anotherUser = User::factory()->create();
+
+        $cart = Cart::query()->create([
+            'user_id' => $owner->id,
+            'currency' => 'USD',
+            'status' => CartStatus::ACTIVE->value,
+        ]);
+
+        $this->expectException(CartException::class);
+        $this->expectExceptionMessage('Cart ownership mismatch.');
+
+        app(CartMutationServiceInterface::class)->upsertItem(
+            $cart,
+            1,
+            1,
+            $anotherUser,
+            null,
+        );
+    }
+
+    public function test_remove_item_rejects_mismatched_guest_cart_token_context(): void
+    {
+        $cart = Cart::query()->create([
+            'guest_token' => 'guest-owner-token',
+            'currency' => 'USD',
+            'status' => CartStatus::ACTIVE->value,
+        ]);
+
+        $this->expectException(CartException::class);
+        $this->expectExceptionMessage('Cart ownership mismatch.');
+
+        app(CartMutationServiceInterface::class)->removeItem(
+            $cart,
+            1,
+            null,
+            'another-guest-token',
+        );
     }
 }

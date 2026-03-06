@@ -26,6 +26,8 @@ final class UpsertCartItemHandler
             $cart,
             $command->input->productVariantId,
             $command->input->quantity,
+            $command->user,
+            $command->input->guestToken,
         );
 
         return $this->cartService->toResultDto($cart);

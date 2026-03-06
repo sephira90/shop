@@ -23,12 +23,23 @@ interface CartServiceInterface
     /**
      * Add or update cart item.
      */
-    public function upsertItem(Cart $cart, int $variantId, int $quantity): Cart;
+    public function upsertItem(
+        Cart $cart,
+        int $variantId,
+        int $quantity,
+        ?User $user = null,
+        ?string $guestToken = null,
+    ): Cart;
 
     /**
      * Remove item from cart.
      */
-    public function removeItem(Cart $cart, int $variantId): Cart;
+    public function removeItem(
+        Cart $cart,
+        int $variantId,
+        ?User $user = null,
+        ?string $guestToken = null,
+    ): Cart;
 
     /**
      * Merge guest cart into user cart after authentication.

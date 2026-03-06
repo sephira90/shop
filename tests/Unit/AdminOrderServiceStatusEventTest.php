@@ -11,8 +11,12 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
 use App\Events\OrderStatusChanged;
+use App\Models\Inventory;
 use App\Models\Order;
 use App\Services\Admin\AdminOrderService;
+use Database\Factories\InventoryFactory;
+use Database\Factories\OrderItemFactory;
+use Database\Factories\ProductVariantFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -87,6 +91,79 @@ class AdminOrderServiceStatusEventTest extends TestCase
         } finally {
             Event::assertNotDispatched(OrderStatusChanged::class);
         }
+    }
+
+    public function test_update_status_throws_when_order_no_longer_exists(): void
+    {
+        Event::fake();
+
+        $order = $this->createPendingOrder();
+        $order->delete();
+
+        $this->expectException(OrderTransitionException::class);
+        $this->expectExceptionMessage('Order not found for status update.');
+
+        try {
+            app(AdminOrderService::class)->updateStatus(
+                $order,
+                new UpdateAdminOrderStatusInputDto(
+                    status: OrderStatus::PAID,
+                    paymentStatus: null,
+                    shipmentStatus: null,
+                ),
+            );
+        } finally {
+            Event::assertNotDispatched(OrderStatusChanged::class);
+        }
+    }
+
+    public function test_update_status_releases_inventory_only_on_first_cancellation_transition(): void
+    {
+        Event::fake();
+
+        $variant = ProductVariantFactory::new()->createOne();
+        $inventory = InventoryFactory::new()->createOne([
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+        ]);
+        $order = $this->createPendingOrder();
+
+        OrderItemFactory::new()->createOne([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 3,
+            'unit_price' => 25,
+            'total_price' => 75,
+        ]);
+
+        app(AdminOrderService::class)->updateStatus(
+            $order,
+            new UpdateAdminOrderStatusInputDto(
+                status: OrderStatus::CANCELLED,
+                paymentStatus: null,
+                shipmentStatus: null,
+            ),
+        );
+
+        $freshInventory = $inventory->fresh();
+        $this->assertInstanceOf(Inventory::class, $freshInventory);
+        $this->assertSame(5, $freshInventory->quantity);
+
+        $freshOrder = $order->fresh();
+        $this->assertInstanceOf(Order::class, $freshOrder);
+
+        app(AdminOrderService::class)->updateStatus(
+            $freshOrder,
+            new UpdateAdminOrderStatusInputDto(
+                status: OrderStatus::CANCELLED,
+                paymentStatus: null,
+                shipmentStatus: null,
+            ),
+        );
+
+        $freshInventory = $inventory->fresh();
+        $this->assertInstanceOf(Inventory::class, $freshInventory);
+        $this->assertSame(5, $freshInventory->quantity);
     }
 
     private function createPendingOrder(): Order

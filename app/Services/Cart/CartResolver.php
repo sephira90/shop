@@ -19,22 +19,34 @@ final class CartResolver
     public function resolve(?User $user, ?string $guestToken = null): Cart
     {
         if ($user !== null) {
-            $cart = Cart::query()
-                ->where('user_id', $user->id)
-                ->where('status', CartStatus::ACTIVE->value)
-                ->with('items.variant.inventory')
-                ->latest('created_at')
-                ->first();
+            return DB::transaction(function () use ($user): Cart {
+                $lockedUser = User::query()
+                    ->whereKey($user->id)
+                    ->lockForUpdate()
+                    ->first();
 
-            if ($cart instanceof Cart) {
-                return $cart;
-            }
+                if (! $lockedUser instanceof User) {
+                    throw CartException::authenticatedUserNotFound();
+                }
 
-            return Cart::query()->create([
-                'user_id' => $user->id,
-                'currency' => 'USD',
-                'status' => CartStatus::ACTIVE->value,
-            ])->load('items.variant.inventory');
+                $cart = Cart::query()
+                    ->where('user_id', $lockedUser->id)
+                    ->where('status', CartStatus::ACTIVE->value)
+                    ->with('items.variant.inventory')
+                    ->lockForUpdate()
+                    ->latest('created_at')
+                    ->first();
+
+                if ($cart instanceof Cart) {
+                    return $cart;
+                }
+
+                return Cart::query()->create([
+                    'user_id' => $lockedUser->id,
+                    'currency' => 'USD',
+                    'status' => CartStatus::ACTIVE->value,
+                ])->load('items.variant.inventory');
+            });
         }
 
         $token = $guestToken ?: Str::lower(Str::random(48));

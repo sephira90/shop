@@ -12,6 +12,7 @@ use App\Events\OrderStatusChanged;
 use App\Events\PaymentStatusChanged;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\Order\OrderInventoryReleaseService;
 use App\Services\Order\OrderStatusTransitionPolicy;
 use App\Services\Payment\Dto\PaymentWebhookPayloadDto;
 use App\Services\Webhook\WebhookIngressException;
@@ -24,6 +25,7 @@ final readonly class PaymentWebhookTransitionApplier
         private PaymentGatewayInterface $gateway,
         private PaymentStatusTransitionPolicy $paymentStatusTransitionPolicy,
         private OrderStatusTransitionPolicy $orderStatusTransitionPolicy,
+        private OrderInventoryReleaseService $orderInventoryReleaseService,
     ) {}
 
     public function apply(PaymentWebhookPayloadDto $webhookPayload, string $provider): WebhookProcessingOutcome
@@ -66,6 +68,10 @@ final readonly class PaymentWebhookTransitionApplier
 
         $previousOrderStatus = OrderStatus::from(TypedValue::string($order->getRawOriginal('status')));
         $orderStatus = $this->orderStatusTransitionPolicy->resolveByPaymentStatus($previousOrderStatus, $paymentStatus);
+
+        if ($orderStatus === OrderStatus::CANCELLED && $previousOrderStatus !== OrderStatus::CANCELLED) {
+            $this->orderInventoryReleaseService->release($order);
+        }
 
         $order->update([
             'payment_status' => $paymentStatus->value,

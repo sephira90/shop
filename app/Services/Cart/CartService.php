@@ -40,17 +40,26 @@ final class CartService implements CartServiceInterface
     /**
      * Add or update cart item.
      */
-    public function upsertItem(Cart $cart, int $variantId, int $quantity): Cart
-    {
-        return $this->cartMutationService->upsertItem($cart, $variantId, $quantity);
+    public function upsertItem(
+        Cart $cart,
+        int $variantId,
+        int $quantity,
+        ?User $user = null,
+        ?string $guestToken = null,
+    ): Cart {
+        return $this->cartMutationService->upsertItem($cart, $variantId, $quantity, $user, $guestToken);
     }
 
     /**
      * Remove item from cart.
      */
-    public function removeItem(Cart $cart, int $variantId): Cart
-    {
-        return $this->cartMutationService->removeItem($cart, $variantId);
+    public function removeItem(
+        Cart $cart,
+        int $variantId,
+        ?User $user = null,
+        ?string $guestToken = null,
+    ): Cart {
+        return $this->cartMutationService->removeItem($cart, $variantId, $user, $guestToken);
     }
 
     /**

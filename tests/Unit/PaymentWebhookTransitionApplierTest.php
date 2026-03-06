@@ -12,6 +12,7 @@ use App\Events\OrderStatusChanged;
 use App\Events\PaymentStatusChanged;
 use App\Jobs\DispatchShipmentJob;
 use App\Jobs\SendOrderConfirmationJob;
+use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Payment\PaymentWebhookIngressResolver;
@@ -19,6 +20,9 @@ use App\Services\Payment\PaymentWebhookTransitionApplier;
 use App\Services\Webhook\WebhookProcessingOutcome;
 use App\Support\Data\JsonPayload;
 use App\Support\Data\TypedValue;
+use Database\Factories\InventoryFactory;
+use Database\Factories\OrderItemFactory;
+use Database\Factories\ProductVariantFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -154,6 +158,49 @@ class PaymentWebhookTransitionApplierTest extends TestCase
                 && $event->currentStatus === OrderStatus::PAID
                 && $event->source === StatusTransitionSource::PAYMENT_WEBHOOK,
         );
+    }
+
+    public function test_apply_failed_payment_cancels_order_and_releases_inventory(): void
+    {
+        $variant = ProductVariantFactory::new()->createOne();
+        $inventory = InventoryFactory::new()->createOne([
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+        ]);
+
+        [$order, $payment] = $this->createOrderWithPayment(
+            orderStatus: OrderStatus::PENDING,
+            orderPaymentStatus: PaymentStatus::PENDING,
+            paymentStatus: PaymentStatus::PENDING,
+        );
+
+        OrderItemFactory::new()->createOne([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 3,
+            'unit_price' => 50,
+            'total_price' => 150,
+        ]);
+
+        $resolvedPayload = app(PaymentWebhookIngressResolver::class)->resolve(JsonPayload::fromArray([
+            'event_id' => 'evt-payment-failed-release',
+            'transaction_id' => $payment->transaction_id,
+            'status' => 'failed',
+        ]));
+
+        $outcome = DB::transaction(
+            fn (): WebhookProcessingOutcome => app(PaymentWebhookTransitionApplier::class)->apply(
+                $resolvedPayload,
+                TypedValue::string(config('payment.driver', 'fake-payment')),
+            ),
+        );
+
+        $this->assertSame(WebhookProcessingOutcome::PROCESSED, $outcome);
+        $this->assertSame(OrderStatus::CANCELLED, $order->fresh()?->status);
+        $this->assertSame(PaymentStatus::FAILED, $payment->fresh()?->status);
+        $freshInventory = $inventory->fresh();
+        $this->assertInstanceOf(Inventory::class, $freshInventory);
+        $this->assertSame(5, $freshInventory->quantity);
     }
 
     /**

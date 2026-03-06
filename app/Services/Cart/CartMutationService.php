@@ -21,9 +21,14 @@ final class CartMutationService implements CartMutationServiceInterface
     /**
      * Add or update cart item.
      */
-    public function upsertItem(Cart $cart, int $variantId, int $quantity): Cart
-    {
-        return DB::transaction(function () use ($cart, $variantId, $quantity): Cart {
+    public function upsertItem(
+        Cart $cart,
+        int $variantId,
+        int $quantity,
+        ?User $user = null,
+        ?string $guestToken = null,
+    ): Cart {
+        return DB::transaction(function () use ($cart, $variantId, $quantity, $user, $guestToken): Cart {
             $lockedCart = Cart::query()
                 ->whereKey($cart->id)
                 ->lockForUpdate()
@@ -32,6 +37,8 @@ final class CartMutationService implements CartMutationServiceInterface
             if (! $lockedCart instanceof Cart) {
                 throw CartException::cartNotFound();
             }
+
+            $this->assertOwnership($lockedCart, $user, $guestToken);
 
             $variant = ProductVariant::query()
                 ->with(['inventory', 'product'])
@@ -96,9 +103,13 @@ final class CartMutationService implements CartMutationServiceInterface
     /**
      * Remove item from cart.
      */
-    public function removeItem(Cart $cart, int $variantId): Cart
-    {
-        return DB::transaction(function () use ($cart, $variantId): Cart {
+    public function removeItem(
+        Cart $cart,
+        int $variantId,
+        ?User $user = null,
+        ?string $guestToken = null,
+    ): Cart {
+        return DB::transaction(function () use ($cart, $variantId, $user, $guestToken): Cart {
             $lockedCart = Cart::query()
                 ->whereKey($cart->id)
                 ->lockForUpdate()
@@ -107,6 +118,8 @@ final class CartMutationService implements CartMutationServiceInterface
             if (! $lockedCart instanceof Cart) {
                 throw CartException::cartNotFound();
             }
+
+            $this->assertOwnership($lockedCart, $user, $guestToken);
 
             CartItem::query()
                 ->where('cart_id', $lockedCart->id)
@@ -162,5 +175,36 @@ final class CartMutationService implements CartMutationServiceInterface
 
             return $userCart->refresh()->load(['items.variant.inventory']);
         });
+    }
+
+    private function assertOwnership(Cart $cart, ?User $user, ?string $guestToken): void
+    {
+        $normalizedGuestToken = $this->normalizeGuestToken($guestToken);
+        if (! $user instanceof User && $normalizedGuestToken === null) {
+            return;
+        }
+
+        if ($user instanceof User) {
+            if ((int) $cart->user_id !== (int) $user->id) {
+                throw CartException::cartOwnershipMismatch();
+            }
+
+            return;
+        }
+
+        if ($cart->guest_token !== $normalizedGuestToken) {
+            throw CartException::cartOwnershipMismatch();
+        }
+    }
+
+    private function normalizeGuestToken(?string $guestToken): ?string
+    {
+        if (! is_string($guestToken)) {
+            return null;
+        }
+
+        $token = trim($guestToken);
+
+        return $token !== '' ? $token : null;
     }
 }

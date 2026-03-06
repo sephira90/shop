@@ -260,6 +260,51 @@ class AdminPromotionCouponFlowTest extends TestCase
         ]);
     }
 
+    public function test_admin_promotion_write_paths_do_not_allow_counter_reset_payloads(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $promotion = Promotion::query()->create([
+            'name' => 'Counter guarded',
+            'code' => 'COUNTSAFE',
+            'type' => 'percent',
+            'value' => 10,
+            'is_active' => true,
+        ]);
+        $promotion->forceFill(['usage_count' => 3])->save();
+
+        $coupon = Coupon::query()->create([
+            'promotion_id' => $promotion->id,
+            'code' => 'COUNTSAFE',
+            'is_active' => true,
+            'max_redemptions' => 10,
+        ]);
+        $coupon->forceFill(['redeemed_count' => 4])->save();
+
+        $this->patchJson("/api/v1/admin/promotions/{$promotion->id}", [
+            'name' => 'Counter guarded updated',
+            'code' => 'COUNTSAFE',
+            'type' => 'percent',
+            'value' => 15,
+            'is_active' => true,
+            'usage_limit' => 200,
+            'usage_count' => 0,
+        ])->assertOk();
+
+        $this->patchJson("/api/v1/admin/coupons/{$coupon->id}", [
+            'is_active' => false,
+            'max_redemptions' => 20,
+            'redeemed_count' => 0,
+        ])->assertOk();
+
+        $this->assertSame(3, $promotion->fresh()?->usage_count);
+        $this->assertSame(4, $coupon->fresh()?->redeemed_count);
+    }
+
     /**
      * Ensure manager can delete promotion and coupons are deleted by cascade.
      */

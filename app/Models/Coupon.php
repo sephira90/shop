@@ -17,7 +17,6 @@ class Coupon extends Model
         'code',
         'is_active',
         'max_redemptions',
-        'redeemed_count',
         'expires_at',
     ];
 

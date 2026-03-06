@@ -22,7 +22,12 @@ final class RemoveCartItemHandler
     public function handle(RemoveCartItemCommand $command): CartResultDto
     {
         $cart = $this->cartService->resolve($command->user, $command->input->guestToken);
-        $cart = $this->cartService->removeItem($cart, $command->input->variantId);
+        $cart = $this->cartService->removeItem(
+            $cart,
+            $command->input->variantId,
+            $command->user,
+            $command->input->guestToken,
+        );
 
         return $this->cartService->toResultDto($cart);
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use App\Support\Data\TypedValue;
 use Database\Seeders\RoleSeeder;
@@ -200,6 +201,69 @@ class PhaseOneHardeningTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.status', 'completed')
             ->assertJsonPath('data.shipment_status', 'delivered');
+    }
+
+    /**
+     * Ensure admin cancellation restores consumed inventory only once.
+     */
+    public function test_admin_order_cancellation_restores_inventory_once(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $manager = User::factory()->create(['email_verified_at' => now()]);
+        $manager->assignRole('manager');
+        Sanctum::actingAs($manager);
+
+        $variant = $this->createActiveVariantWithInventory(5);
+        $inventory = $variant->inventory()->firstOrFail();
+
+        $order = Order::query()->create([
+            'order_number' => 'ORD-PHASE1-CANCEL-RESTORE',
+            'email' => 'customer@example.com',
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'shipment_status' => 'pending',
+            'currency' => 'USD',
+            'subtotal' => 100,
+            'discount_total' => 0,
+            'shipping_total' => 0,
+            'total' => 100,
+            'billing_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
+            'cart_snapshot' => [],
+            'placed_at' => now(),
+        ]);
+
+        OrderItem::query()->create([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'sku' => $variant->sku,
+            'name' => $variant->name,
+            'quantity' => 2,
+            'unit_price' => 50,
+            'total_price' => 100,
+            'meta' => [],
+        ]);
+
+        $inventory->update(['quantity' => 3]);
+
+        $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
+            'status' => 'cancelled',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        $freshInventory = $inventory->fresh();
+        $this->assertNotNull($freshInventory);
+        $this->assertSame(5, $freshInventory->quantity);
+
+        $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
+            'status' => 'cancelled',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        $freshInventory = $inventory->fresh();
+        $this->assertNotNull($freshInventory);
+        $this->assertSame(5, $freshInventory->quantity);
     }
 
     /**

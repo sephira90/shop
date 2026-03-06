@@ -92,6 +92,65 @@ class PaymentWebhookTest extends TestCase
     }
 
     /**
+     * Ensure failed payment webhook restores inventory when order is cancelled.
+     */
+    public function test_payment_failed_webhook_restores_inventory_when_order_is_cancelled(): void
+    {
+        $this->seed([RoleSeeder::class]);
+
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        Sanctum::actingAs($user);
+
+        $variant = $this->createActiveVariantWithInventory(5);
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+        ])->assertOk();
+
+        $orderResponse = $this->withHeader('Idempotency-Key', 'payment-failed-release-order-key')->postJson('/api/v1/checkout/place-order', [
+            'email' => $user->email,
+            'billing_address' => [
+                'line1' => '1 Main Street',
+                'city' => 'New York',
+                'country' => 'US',
+                'postcode' => '10001',
+            ],
+            'shipping_address' => [
+                'line1' => '1 Main Street',
+                'city' => 'New York',
+                'country' => 'US',
+                'postcode' => '10001',
+            ],
+        ])->assertCreated();
+
+        $orderId = $this->jsonString($orderResponse, 'data.id');
+
+        $this->assertSame(3, $variant->inventory()->firstOrFail()->quantity);
+
+        $this->initiatePayment($orderId, 'payment-initiate-failed-release');
+
+        $payment = Payment::query()->whereHas('order', static fn ($query) => $query->where('id', $orderId))->firstOrFail();
+
+        $payload = [
+            'event_id' => 'evt-payment-failed-release',
+            'transaction_id' => $payment->transaction_id,
+            'status' => 'failed',
+        ];
+
+        $this->withHeader('X-Signature', hash('sha256', $payload['event_id']))
+            ->postJson('/api/v1/webhooks/payment', $payload)
+            ->assertAccepted();
+
+        $order = Order::query()->whereKey($orderId)->firstOrFail();
+
+        $this->assertSame('cancelled', TypedValue::string($order->getRawOriginal('status')));
+        $this->assertSame('failed', TypedValue::string($order->getRawOriginal('payment_status')));
+        $this->assertSame(5, $variant->inventory()->firstOrFail()->quantity);
+    }
+
+    /**
      * Ensure replay of same event payload is idempotent.
      */
     public function test_payment_webhook_replay_with_same_event_id_is_idempotent(): void
