@@ -1,0 +1,27 @@
+---
+description: Commit authorship trailer policy for this repository
+alwaysApply: true
+---
+
+# Commit trailer policy (this repository)
+
+The agent harness automatically appends a `Co-authored-by: Cursor <cursoragent@cursor.com>` trailer to every `git commit` it creates in this workspace. This is harness behavior at the tool layer, not a git hook or repository config — it cannot be disabled by editing git config or hooks, and `git commit --amend` re-adds it.
+
+For this repository, that trailer is **explicitly allowed** and does not violate the global "no AI mentions" rule. Rationale:
+
+- The repository is a solo project owned by `Sephira <sephira@mail.ru>` and hosted at `https://github.com/sephira90/shop.git`.
+- The trailer accurately attributes authorship and is a GitHub-recognized convention (`Co-authored-by` is rendered in the GitHub UI).
+- It is added by the tool, not by the agent's own decision, so it carries no "LLM code smell" signal.
+
+## What this rule changes
+
+- The global user rule section 9 ("Никаких упоминаний AI/Cursor...") is relaxed **only for this repository** and **only for the `Co-authored-by: Cursor` commit trailer**.
+- All other AI-mention prohibitions stay in force: no `Generated with Cursor` / `AI-generated` / `Co-authored-by: Claude` / model-name references in code, comments, PR descriptions, or commit subjects/bodies. Only the exact trailer `Co-authored-by: Cursor <cursoragent@cursor.com>` is permitted, and only in commit messages.
+- This rule does not apply to other repositories in the workspace profile (unibankcrm, unibank-api, unibank-panel, cardorder, etc.) — those keep the strict global prohibition.
+
+## Operational guidance
+
+- Do not attempt to strip the trailer via `git commit --amend`, `git commit-tree`, or ref rewriting: the harness re-adds it and the plumbing path is fragile in PowerShell.
+- Do not add `Co-authored-by` trailers for any other identity.
+- Do not add any other AI-attribution lines to commit messages.
+- If the user explicitly asks to remove the trailer for a specific commit, run the commit and push from the user's own terminal (where the harness wrapper is not in the path) rather than attempting in-agent rewrite.
