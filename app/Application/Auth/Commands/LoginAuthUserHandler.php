@@ -31,11 +31,12 @@ final class LoginAuthUserHandler
     {
         $input = $command->input;
         $user = $this->authUserRepository->findByEmail($input->email);
+        $passwordIsValid = $this->authUserRepository->isPasswordValid($user, $input->password);
 
         // Active status is validated together with credentials to avoid leaking account state.
         if (
-            $user === null
-            || ! $this->authUserRepository->isPasswordValid($user, $input->password)
+            ! $passwordIsValid
+            || $user === null
             || ! (bool) $user->is_active
         ) {
             throw new AuthApplicationException(

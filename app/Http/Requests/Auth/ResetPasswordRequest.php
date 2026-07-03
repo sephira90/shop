@@ -6,8 +6,9 @@ namespace App\Http\Requests\Auth;
 
 use App\Application\Auth\Dto\ResetAuthPasswordInputDto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
-class ResetPasswordRequest extends FormRequest
+final class ResetPasswordRequest extends FormRequest
 {
     /**
      * Determine if user can perform this request.
@@ -27,7 +28,7 @@ class ResetPasswordRequest extends FormRequest
         return [
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8', 'max:128', 'confirmed'],
+            'password' => ['required', 'string', Password::default(), 'max:128', 'confirmed'],
         ];
     }
 

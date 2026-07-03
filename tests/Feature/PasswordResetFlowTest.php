@@ -49,7 +49,7 @@ final class PasswordResetFlowTest extends TestCase
             'email' => 'reset-password@example.com',
         ]);
 
-        $newPassword = 'new-secure-password';
+        $newPassword = 'new-secure-password-2';
         $browserToken = $user->createToken('browser')->plainTextToken;
         $mobileToken = $user->createToken('mobile')->plainTextToken;
         $broker = Password::broker();
@@ -70,5 +70,26 @@ final class PasswordResetFlowTest extends TestCase
         $this->assertTrue(Hash::check($newPassword, (string) $user->fresh()?->password));
         $this->assertNull(PersonalAccessToken::findToken($browserToken));
         $this->assertNull(PersonalAccessToken::findToken($mobileToken));
+    }
+
+    public function test_reset_password_rejects_weak_password_matrix(): void
+    {
+        $weakPasswords = [
+            'Short123',
+            '123456789012',
+            'letterswithoutnumbers',
+        ];
+
+        foreach ($weakPasswords as $password) {
+            $this->postJson('/api/v1/auth/reset-password', [
+                'token' => 'validation-stops-before-token-check',
+                'email' => 'password-policy@example.com',
+                'password' => $password,
+                'password_confirmation' => $password,
+            ])
+                ->assertUnprocessable()
+                ->assertJsonPath('error.type', 'ValidationException')
+                ->assertJsonStructure(['error' => ['validation' => ['password']]]);
+        }
     }
 }

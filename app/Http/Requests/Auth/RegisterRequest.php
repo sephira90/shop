@@ -6,8 +6,9 @@ namespace App\Http\Requests\Auth;
 
 use App\Application\Auth\Dto\RegisterAuthInputDto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
-class RegisterRequest extends FormRequest
+final class RegisterRequest extends FormRequest
 {
     /**
      * Determine if user can perform this request.
@@ -29,7 +30,7 @@ class RegisterRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:80'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:32'],
-            'password' => ['required', 'string', 'min:8', 'max:128', 'confirmed'],
+            'password' => ['required', 'string', Password::default(), 'max:128', 'confirmed'],
         ];
     }
 

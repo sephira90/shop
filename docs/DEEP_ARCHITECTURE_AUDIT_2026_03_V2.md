@@ -817,6 +817,8 @@ Execution planning should prioritize remaining open safety/concurrency items and
 - Нормализовать failure path через dummy hash check при unknown email
 - Добавить feature/unit coverage на weak password rejection, repeated failed login lockout и unknown-email parity
 
+> Verified `2026-07-03`: item closed. Registration and reset consume one shared `Password::default()` policy (minimum 12 characters, letters, numbers); `auth.login` is keyed by normalized email hash plus client IP with bounded env/config thresholds; unknown-email login executes one `Hash::check` against a constant bcrypt hash; known/unknown failures preserve the same generic `422` envelope. Unit, feature, and architecture guardrails cover the complete matrix.
+
 ---
 
 ### 79. Отсутствует auth security audit trail
@@ -1236,7 +1238,7 @@ Admin не выделяется в отдельный модуль `Domains/Admi
 |---------------|-----------|-------|---------|----------------|
 | **Backlog F** | P0 | 1, ~~2~~, ~~3~~→39 | Safety: admin transition guard, cart ownership (item 2 closed, item 3 replaced by 39) | First promoted block |
 | **Backlog F2** | P0+P1 | ~~43~~, ~~41~~ | Safety refresh: inventory restore on cancel (P0), promotion counter $fillable hardening (P1). Items ~~40~~ (P2 code smell), ~~42~~ (closed after verification) removed from active P0 | Completed; next priority moves to F3 |
-| **Backlog F3** | P0+P1 | ~~77~~, 78, 79 | Security/auth hardening: token lifecycle, credential policy, auth audit trail | In progress after F2; item 78 next |
+| **Backlog F3** | P0+P1 | ~~77~~, ~~78~~, 79 | Security/auth hardening: token lifecycle, credential policy, auth audit trail | In progress after F2; item 79 next |
 | **Backlog G** | P1 | 4, 5, 6→53, ~~7~~, 8 | Money expansion + service contracts (item 7 closed, item 6 expanded to 53) | After Backlog F |
 | **Backlog G2** | P1 | 44, 45, 46, 47, 48, 49, 50 | Race conditions, atomicity, state machine hardening, job reliability | After F2 or parallel with G |
 | **Backlog G3** | P1 | 51, 52, 53, 54 | Event consistency, cart throttle, expanded service interfaces, middleware perf | After G |

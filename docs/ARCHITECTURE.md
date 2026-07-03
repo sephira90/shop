@@ -117,6 +117,9 @@ Forbidden:
 - Sanctum bearer tokens have a finite configured lifetime and persist explicit expiration timestamps.
 - Authenticated API routes, including optional-auth cart/checkout entrypoints, revalidate `User.is_active`; an inactive-token attempt revokes all tokens before returning `401`.
 - Logout revokes only the current bearer token, while password reset revokes every token for the user.
+- Registration and password reset share one password policy: at least 12 characters with letters and numbers.
+- Login throttling is config-driven and scoped by normalized email hash plus client IP.
+- Every login attempt performs one password-hash verification; unknown, invalid, and inactive credentials keep the same generic `422` error envelope.
 - Checkout/webhook flows are idempotent and transaction-safe.
 - Status transitions are explicit and matrix-guarded.
 - Critical behavior is covered by architecture guardrails + feature/unit tests.

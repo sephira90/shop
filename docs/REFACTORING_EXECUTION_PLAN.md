@@ -6331,3 +6331,38 @@
   - verification (documentation-only scope; no runtime code, routes, or frontend inputs changed):
     - `php artisan test` - 352 passed (3206 assertions);
     - lint/static-analysis/frontend chain and route-cache smoke are not applicable to this block; CI `Quality Gate / Full Quality Gate` remains the full merge check.
+
+- `2026-07-03` - `Backlog F3` item `78` credential-hardening closure:
+  - shared password policy:
+    - `AuthBindingsServiceProvider` registers one `Password::defaults()` policy requiring at least 12 characters, letters, and numbers without network-backed uncompromised checks;
+    - `RegisterRequest` and `ResetPasswordRequest` consume `Password::default()`; login validation remains backward-compatible for existing credentials;
+  - identity-aware login throttling:
+    - `AuthLoginRateLimitKey` derives the limiter key from `sha256(normalized email)` plus client IP, preventing a global victim-account lockout;
+    - `auth.login_throttle.max_attempts` and `decay_seconds` resolve through bounded positive-integer config with defaults `6`/`60`; all four environment examples and README are synchronized;
+    - `POST /api/v1/auth/login` now uses `throttle:auth.login`; other auth endpoints retain the generic limiter;
+  - anti-enumeration timing parity:
+    - `AuthUserRepository::isPasswordValid` accepts a nullable user and checks a constant bcrypt hash for unknown identities;
+    - `LoginAuthUserHandler` performs exactly one password verification before the generic unknown/invalid/inactive credential decision; the `422 Invalid credentials.` envelope remains byte-identical for known and unknown emails;
+  - deterministic coverage:
+    - `AuthPasswordPolicyTest`, `AuthLoginRateLimitKeyTest`, `AuthUserRepositoryPasswordVerificationTest`, and `LoginAuthUserHandlerTest` cover policy composition, key normalization/IP isolation, the dummy bcrypt path, and exactly-once verification;
+    - `AuthCredentialHardeningGuardrailTest` locks named-route limiter wiring, shared password defaults, removal of local `min:8`, and bounded config;
+    - `AuthFlowTest` and `PasswordResetFlowTest` cover weak-password matrices, same-email/IP lockout with different-IP isolation, and failure-envelope parity;
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md`, README, active roadmap, and deep-audit status record the completed credential contract;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` closes `F3-78` and advances the locked queue to `F3-79`;
+  - verification:
+    - targeted regressions: `php artisan test --filter='AuthPasswordPolicyTest|AuthLoginRateLimitKeyTest|AuthUserRepositoryPasswordVerificationTest|LoginAuthUserHandlerTest|AuthCredentialHardeningGuardrailTest|AuthFlowTest|PasswordResetFlowTest'`;
+    - full mandatory quality gate executed sequentially:
+      - `php -d sys_temp_dir=storage/tmp vendor/bin/pint --test` (`composer run lint` underlying command; OSPanel global temp is not writable);
+      - `php -d sys_temp_dir=storage/tmp vendor/bin/phpstan analyse --memory-limit=1G`;
+      - `php -d sys_temp_dir=storage/tmp vendor/bin/psalm --no-progress --no-cache`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`;
+    - route/cache verification:
+      - `php artisan optimize:clear`;
+      - `php artisan route:list --path=api/v1/admin/promotions`.

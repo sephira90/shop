@@ -18,7 +18,7 @@ interface AuthUserRepository
 
     public function findById(int $userId): ?User;
 
-    public function isPasswordValid(User $user, string $plainPassword): bool;
+    public function isPasswordValid(?User $user, string $plainPassword): bool;
 
     public function issueAccessToken(User $user, string $deviceName, DateTimeInterface $expiresAt): string;
 

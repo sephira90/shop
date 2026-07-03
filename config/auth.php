@@ -1,5 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
+$resolveLoginThrottleValue = static function (string $envKey, int $default, int $maximum): int {
+    $rawValue = env($envKey, $default);
+    $candidate = $rawValue === '' ? $default : $rawValue;
+    $value = filter_var(
+        $candidate,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1, 'max_range' => $maximum]],
+    );
+
+    if ($value === false) {
+        throw new InvalidArgumentException(sprintf('%s must be an integer between 1 and %d.', $envKey, $maximum));
+    }
+
+    return $value;
+};
+
 return [
 
     /*
@@ -97,6 +115,11 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+    ],
+
+    'login_throttle' => [
+        'max_attempts' => $resolveLoginThrottleValue('AUTH_LOGIN_THROTTLE_MAX_ATTEMPTS', 6, 100),
+        'decay_seconds' => $resolveLoginThrottleValue('AUTH_LOGIN_THROTTLE_DECAY_SECONDS', 60, 3600),
     ],
 
     /*

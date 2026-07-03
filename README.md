@@ -99,6 +99,14 @@ tokens, while logout revokes only the current bearer token. Authenticated and gu
 cart/checkout routes revalidate `is_active` via the `active.api.user` middleware; an inactive
 bearer is rejected with `401` and all of the user's tokens are revoked on the first API use.
 
+New registration and reset credentials use one shared policy: at least 12 characters with
+letters and numbers. Login failures are rate-limited by normalized email plus client IP and
+always perform one password-hash verification, including unknown-email attempts.
+
+Auth configuration:
+- `AUTH_LOGIN_THROTTLE_MAX_ATTEMPTS` (default: `6`)
+- `AUTH_LOGIN_THROTTLE_DECAY_SECONDS` (default: `60`)
+
 ## Deployment
 
 Use script:

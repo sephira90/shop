@@ -17,6 +17,8 @@ use Laravel\Sanctum\TransientToken;
 
 final class AuthUserRepository implements AuthUserRepositoryContract
 {
+    private const string DUMMY_PASSWORD_HASH = '$2y$12$Wpl1Tw3Q4lZpztd3YFyEEue48mBk6FYLDXLOOENs3zjWhiQ4D413.';
+
     public function createUser(RegisterAuthInputDto $input): User
     {
         return User::query()->create([
@@ -39,9 +41,11 @@ final class AuthUserRepository implements AuthUserRepositoryContract
         return User::query()->find($userId);
     }
 
-    public function isPasswordValid(User $user, string $plainPassword): bool
+    public function isPasswordValid(?User $user, string $plainPassword): bool
     {
-        return Hash::check($plainPassword, $user->password);
+        $passwordHash = $user instanceof User ? (string) $user->password : self::DUMMY_PASSWORD_HASH;
+
+        return Hash::check($plainPassword, $passwordHash);
     }
 
     public function issueAccessToken(User $user, string $deviceName, DateTimeInterface $expiresAt): string

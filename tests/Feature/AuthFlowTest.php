@@ -27,8 +27,8 @@ class AuthFlowTest extends TestCase
             'first_name' => 'John',
             'last_name' => 'Doe',
             'email' => 'john@example.com',
-            'password' => 'verysecurepassword',
-            'password_confirmation' => 'verysecurepassword',
+            'password' => 'verysecurepassword12',
+            'password_confirmation' => 'verysecurepassword12',
         ]);
 
         $register->assertCreated();
@@ -167,5 +167,76 @@ class AuthFlowTest extends TestCase
     {
         $this->getJson('/api/v1/cart?guest_token=guest-active-middleware-test')
             ->assertOk();
+    }
+
+    public function test_register_rejects_weak_password_matrix(): void
+    {
+        $weakPasswords = [
+            'Short123',
+            '123456789012',
+            'letterswithoutnumbers',
+        ];
+
+        foreach ($weakPasswords as $index => $password) {
+            $this->postJson('/api/v1/auth/register', [
+                'first_name' => 'Weak',
+                'last_name' => 'Password',
+                'email' => "weak-password-{$index}@example.com",
+                'password' => $password,
+                'password_confirmation' => $password,
+            ])
+                ->assertUnprocessable()
+                ->assertJsonPath('error.type', 'ValidationException')
+                ->assertJsonStructure(['error' => ['validation' => ['password']]]);
+        }
+    }
+
+    public function test_login_lockout_is_scoped_to_normalized_email_and_client_ip(): void
+    {
+        config()->set('auth.login_throttle.max_attempts', 2);
+        config()->set('auth.login_throttle.decay_seconds', 60);
+
+        $payload = [
+            'email' => ' Lockout@Example.com ',
+            'password' => 'wrong-password-123',
+        ];
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->postJson('/api/v1/auth/login', $payload)
+            ->assertUnprocessable();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->postJson('/api/v1/auth/login', [
+                ...$payload,
+                'email' => 'lockout@example.COM',
+            ])
+            ->assertUnprocessable();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->postJson('/api/v1/auth/login', $payload)
+            ->assertTooManyRequests();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.11'])
+            ->postJson('/api/v1/auth/login', $payload)
+            ->assertUnprocessable();
+    }
+
+    public function test_known_and_unknown_login_failures_return_byte_identical_envelopes(): void
+    {
+        User::factory()->create(['email' => 'known@example.com']);
+
+        $headers = ['X-Correlation-Id' => 'auth-envelope-parity'];
+        $knownResponse = $this->withHeaders($headers)->postJson('/api/v1/auth/login', [
+            'email' => 'known@example.com',
+            'password' => 'wrong-password-123',
+        ]);
+        $unknownResponse = $this->withHeaders($headers)->postJson('/api/v1/auth/login', [
+            'email' => 'unknown@example.com',
+            'password' => 'wrong-password-123',
+        ]);
+
+        $knownResponse->assertUnprocessable();
+        $unknownResponse->assertUnprocessable();
+        $this->assertSame($knownResponse->getContent(), $unknownResponse->getContent());
     }
 }
