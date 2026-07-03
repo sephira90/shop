@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\ApiRequestTelemetryMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
+use App\Http\Middleware\EnsureActiveApiUser;
 use App\Http\Middleware\EnsureIdempotencyKeyMiddleware;
 use App\Http\Middleware\EnsureRoleMiddleware;
 use App\Support\Api\ApiResponse;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(ApiRequestTelemetryMiddleware::class);
 
         $middleware->alias([
+            'active.api.user' => EnsureActiveApiUser::class,
             'idempotency.key' => EnsureIdempotencyKeyMiddleware::class,
             'role' => EnsureRoleMiddleware::class,
         ]);

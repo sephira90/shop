@@ -2,6 +2,18 @@
 
 use Laravel\Sanctum\Sanctum;
 
+$rawTokenExpirationMinutes = env('SANCTUM_TOKEN_EXPIRATION_MINUTES', 1440);
+
+$tokenExpirationMinutes = filter_var(
+    $rawTokenExpirationMinutes === '' ? 1440 : $rawTokenExpirationMinutes,
+    FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 1]],
+);
+
+if ($tokenExpirationMinutes === false) {
+    throw new InvalidArgumentException('SANCTUM_TOKEN_EXPIRATION_MINUTES must be a positive integer.');
+}
+
 return [
 
     /*
@@ -47,7 +59,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => $tokenExpirationMinutes,
 
     /*
     |--------------------------------------------------------------------------

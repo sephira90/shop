@@ -8,6 +8,7 @@ use App\Application\Auth\Dto\RegisterAuthInputDto;
 use App\Application\Auth\Dto\UpdateAuthProfileInputDto;
 use App\Enums\RoleName;
 use App\Models\User;
+use DateTimeInterface;
 
 interface AuthUserRepository
 {
@@ -19,9 +20,11 @@ interface AuthUserRepository
 
     public function isPasswordValid(User $user, string $plainPassword): bool;
 
-    public function issueAccessToken(User $user, string $deviceName): string;
+    public function issueAccessToken(User $user, string $deviceName, DateTimeInterface $expiresAt): string;
 
     public function revokeCurrentAccessToken(User $user): void;
+
+    public function revokeAllAccessTokens(User $user): void;
 
     public function assignRole(User $user, RoleName|string $role): void;
 

@@ -28,7 +28,7 @@ Route::prefix('v1')->group(function (): void {
             ->middleware(['signed', 'throttle:6,1'])
             ->name('verification.verify');
 
-        Route::middleware('auth:sanctum')->group(function (): void {
+        Route::middleware(['auth:sanctum', 'active.api.user'])->group(function (): void {
             Route::get('me', [AuthController::class, 'me']);
             Route::patch('profile', [AuthController::class, 'updateProfile']);
             Route::post('logout', [AuthController::class, 'logout']);
@@ -44,7 +44,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('categories', [CatalogController::class, 'categories']);
     });
 
-    Route::prefix('cart')->group(function (): void {
+    Route::prefix('cart')->middleware('active.api.user')->group(function (): void {
         Route::get('/', [CartController::class, 'show']);
         Route::post('items', [CartController::class, 'upsertItem']);
         Route::delete('items/{variantId}', [CartController::class, 'removeItem'])
@@ -52,9 +52,9 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::post('checkout/place-order', [CheckoutController::class, 'placeOrder'])
-        ->middleware(['throttle:checkout', 'idempotency.key']);
+        ->middleware(['active.api.user', 'throttle:checkout', 'idempotency.key']);
 
-    Route::middleware(['auth:sanctum'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'active.api.user'])->group(function (): void {
         Route::post('checkout/orders/{order}/pay', [CheckoutController::class, 'pay'])
             ->middleware(['throttle:checkout', 'idempotency.key']);
         Route::prefix('account/orders')->group(function (): void {
@@ -72,7 +72,7 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::prefix('admin')
-        ->middleware(['auth:sanctum', 'verified', 'role:admin,manager'])
+        ->middleware(['auth:sanctum', 'active.api.user', 'verified', 'role:admin,manager'])
         ->group(function (): void {
             Route::post('cache/refresh-catalog', [AdminCacheController::class, 'refreshCatalog']);
             Route::get('categories/options', [AdminCategoryController::class, 'options']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Auth\Commands;
 
+use App\Application\Auth\AuthAccessTokenIssuer;
 use App\Application\Auth\AuthApplicationException;
 use App\Application\Auth\Contracts\AuthUserRepository;
 use App\Application\Auth\Dto\AuthTokenResultDto;
@@ -18,6 +19,7 @@ final class LoginAuthUserHandler
      */
     public function __construct(
         private readonly AuthUserRepository $authUserRepository,
+        private readonly AuthAccessTokenIssuer $authAccessTokenIssuer,
         private readonly CartServiceInterface $cartService,
         private readonly AuthUserDtoMapper $authUserDtoMapper,
     ) {}
@@ -30,17 +32,15 @@ final class LoginAuthUserHandler
         $input = $command->input;
         $user = $this->authUserRepository->findByEmail($input->email);
 
-        if ($user === null || ! $this->authUserRepository->isPasswordValid($user, $input->password)) {
+        // Active status is validated together with credentials to avoid leaking account state.
+        if (
+            $user === null
+            || ! $this->authUserRepository->isPasswordValid($user, $input->password)
+            || ! (bool) $user->is_active
+        ) {
             throw new AuthApplicationException(
                 'Invalid credentials.',
                 Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        }
-
-        if (! $user->is_active) {
-            throw new AuthApplicationException(
-                'User account is disabled.',
-                Response::HTTP_FORBIDDEN,
             );
         }
 
@@ -51,7 +51,7 @@ final class LoginAuthUserHandler
         $deviceName = $input->deviceName ?? 'api-device';
 
         return new AuthTokenResultDto(
-            token: $this->authUserRepository->issueAccessToken($user, $deviceName),
+            token: $this->authAccessTokenIssuer->issue($user, $deviceName),
             user: $this->authUserDtoMapper->map($user),
         );
     }

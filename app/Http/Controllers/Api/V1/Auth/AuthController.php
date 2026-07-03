@@ -45,9 +45,17 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $result = $this->registerAuthUserHandler->handle(
-            new RegisterAuthUserCommand($request->toDto())
-        );
+        try {
+            $result = $this->registerAuthUserHandler->handle(
+                new RegisterAuthUserCommand($request->toDto())
+            );
+        } catch (AuthApplicationException $exception) {
+            return ApiResponse::error(
+                $exception->getMessage(),
+                $exception->statusCode,
+                ['type' => class_basename($exception)],
+            );
+        }
 
         return ApiResponse::data($result->toArray(), Response::HTTP_CREATED);
     }
@@ -62,7 +70,11 @@ class AuthController extends Controller
                 new LoginAuthUserCommand($request->toDto())
             );
         } catch (AuthApplicationException $exception) {
-            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
+            return ApiResponse::error(
+                $exception->getMessage(),
+                $exception->statusCode,
+                ['type' => class_basename($exception)],
+            );
         }
 
         return ApiResponse::data($result->toArray());

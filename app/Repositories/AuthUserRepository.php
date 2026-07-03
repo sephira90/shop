@@ -9,8 +9,11 @@ use App\Application\Auth\Dto\RegisterAuthInputDto;
 use App\Application\Auth\Dto\UpdateAuthProfileInputDto;
 use App\Enums\RoleName;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
 
 final class AuthUserRepository implements AuthUserRepositoryContract
 {
@@ -41,14 +44,26 @@ final class AuthUserRepository implements AuthUserRepositoryContract
         return Hash::check($plainPassword, $user->password);
     }
 
-    public function issueAccessToken(User $user, string $deviceName): string
+    public function issueAccessToken(User $user, string $deviceName, DateTimeInterface $expiresAt): string
     {
-        return $user->createToken($deviceName)->plainTextToken;
+        return $user->createToken($deviceName, ['*'], $expiresAt)->plainTextToken;
     }
 
     public function revokeCurrentAccessToken(User $user): void
     {
-        $user->currentAccessToken()->delete();
+        /** @var PersonalAccessToken|TransientToken|null $currentAccessToken */
+        $currentAccessToken = $user->currentAccessToken();
+
+        if (! $currentAccessToken instanceof PersonalAccessToken) {
+            return;
+        }
+
+        $currentAccessToken->delete();
+    }
+
+    public function revokeAllAccessTokens(User $user): void
+    {
+        $user->tokens()->delete();
     }
 
     public function assignRole(User $user, RoleName|string $role): void

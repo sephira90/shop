@@ -35,7 +35,11 @@ class PasswordController extends Controller
                 new ForgotAuthPasswordCommand($request->toDto())
             );
         } catch (AuthApplicationException $exception) {
-            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
+            return ApiResponse::error(
+                $exception->getMessage(),
+                $exception->statusCode,
+                ['type' => class_basename($exception)],
+            );
         }
 
         return ApiResponse::data([
@@ -53,7 +57,11 @@ class PasswordController extends Controller
                 new ResetAuthPasswordCommand($request->toDto())
             );
         } catch (AuthApplicationException $exception) {
-            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
+            return ApiResponse::error(
+                $exception->getMessage(),
+                $exception->statusCode,
+                ['type' => class_basename($exception)],
+            );
         }
 
         return ApiResponse::data([

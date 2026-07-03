@@ -10,6 +10,7 @@ use App\Application\Auth\Dto\ResetAuthPasswordInputDto;
 use App\Models\User;
 use App\Support\Data\TypedValue;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 
 final readonly class AuthPasswordBrokerRepository implements AuthPasswordBrokerRepositoryContract
@@ -35,7 +36,10 @@ final readonly class AuthPasswordBrokerRepository implements AuthPasswordBrokerR
                 'password_confirmation' => $input->password,
             ],
             function (User $user, string $password): void {
-                $this->authUserRepository->updatePassword($user, $password);
+                DB::transaction(function () use ($user, $password): void {
+                    $this->authUserRepository->updatePassword($user, $password);
+                    $this->authUserRepository->revokeAllAccessTokens($user);
+                });
 
                 event(new PasswordReset($user));
             },

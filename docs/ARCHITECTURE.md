@@ -114,6 +114,9 @@ Forbidden:
 
 - Input validation via Form Requests or explicit typed DTO mapping.
 - Authorization via policies/middleware.
+- Sanctum bearer tokens have a finite configured lifetime and persist explicit expiration timestamps.
+- Authenticated API routes, including optional-auth cart/checkout entrypoints, revalidate `User.is_active`; an inactive-token attempt revokes all tokens before returning `401`.
+- Logout revokes only the current bearer token, while password reset revokes every token for the user.
 - Checkout/webhook flows are idempotent and transaction-safe.
 - Status transitions are explicit and matrix-guarded.
 - Critical behavior is covered by architecture guardrails + feature/unit tests.

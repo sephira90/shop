@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 final class PasswordResetFlowTest extends TestCase
@@ -49,6 +50,8 @@ final class PasswordResetFlowTest extends TestCase
         ]);
 
         $newPassword = 'new-secure-password';
+        $browserToken = $user->createToken('browser')->plainTextToken;
+        $mobileToken = $user->createToken('mobile')->plainTextToken;
         $broker = Password::broker();
         self::assertInstanceOf(PasswordBrokerImplementation::class, $broker);
         $token = $broker->createToken($user);
@@ -65,5 +68,7 @@ final class PasswordResetFlowTest extends TestCase
             ]);
 
         $this->assertTrue(Hash::check($newPassword, (string) $user->fresh()?->password));
+        $this->assertNull(PersonalAccessToken::findToken($browserToken));
+        $this->assertNull(PersonalAccessToken::findToken($mobileToken));
     }
 }

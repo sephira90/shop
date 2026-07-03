@@ -793,8 +793,12 @@ Execution planning should prioritize remaining open safety/concurrency items and
 
 - Ввести finite TTL для Sanctum tokens через env/config вместо `null`
 - Добавить middleware `EnsureActiveApiUser` во все `auth:sanctum` route groups
-- Разделить semantics current-session logout и global token revoke; full revoke обязателен при deactivation/password reset
+- Разделить semantics current-session logout и global token revoke: password reset отзывает все токены транзакционно, а деактивация пользователя отзывает все токены лениво при первой попытке использовать bearer-токен (revalidation через `EnsureActiveApiUser`)
 - Добавить feature-тесты на expired token, disabled user c ранее выданным token и global revoke path
+
+> Verified `2026-06-28`: item closed. Sanctum now uses a positive env/config TTL and issued tokens persist explicit `expires_at`; `active.api.user` protects all authenticated groups plus optional-auth cart/checkout routes; inactive-token use rejects access and revokes all tokens; logout remains current-token-only; password reset revokes all tokens transactionally. Architecture and feature regressions cover the lifecycle matrix.
+>
+> Updated `2026-06-28` (approved BC): the inactive-user error contract is de-enumerated and unified. Login no longer returns `403` `User account is disabled.`; an inactive account folds into the credentials failure path and returns `422` `Invalid credentials.`, preventing account-state leakage to anyone who knows valid credentials. `EnsureActiveApiUser` still returns `401` (SPA logout redirect) for an inactive bearer but with the generic `Unauthenticated.` body; global token revocation still runs first via `AuthActiveUserRevalidator`. Application-layer auth errors (`login`, `register`, `forgot`, `reset`, `verify`) now carry `error.type`, matching the global API exception renderer envelope. Note: full anti-enumeration (dummy-hash timing parity, identity-aware login lockout) remains item `78` backlog.
 
 ---
 
@@ -1232,7 +1236,7 @@ Admin не выделяется в отдельный модуль `Domains/Admi
 |---------------|-----------|-------|---------|----------------|
 | **Backlog F** | P0 | 1, ~~2~~, ~~3~~→39 | Safety: admin transition guard, cart ownership (item 2 closed, item 3 replaced by 39) | First promoted block |
 | **Backlog F2** | P0+P1 | ~~43~~, ~~41~~ | Safety refresh: inventory restore on cancel (P0), promotion counter $fillable hardening (P1). Items ~~40~~ (P2 code smell), ~~42~~ (closed after verification) removed from active P0 | Completed; next priority moves to F3 |
-| **Backlog F3** | P0+P1 | 77, 78, 79 | Security/auth hardening: token lifecycle, credential policy, auth audit trail | After F2; before G |
+| **Backlog F3** | P0+P1 | ~~77~~, 78, 79 | Security/auth hardening: token lifecycle, credential policy, auth audit trail | In progress after F2; item 78 next |
 | **Backlog G** | P1 | 4, 5, 6→53, ~~7~~, 8 | Money expansion + service contracts (item 7 closed, item 6 expanded to 53) | After Backlog F |
 | **Backlog G2** | P1 | 44, 45, 46, 47, 48, 49, 50 | Race conditions, atomicity, state machine hardening, job reliability | After F2 or parallel with G |
 | **Backlog G3** | P1 | 51, 52, 53, 54 | Event consistency, cart throttle, expanded service interfaces, middleware perf | After G |

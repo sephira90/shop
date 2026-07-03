@@ -42,7 +42,11 @@ class VerificationController extends Controller
                 new VerifyAuthEmailCommand($id, $hash)
             );
         } catch (AuthApplicationException $exception) {
-            return ApiResponse::error($exception->getMessage(), $exception->statusCode);
+            return ApiResponse::error(
+                $exception->getMessage(),
+                $exception->statusCode,
+                ['type' => class_basename($exception)],
+            );
         }
 
         return ApiResponse::data([
