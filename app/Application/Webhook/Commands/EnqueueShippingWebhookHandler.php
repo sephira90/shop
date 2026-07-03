@@ -6,6 +6,7 @@ namespace App\Application\Webhook\Commands;
 
 use App\Jobs\ProcessShippingWebhookJob;
 use App\Services\Shipping\ShippingWebhookAdapter;
+use App\Support\Observability\CorrelationContext;
 
 final readonly class EnqueueShippingWebhookHandler
 {
@@ -14,6 +15,7 @@ final readonly class EnqueueShippingWebhookHandler
      */
     public function __construct(
         private ShippingWebhookAdapter $shippingWebhookAdapter,
+        private CorrelationContext $correlationContext,
     ) {}
 
     /**
@@ -28,6 +30,7 @@ final readonly class EnqueueShippingWebhookHandler
             $command->signature,
             $command->receivedAtIso8601,
             $metadata->eventId,
+            $this->correlationContext->currentOrNew(),
         );
     }
 }

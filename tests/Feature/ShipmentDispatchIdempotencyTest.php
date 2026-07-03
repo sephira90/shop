@@ -34,8 +34,8 @@ final class ShipmentDispatchIdempotencyTest extends TestCase
     {
         $order = $this->createCapturedOrder('job-retry');
 
-        DispatchShipmentJob::dispatchSync($order->id);
-        DispatchShipmentJob::dispatchSync($order->id);
+        DispatchShipmentJob::dispatchSync($order->id, Str::uuid()->toString());
+        DispatchShipmentJob::dispatchSync($order->id, Str::uuid()->toString());
 
         $shipments = Shipment::query()
             ->where('order_id', $order->id)

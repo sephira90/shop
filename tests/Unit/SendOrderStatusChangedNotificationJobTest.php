@@ -27,6 +27,7 @@ class SendOrderStatusChangedNotificationJobTest extends TestCase
             previousStatus: 'processing',
             currentStatus: 'shipped',
             source: 'shipping_webhook',
+            correlationId: 'cid-notify-success',
         ))->handle();
 
         Notification::assertSentOnDemand(
@@ -56,6 +57,7 @@ class SendOrderStatusChangedNotificationJobTest extends TestCase
             previousStatus: 'processing',
             currentStatus: 'shipped',
             source: 'shipping_webhook',
+            correlationId: 'cid-notify-missing',
         ))->handle();
 
         Notification::assertNothingSent();

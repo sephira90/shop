@@ -72,6 +72,7 @@ final readonly class ShippingService
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',
         ?string $prevalidatedEventId = null,
+        ?string $correlationId = null,
     ): void {
         $this->webhookProcessingPipeline->process(
             $this->shippingWebhookAdapter,
@@ -80,6 +81,7 @@ final readonly class ShippingService
             $receivedAtIso8601,
             $source,
             $prevalidatedEventId,
+            $correlationId,
         );
     }
 

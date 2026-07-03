@@ -1,7 +1,7 @@
 # Architecture Refactor Next (Architecture-First)
 
 Program start: `2026-03-05`
-Last revised: `2026-07-04` (Q2 closure)
+Last revised: `2026-07-04` (A2 closure)
 Last review intake: `2026-06-27`
 Status: `Active`
 Priority mode: `Architecture-first`
@@ -21,8 +21,8 @@ Current position:
 
 - Waves `0-24` are complete (transport purity, webhook hardening, DTO discipline, service decomposition, application/frontend boundary hardening, observability/smoke/operations modularization, governance and release guardrails, PHPStan level 10 with no baseline).
 - All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle), `78` (credential hardening), and `79` (auth security audit trail), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
-- Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates) and `Q2` (supply-chain audit gate) are closed.
-- The active block is `A2` (correlation propagation across the queue boundary); the full order is fixed in the Execution Queue below.
+- Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), and `A2` (correlation propagation across the queue boundary) are closed.
+- The active block is `R1` (API error contract and stale-aggregate taxonomy); the full order is fixed in the Execution Queue below.
 - A verified code-review intake (`2026-07-03`) promoted seven quality/reliability blocks: strict runtime guardrails (`Q1`), supply-chain audit gate (`Q2`), queue correlation propagation (`A2`), order-lifecycle reconciliation (`A1`), Psalm ladder (`Q3`), frontend hardening (`Q4`), and an OpenAPI contract source (`S1`).
 - The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7` (pending promotion, after `S1`).
 
@@ -106,8 +106,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 1 | `F3-79` Auth security audit trail | P1 | **Closed** |
 | 2 | `Q1` Strict Eloquent runtime guardrails and immutable dates | P1 | **Closed** |
 | 3 | `Q2` Supply-chain audit gate (CI + dependabot) | P1 | **Closed** |
-| 4 | `A2` Correlation propagation across the queue boundary | P1 | **Active — next up** |
-| 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | Defined, waiting |
+| 4 | `A2` Correlation propagation across the queue boundary | P1 | **Closed** |
+| 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | **Active — next up** |
 | 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | Defined, waiting |
 | 7 | `R3` Alert delivery outcome observability | P2 | Defined, waiting (eligible any time after R1) |
 | 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | Defined, waiting |
@@ -177,7 +177,7 @@ DoD: CI fails on known high/critical advisories; automated update PRs flow; READ
 
 Risk/rollback: advisory noise can block CI — mitigated by the dated exception policy and weekly dependabot updates reducing drift.
 
-### A2 (1-2 days) - Correlation Propagation Across The Queue Boundary
+### A2 (1-2 days) - Correlation Propagation Across The Queue Boundary — CLOSED
 
 Verified baseline: `CorrelationIdMiddleware` scopes `X-Correlation-Id` to the HTTP request only; no job or listener carries correlation context; `WebhookProcessingPipeline` logs the provider event id as a correlation fallback, so ingress requests cannot be joined to queued processing, shipment dispatch, or notification logs.
 
@@ -488,7 +488,7 @@ Remaining (each verified by its owning block's DoD):
 15. Stable additive `error.code` through a dedicated renderer; typed stale-aggregate failures across HTTP/orchestration/queue call sites — `R1`.
 16. Exact promotion arithmetic to the JSON boundary; independently configurable idempotency windows — `R2`.
 17. Alert routing distinguishes disabled channels from attempted-delivery failures with aggregate all-failed signal — `R3`.
-18. One correlation id joins HTTP ingress, queued processing, and side-effect logs — `A2`.
+18. One correlation id joins HTTP ingress, queued processing, and side-effect logs — `A2` (closed).
 19. Every silent side-effect-loss window has a bounded, alerting detection time; `failed_jobs` is monitored — `A1`.
 20. Psalm level `4` or stricter clean on extended scope — `Q3`.
 21. Frontend hardening flags enabled; per-run coverage signal visible in CI — `Q4`.
@@ -549,3 +549,4 @@ This file changes only when a block is promoted, closed, or re-scoped; every rev
 | `2026-07-03` | `F3-79` closed: `AuthAuditLogger` contract, stable `auth.audit.*` taxonomy, whitelisted context with `sha256` email hash on failure paths, repository-persistence-only guardrail, and deterministic coverage; `Q1` is active next |
 | `2026-07-03` | `Q1` closed: `Model::shouldBeStrict(! production)` wired in `AppServiceProvider::boot()`; strict-mode mass-assignment violations fixed at source (no allowlist) across webhook receipt update and smoke user factories; `Date::use(CarbonImmutable::class)` and all 16 model date casts migrated to `immutable_datetime`; `StrictEloquentAndImmutableDatesGuardrailTest` enforces wiring and forbids mutable casts; `Q2` is active next |
 | `2026-07-04` | `Q2` closed: blocking `composer audit` and `npm audit --omit=dev --audit-level=high` steps added to the CI quality gate; `.github/dependabot.yml` schedules weekly update PRs for composer/npm/github-actions; README documents the audit gate and the dated advisory exception policy (no audit allowlist); `SupplyChainAuditGateGuardrailTest` enforces the contract; `A2` is active next |
+| `2026-07-04` | `A2` closed: `CorrelationContext` accessor (singleton bound in `ObservabilityServiceProvider`) resolves the inbound `X-Correlation-Id` or generates a stable UUID in non-HTTP contexts; all five queued jobs (`DispatchShipmentJob`, `SendOrderConfirmationJob`, `SendOrderStatusChangedNotificationJob`, `ProcessPaymentWebhookJob`, `ProcessShippingWebhookJob`) capture a scalar `correlationId` in their payload and restore it into `Log::withContext()` at the start of `handle()`; side-effect listeners and webhook enqueue handlers resolve the correlation id via `CorrelationContext::currentOrNew()`; `WebhookProcessingPipeline` forwards the true ingress correlation into the `webhook.processing_failed` log context (event-id fallback retained only for direct pipeline calls without an inbound correlation); `QueuedJobSafetyGuardrailTest` extended with correlation-payload and `Log::withContext()` assertions; `CorrelationContextTest` (unit) and `WebhookCorrelationPropagationTest` (feature) added; scalar-only payload discipline preserved; `R1` is active next |

@@ -23,6 +23,7 @@ class SendOrderStatusChangedNotificationJob implements ShouldQueue
         public readonly string $previousStatus,
         public readonly string $currentStatus,
         public readonly string $source,
+        public readonly string $correlationId,
     ) {}
 
     /**
@@ -30,6 +31,8 @@ class SendOrderStatusChangedNotificationJob implements ShouldQueue
      */
     public function handle(): void
     {
+        Log::withContext(['correlation_id' => $this->correlationId]);
+
         $order = Order::query()->find($this->orderId);
 
         if (! $order instanceof Order) {

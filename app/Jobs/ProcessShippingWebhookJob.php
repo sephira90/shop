@@ -8,6 +8,7 @@ use App\Services\Shipping\ShippingService;
 use App\Support\Data\JsonPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class ProcessShippingWebhookJob implements ShouldQueue
 {
@@ -23,6 +24,7 @@ class ProcessShippingWebhookJob implements ShouldQueue
         public readonly string $signature,
         public readonly string $receivedAtIso8601,
         public readonly string $eventId,
+        public readonly string $correlationId,
     ) {}
 
     /**
@@ -30,11 +32,14 @@ class ProcessShippingWebhookJob implements ShouldQueue
      */
     public function handle(ShippingService $shippingService): void
     {
+        Log::withContext(['correlation_id' => $this->correlationId]);
+
         $shippingService->processWebhook(
             JsonPayload::fromArray($this->payload),
             $this->signature,
             $this->receivedAtIso8601,
             prevalidatedEventId: $this->eventId,
+            correlationId: $this->correlationId,
         );
     }
 }

@@ -90,7 +90,7 @@ final class WebhookFlowScenario
         if (! ($shipment instanceof Shipment)) {
             // Payment webhook side-effects are dispatched after commit. In production rollback
             // mode this command keeps an outer transaction open, so run shipment sync fallback.
-            DispatchShipmentJob::dispatchSync($order->id);
+            DispatchShipmentJob::dispatchSync($order->id, Str::uuid()->toString());
 
             $shipment = Shipment::query()
                 ->where('order_id', $order->id)

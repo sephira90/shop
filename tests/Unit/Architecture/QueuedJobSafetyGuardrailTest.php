@@ -16,26 +16,31 @@ use Tests\TestCase;
 
 class QueuedJobSafetyGuardrailTest extends TestCase
 {
-    public function test_post_commit_side_effect_dispatch_paths_use_after_commit(): void
+    public function test_post_commit_side_effect_dispatch_paths_use_after_commit_and_propagate_correlation(): void
     {
         $expectations = [
             [
                 'path' => app_path('Listeners/QueueOrderSideEffects.php'),
-                'dispatches' => [
-                    'DispatchShipmentJob::dispatch($event->order->id)->afterCommit();',
+                'markers' => [
+                    'DispatchShipmentJob::dispatch(',
+                    '$this->correlationContext->currentOrNew()',
+                    '->afterCommit();',
                 ],
             ],
             [
                 'path' => app_path('Listeners/QueuePaymentStatusSideEffects.php'),
-                'dispatches' => [
-                    'SendOrderConfirmationJob::dispatch($event->orderId)->afterCommit();',
-                    'DispatchShipmentJob::dispatch($event->orderId)->afterCommit();',
+                'markers' => [
+                    'SendOrderConfirmationJob::dispatch(',
+                    'DispatchShipmentJob::dispatch(',
+                    '$correlationId',
+                    '->afterCommit();',
                 ],
             ],
             [
                 'path' => app_path('Listeners/QueueOrderStatusSideEffects.php'),
-                'dispatches' => [
+                'markers' => [
                     'SendOrderStatusChangedNotificationJob::dispatch(',
+                    'correlationId: $this->correlationContext->currentOrNew()',
                     ')->afterCommit();',
                 ],
             ],
@@ -44,13 +49,47 @@ class QueuedJobSafetyGuardrailTest extends TestCase
         foreach ($expectations as $expectation) {
             $contents = File::get($expectation['path']);
 
-            foreach ($expectation['dispatches'] as $dispatchExpression) {
+            foreach ($expectation['markers'] as $marker) {
                 $this->assertStringContainsString(
-                    $dispatchExpression,
+                    $marker,
                     $contents,
-                    basename($expectation['path']).' must queue committed side effects with afterCommit().'
+                    basename($expectation['path']).' must queue committed side effects with afterCommit() and propagate the correlation id.'
                 );
             }
+        }
+    }
+
+    public function test_webhook_enqueue_handlers_propagate_correlation_id_into_job_payload(): void
+    {
+        $expectations = [
+            [
+                'path' => app_path('Application/Webhook/Commands/EnqueuePaymentWebhookHandler.php'),
+                'job' => 'ProcessPaymentWebhookJob::dispatch(',
+            ],
+            [
+                'path' => app_path('Application/Webhook/Commands/EnqueueShippingWebhookHandler.php'),
+                'job' => 'ProcessShippingWebhookJob::dispatch(',
+            ],
+        ];
+
+        foreach ($expectations as $expectation) {
+            $contents = File::get($expectation['path']);
+
+            $this->assertStringContainsString(
+                'CorrelationContext',
+                $contents,
+                basename($expectation['path']).' must resolve the correlation id via CorrelationContext.'
+            );
+            $this->assertStringContainsString(
+                $expectation['job'],
+                $contents,
+                basename($expectation['path']).' must dispatch the webhook processing job.'
+            );
+            $this->assertStringContainsString(
+                '$this->correlationContext->currentOrNew()',
+                $contents,
+                basename($expectation['path']).' must forward the current correlation id into the job payload.'
+            );
         }
     }
 
@@ -94,6 +133,46 @@ class QueuedJobSafetyGuardrailTest extends TestCase
                     "{$jobClass} constructor payloads must stay scalar-or-array for queue safety."
                 );
             }
+        }
+    }
+
+    public function test_queued_jobs_carry_and_restore_correlation_id(): void
+    {
+        $jobClasses = [
+            DispatchShipmentJob::class,
+            SendOrderConfirmationJob::class,
+            SendOrderStatusChangedNotificationJob::class,
+            ProcessPaymentWebhookJob::class,
+            ProcessShippingWebhookJob::class,
+        ];
+
+        foreach ($jobClasses as $jobClass) {
+            $reflectionClass = new \ReflectionClass($jobClass);
+            $constructor = $reflectionClass->getMethod('__construct');
+
+            $hasCorrelationId = false;
+            foreach ($constructor->getParameters() as $parameter) {
+                if ($parameter->getName() === 'correlationId' && $parameter->getType() instanceof ReflectionNamedType && $parameter->getType()->getName() === 'string') {
+                    $hasCorrelationId = true;
+                }
+            }
+
+            $this->assertTrue(
+                $hasCorrelationId,
+                "{$jobClass} must carry a string correlationId in its queued payload."
+            );
+
+            $handleMethod = $reflectionClass->getMethod('handle');
+            $handleFile = (string) $reflectionClass->getFileName();
+            $handleBody = File::get($handleFile);
+
+            $this->assertStringContainsString(
+                "Log::withContext(['correlation_id' => \$this->correlationId])",
+                $handleBody,
+                "{$jobClass}::handle() must restore the correlation id into structured log context."
+            );
+
+            unset($handleMethod);
         }
     }
 

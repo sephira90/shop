@@ -8,10 +8,15 @@ use App\Enums\PaymentStatus;
 use App\Events\PaymentStatusChanged;
 use App\Jobs\DispatchShipmentJob;
 use App\Jobs\SendOrderConfirmationJob;
+use App\Support\Observability\CorrelationContext;
 use Illuminate\Support\Facades\Log;
 
 class QueuePaymentStatusSideEffects
 {
+    public function __construct(
+        private readonly CorrelationContext $correlationContext,
+    ) {}
+
     /**
      * Handle payment status transition side effects.
      */
@@ -32,7 +37,9 @@ class QueuePaymentStatusSideEffects
             return;
         }
 
-        SendOrderConfirmationJob::dispatch($event->orderId)->afterCommit();
-        DispatchShipmentJob::dispatch($event->orderId)->afterCommit();
+        $correlationId = $this->correlationContext->currentOrNew();
+
+        SendOrderConfirmationJob::dispatch($event->orderId, $correlationId)->afterCommit();
+        DispatchShipmentJob::dispatch($event->orderId, $correlationId)->afterCommit();
     }
 }

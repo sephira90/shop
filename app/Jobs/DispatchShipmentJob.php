@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\Shipping\ShippingService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class DispatchShipmentJob implements ShouldQueue
 {
@@ -17,7 +18,10 @@ class DispatchShipmentJob implements ShouldQueue
     /**
      * Create job instance.
      */
-    public function __construct(public readonly string $orderId) {}
+    public function __construct(
+        public readonly string $orderId,
+        public readonly string $correlationId,
+    ) {}
 
     /**
      * Execute queued job.
@@ -26,6 +30,8 @@ class DispatchShipmentJob implements ShouldQueue
         ShippingService $shippingService,
         OrderPaymentStatusResolver $orderPaymentStatusResolver,
     ): void {
+        Log::withContext(['correlation_id' => $this->correlationId]);
+
         $order = Order::query()->find($this->orderId);
 
         if (! $order instanceof Order) {

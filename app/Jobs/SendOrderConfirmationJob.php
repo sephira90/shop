@@ -16,13 +16,18 @@ class SendOrderConfirmationJob implements ShouldQueue
     /**
      * Create job instance.
      */
-    public function __construct(public readonly string $orderId) {}
+    public function __construct(
+        public readonly string $orderId,
+        public readonly string $correlationId,
+    ) {}
 
     /**
      * Execute queued job.
      */
     public function handle(): void
     {
+        Log::withContext(['correlation_id' => $this->correlationId]);
+
         $order = Order::query()->find($this->orderId);
 
         if (! $order instanceof Order) {

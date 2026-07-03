@@ -6,6 +6,7 @@ namespace App\Application\Webhook\Commands;
 
 use App\Jobs\ProcessPaymentWebhookJob;
 use App\Services\Payment\PaymentWebhookAdapter;
+use App\Support\Observability\CorrelationContext;
 
 final readonly class EnqueuePaymentWebhookHandler
 {
@@ -14,6 +15,7 @@ final readonly class EnqueuePaymentWebhookHandler
      */
     public function __construct(
         private PaymentWebhookAdapter $paymentWebhookAdapter,
+        private CorrelationContext $correlationContext,
     ) {}
 
     /**
@@ -28,6 +30,7 @@ final readonly class EnqueuePaymentWebhookHandler
             $command->signature,
             $command->receivedAtIso8601,
             $metadata->eventId,
+            $this->correlationContext->currentOrNew(),
         );
     }
 }

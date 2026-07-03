@@ -8,6 +8,7 @@ use App\Enums\OrderStatus;
 use App\Events\OrderStatusChanged;
 use App\Jobs\SendOrderStatusChangedNotificationJob;
 use App\Support\Data\TypedValue;
+use App\Support\Observability\CorrelationContext;
 use InvalidArgumentException;
 
 class QueueOrderStatusSideEffects
@@ -17,8 +18,9 @@ class QueueOrderStatusSideEffects
      */
     private array $notifiableStatuses;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly CorrelationContext $correlationContext,
+    ) {
         $this->notifiableStatuses = $this->resolveNotifiableStatuses(
             TypedValue::stringList(config('orders.status_notifications.notifiable_statuses', [])),
         );
@@ -38,6 +40,7 @@ class QueueOrderStatusSideEffects
             previousStatus: $event->previousStatus->value,
             currentStatus: $event->currentStatus->value,
             source: $event->source->value,
+            correlationId: $this->correlationContext->currentOrNew(),
         )->afterCommit();
     }
 

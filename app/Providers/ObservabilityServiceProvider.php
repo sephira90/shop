@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Support\Observability\Channels\EmailObservabilityAlertChannel;
 use App\Support\Observability\Channels\PagerDutyObservabilityAlertChannel;
 use App\Support\Observability\Channels\SlackObservabilityAlertChannel;
+use App\Support\Observability\CorrelationContext;
 use App\Support\Observability\ObservabilityAlertCooldownStore;
 use App\Support\Observability\ObservabilityAlertMessageBuilder;
 use App\Support\Observability\ObservabilityAlertRouter;
@@ -15,10 +16,12 @@ use Illuminate\Support\ServiceProvider;
 final class ObservabilityServiceProvider extends ServiceProvider
 {
     /**
-     * Register observability alert routing bindings.
+     * Register observability bindings.
      */
     public function register(): void
     {
+        $this->app->singleton(CorrelationContext::class);
+
         $this->app->bind(
             ObservabilityAlertRouter::class,
             fn (): ObservabilityAlertRouter => new ObservabilityAlertRouter(

@@ -30,6 +30,7 @@ final readonly class WebhookProcessingPipeline
         ?string $receivedAtIso8601 = null,
         string $source = 'runtime',
         ?string $prevalidatedEventId = null,
+        ?string $correlationId = null,
     ): void {
         $startedAt = hrtime(true);
         $eventId = 'unknown';
@@ -94,7 +95,7 @@ final readonly class WebhookProcessingPipeline
         } catch (\Throwable $exception) {
             Log::error('webhook.processing_failed', [
                 'provider' => $receiptProvider,
-                'correlation_id' => $eventId === 'unknown' ? null : $eventId,
+                'correlation_id' => $correlationId ?? ($eventId === 'unknown' ? null : $eventId),
                 'event_id' => $eventId,
                 'event_type' => $eventType,
                 'receipt_id' => $receiptId,

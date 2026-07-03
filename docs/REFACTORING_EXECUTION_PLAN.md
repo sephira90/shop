@@ -6450,3 +6450,37 @@ Implemented:
   - verification:
     - targeted suite: `php artisan test --filter="SupplyChainAuditGateGuardrailTest"` - 4 passed (16 assertions);
     - full mandatory quality gate executed sequentially (see block above for the canonical command list).
+
+### `2026-07-04` - `A2` Correlation propagation across the queue boundary
+
+Block scope: one correlation id joins HTTP ingress, queued processing, and side-effect logs across payment, shipping, and notification flows; the queue boundary no longer severs trace continuity; scalar-only job payload discipline preserved; no new PII in logs.
+
+Implemented:
+  - correlation accessor boundary:
+    - `App\Support\Observability\CorrelationContext` (final readonly, singleton) resolves the inbound `X-Correlation-Id` header attached by `CorrelationIdMiddleware` in HTTP contexts and returns `null` in non-HTTP contexts; `currentOrNew()` generates a stable UUID when no header is present; the accessor is the single point where transport metadata is read, keeping handlers/listeners free of direct request coupling.
+  - binding ownership:
+    - `CorrelationContext` is bound as a singleton in `ObservabilityServiceProvider` (not `AppServiceProvider`), preserving the `InfrastructureProviderBoundaryTest` contract that `AppServiceProvider` stays bootstrap-only with no `register()`-time bindings.
+  - queued job payloads (5 jobs):
+    - `DispatchShipmentJob`, `SendOrderConfirmationJob`, `SendOrderStatusChangedNotificationJob`, `ProcessPaymentWebhookJob`, and `ProcessShippingWebhookJob` each gain a `public readonly string $correlationId` constructor parameter (last position, scalar-only discipline preserved); each `handle()` opens with `Log::withContext(['correlation_id' => $this->correlationId])` so every structured log emission inside the job joins the ingress correlation.
+  - webhook pipeline correlation forwarding:
+    - `WebhookProcessingPipeline::process()` gains an optional `?string $correlationId = null` last parameter (back-compat preserved for direct pipeline calls); the `webhook.processing_failed` error log now uses `$correlationId ?? ($eventId === 'unknown' ? null : $eventId)` so a real ingress correlation overrides the provider event-id fallback;
+    - `PaymentService::processWebhook()` and `ShippingService::processWebhook()` expose the same optional `correlationId` parameter and forward it into the pipeline;
+    - `ProcessPaymentWebhookJob` and `ProcessShippingWebhookJob` forward `$this->correlationId` into `PaymentService`/`ShippingService::processWebhook()`.
+  - dispatch sites updated:
+    - `QueueOrderSideEffects`, `QueuePaymentStatusSideEffects`, and `QueueOrderStatusSideEffects` resolve the correlation id via the injected `CorrelationContext::currentOrNew()` and pass it into the job dispatch; the existing `->afterCommit()` discipline is preserved unchanged;
+    - `EnqueuePaymentWebhookHandler` and `EnqueueShippingWebhookHandler` inject `CorrelationContext`, resolve `currentOrNew()`, and forward it into `ProcessPaymentWebhookJob`/`ProcessShippingWebhookJob` payloads so the webhook ingress correlation rides with the job across the queue boundary;
+    - `WebhookFlowScenario` smoke fallback (`DispatchShipmentJob::dispatchSync`) passes a fresh UUID.
+  - guardrail extended:
+    - `QueuedJobSafetyGuardrailTest` (extended, no allowlist growth) now locks: each of the 5 jobs declares a string `correlationId` constructor parameter and opens `handle()` with `Log::withContext(['correlation_id' => $this->correlationId])`; the three post-commit listeners call `CorrelationContext::currentOrNew()` and dispatch with `afterCommit()`; the two webhook enqueue handlers declare `CorrelationContext` dependency and forward `$this->correlationContext->currentOrNew()` into the job payload; the existing scalar-only payload and prevalidated-event-identity invariants stay in place.
+  - deterministic coverage:
+    - `CorrelationContextTest` (unit, `tests/Unit/Support/Observability/`) covers null/header/empty-header branches for `current()` and `currentOrNew()` and asserts the UUID shape of generated ids;
+    - `WebhookCorrelationPropagationTest` (feature, `tests/Feature/`) asserts payment and shipping ingress with an `X-Correlation-Id` header propagates the exact value into the dispatched `ProcessPaymentWebhookJob`/`ProcessShippingWebhookJob` payload, and that ingress without a header still dispatches a job with a generated non-empty id distinct from the event id;
+    - existing `SendOrderStatusChangedNotificationJobTest`, `QueuePaymentStatusSideEffectsTest`, `QueueOrderStatusSideEffectsTest`, and `ShipmentDispatchIdempotencyTest` updated for the new constructor arity.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md` records the end-to-end correlation contract in the reliability section;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `A2` closed, advances the locked queue to `R1`, updates the status registry, exit targets, and the change-control log.
+  - verification:
+    - targeted suites: `php artisan test --filter="InfrastructureProviderBoundaryTest|WebhookCorrelationPropagationTest|CorrelationContextTest|QueuedJobSafetyGuardrailTest|QueueOrderStatusSideEffectsTest|QueuePaymentStatusSideEffectsTest|SendOrderStatusChangedNotificationJobTest|ShipmentDispatchIdempotencyTest|WebhookProcessingPipelineTest"` - 26 passed (136 assertions);
+    - full backend suite: `php artisan test` - 405 passed (3487 assertions);
+    - full mandatory quality gate executed sequentially (see block above for the canonical command list).
+
