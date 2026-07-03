@@ -6425,3 +6425,28 @@ Implemented:
     - targeted suite: `php artisan test --filter="StrictEloquentAndImmutableDatesGuardrailTest"` - 6 passed (45 assertions);
     - full backend suite under strict mode: `php artisan test` - 385 passed (3378 assertions);
     - full mandatory quality gate executed sequentially (see block above for the canonical command list).
+
+### `2026-07-04` - `Q2` Supply-chain audit gate
+
+Block scope: add blocking dependency-audit steps to the CI quality gate, automate update PRs via dependabot, and document the advisory exception policy.
+
+Implemented:
+  - CI quality gate (`.github/workflows/ci.yml`):
+    - a `composer audit` step runs after PHP dependency install and fails the build on any known composer advisory (including dev dependencies);
+    - an `npm audit --omit=dev --audit-level=high` step runs after frontend dependency install and fails the build on high/critical non-dev advisories;
+    - both steps run before environment preparation and the quality/smoke checks so a vulnerable dependency fails fast.
+  - automated update PRs (`.github/dependabot.yml`, new):
+    - weekly cadence for the `composer`, `npm`, and `github-actions` ecosystems; open-pull-requests-limit of 5 per ecosystem; `dependencies` plus ecosystem labels on every update PR.
+  - local audit parity:
+    - `composer run audit` runs `composer audit` locally (`composer.json` script alias);
+    - `npm run audit` runs `npm audit --omit=dev --audit-level=high` locally (`package.json` script alias).
+  - advisory exception policy (README CI section):
+    - a temporarily accepted advisory must be explicit, dated, and carry a removal condition; recorded in the retaining pull request; revisited on every dependabot update PR for the affected package; the audit gate itself never carries an allowlist.
+  - guardrail extended:
+    - `SupplyChainAuditGateGuardrailTest` locks four invariants: the CI workflow contains the `composer audit` and `npm audit --omit=dev --audit-level=high` steps; `.github/dependabot.yml` exists and covers the composer, npm, and github-actions ecosystems on a weekly cadence; README documents the audit gate and the dated exception policy with a removal condition; the local `audit` aliases exist in both `composer.json` and `package.json`.
+  - architecture/docs synchronized:
+    - `README.md` documents the audit gate, local audit parity, dependabot config, and the advisory exception policy in the CI quality gate section;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `Q2` closed, advances the locked queue to `A2`, removes the `Q2` risk from the register, moves `Q2` into achieved exit targets, refreshes the test matrix, and appends a change-control entry.
+  - verification:
+    - targeted suite: `php artisan test --filter="SupplyChainAuditGateGuardrailTest"` - 4 passed (16 assertions);
+    - full mandatory quality gate executed sequentially (see block above for the canonical command list).

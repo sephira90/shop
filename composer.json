@@ -75,6 +75,9 @@
         "lint": [
             "./vendor/bin/pint --test"
         ],
+        "audit": [
+            "composer audit"
+        ],
         "analyse:phpstan": [
             "./vendor/bin/phpstan analyse --memory-limit=1G"
         ],

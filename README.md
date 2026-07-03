@@ -176,6 +176,9 @@ Workflow: `.github/workflows/ci.yml` (`Quality Gate`).
 
 It runs a full blocking pipeline:
 
+- supply-chain audit gate (fail fast, after dependency install):
+  - `composer audit` (PHP advisories, including dev dependencies)
+  - `npm audit --omit=dev --audit-level=high` (frontend high/critical advisories, excluding dev dependencies)
 - backend alias: `composer run quality:backend`
 - expands to: `composer run lint`, `composer run analyse`, `php artisan test`
 - static-analysis alias: `composer run analyse`
@@ -196,6 +199,21 @@ It runs a full blocking pipeline:
   - `php artisan app:api-contract-smoke --only=shipping_webhook`
   - `php artisan app:performance-smoke --only=admin_orders_summary`
   - `php artisan app:webhook-flow-smoke --persist`
+
+Local audit parity:
+
+- `composer run audit` runs `composer audit` locally.
+- `npm run audit` runs `npm audit --omit=dev --audit-level=high` locally.
+
+Automated dependency updates:
+
+- `.github/dependabot.yml` schedules weekly update PRs for `composer`, `npm`, and `github-actions` ecosystems.
+
+Advisory exception policy:
+
+- A temporarily accepted advisory must be explicit, dated, and carry a removal condition (the action that unblocks the upgrade or the date by which the exception is revisited).
+- Record the exception in the pull request that introduces or retains the advisory; do not silence the audit step.
+- Exceptions are revisited on every dependabot update PR for the affected package; the audit gate itself never carries an allowlist.
 
 Deployment smoke alias:
 
