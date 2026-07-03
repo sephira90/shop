@@ -36,7 +36,7 @@ class Cart extends Model
     {
         return [
             'status' => CartStatus::class,
-            'expires_at' => 'datetime',
+            'expires_at' => 'immutable_datetime',
         ];
     }
 

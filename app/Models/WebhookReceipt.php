@@ -19,7 +19,7 @@ class WebhookReceipt extends Model
     protected function casts(): array
     {
         return [
-            'processed_at' => 'datetime',
+            'processed_at' => 'immutable_datetime',
         ];
     }
 }

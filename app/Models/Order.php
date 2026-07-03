@@ -64,8 +64,8 @@ class Order extends Model
             'billing_address' => 'array',
             'shipping_address' => 'array',
             'cart_snapshot' => 'array',
-            'placed_at' => 'datetime',
-            'cancelled_at' => 'datetime',
+            'placed_at' => 'immutable_datetime',
+            'cancelled_at' => 'immutable_datetime',
         ];
     }
 

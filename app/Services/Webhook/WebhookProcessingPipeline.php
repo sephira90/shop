@@ -89,7 +89,6 @@ final readonly class WebhookProcessingPipeline
 
                 $receipt->update([
                     'processed_at' => $now,
-                    'updated_at' => $now,
                 ]);
             });
         } catch (\Throwable $exception) {

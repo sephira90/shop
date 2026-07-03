@@ -35,7 +35,6 @@ final class ApiContractSmokeContextFactory
                 'last_name' => 'Contract',
                 'name' => 'Api Contract',
                 'password' => Hash::make(Str::random(32)),
-                'email_verified_at' => now(),
                 'is_active' => true,
             ],
         );

@@ -16,8 +16,11 @@ use App\Policies\CouponPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\PromotionPolicy;
+use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -29,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Model::shouldBeStrict(! $this->app->isProduction());
+        Date::use(CarbonImmutable::class);
+
         Gate::policy(Cart::class, CartPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Coupon::class, CouponPolicy::class);

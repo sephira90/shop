@@ -41,7 +41,7 @@ class Product extends Model
         return [
             'status' => ProductStatus::class,
             'is_featured' => 'boolean',
-            'published_at' => 'datetime',
+            'published_at' => 'immutable_datetime',
         ];
     }
 

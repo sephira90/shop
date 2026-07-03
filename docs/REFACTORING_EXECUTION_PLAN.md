@@ -6400,3 +6400,28 @@
     - targeted regressions: `php artisan test --filter="Auth"` - 60 passed (409 assertions);
     - F3-79 target suite: `php artisan test --filter="AuthAuditEventTest|ObservabilityAuthAuditLoggerTest|AuthAuditEmissionGuardrailTest|AuthAuditTrailFeatureTest"` - 21 passed (90 assertions);
     - full mandatory quality gate executed sequentially (see block above for the canonical command list).
+
+### `2026-07-03` - `Q1` Strict Eloquent runtime guardrails and immutable dates
+
+Block scope: enable `Model::shouldBeStrict()` in non-production environments, fix every surfaced violation at source (no allowlist growth), and migrate every Eloquent datetime attribute to `CarbonImmutable` end to end.
+
+Implemented:
+  - runtime wiring:
+    - `App\Providers\AppServiceProvider::boot()` now declares `Model::shouldBeStrict(! $this->app->isProduction())` so lazy loads, silently discarded attributes, and missing-attribute access fail fast in dev/test while production behavior stays unchanged;
+    - `Date::use(CarbonImmutable::class)` is wired in the same boot point so `now()`, model timestamp attributes, and the global Date resolver share the immutable contract.
+  - strict-mode violations fixed at source (mass-assignment exceptions surfaced by the full suite):
+    - `App\Services\Webhook\WebhookProcessingPipeline::process()` no longer passes the redundant `updated_at` key through the Eloquent `WebhookReceipt::update()` call; Eloquent manages the timestamp automatically, and the raw `DB::table('webhook_receipts')->insertOrIgnore()` block (a query-builder path, not subject to Eloquent strict mode) keeps its explicit `created_at`/`updated_at` values;
+    - `App\Support\Smoke\WebhookFlow\WebhookFlowScenario::resolveSmokeUser()` no longer mass-assigns `email_verified_at` through `User::create()`; it creates with the safe fillable subset and applies `email_verified_at` through `forceFill()->save()`, matching the existing pattern for `is_active`/`name` in the same file;
+    - `App\Support\Smoke\ApiContract\ApiContractSmokeContextFactory::resolveManagerToken()` mirrors the same fix for the manager user, dropping `email_verified_at` from `firstOrCreate()` and letting the existing `forceFill` block set it.
+  - immutable-date migration:
+    - all 16 model datetime casts across 11 models (`User`, `Cart`, `Coupon`, `CheckoutIdempotency`, `Order`, `Payment`, `Price`, `Product`, `Promotion`, `Shipment`, `WebhookReceipt`) switched from `'datetime'` to `'immutable_datetime'`; combined with `Date::use(CarbonImmutable::class)`, model timestamp attributes (`created_at`/`updated_at` on every model) and explicit date attributes are now immutable;
+    - mutation-site sweep confirmed no in-place mutation of date attributes exists in `app/` (no `->placed_at->addDays(...)`-style fluent calls), so the cast switch required no source-side fixups.
+  - guardrail extended:
+    - `StrictEloquentAndImmutableDatesGuardrailTest` locks four invariants: `AppServiceProvider` wires both `shouldBeStrict(! production)` and `Date::use(CarbonImmutable::class)` and owns `boot()`; the global Date resolver resolves to `CarbonImmutable`; strict mode is active in the non-production guardrail run; no model declares a mutable `'datetime'`/`'timestamp'` cast (allowlist can only shrink).
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md` records the strict-mode and immutable-date contracts in the reliability section;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `Q1` closed, advances the locked queue to `Q2`, removes `Q1` risks from the register, moves `Q1` into achieved exit targets, and appends a change-control entry.
+  - verification:
+    - targeted suite: `php artisan test --filter="StrictEloquentAndImmutableDatesGuardrailTest"` - 6 passed (45 assertions);
+    - full backend suite under strict mode: `php artisan test` - 385 passed (3378 assertions);
+    - full mandatory quality gate executed sequentially (see block above for the canonical command list).

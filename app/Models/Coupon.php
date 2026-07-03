@@ -27,7 +27,7 @@ class Coupon extends Model
     {
         return [
             'is_active' => 'boolean',
-            'expires_at' => 'datetime',
+            'expires_at' => 'immutable_datetime',
         ];
     }
 

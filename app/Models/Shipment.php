@@ -33,8 +33,8 @@ class Shipment extends Model
             'status' => ShipmentStatus::class,
             'cost' => 'decimal:2',
             'payload' => 'array',
-            'shipped_at' => 'datetime',
-            'delivered_at' => 'datetime',
+            'shipped_at' => 'immutable_datetime',
+            'delivered_at' => 'immutable_datetime',
         ];
     }
 

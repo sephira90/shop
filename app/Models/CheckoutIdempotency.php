@@ -27,7 +27,7 @@ class CheckoutIdempotency extends Model
     protected function casts(): array
     {
         return [
-            'expires_at' => 'datetime',
+            'expires_at' => 'immutable_datetime',
         ];
     }
 

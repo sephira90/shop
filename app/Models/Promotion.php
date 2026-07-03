@@ -33,8 +33,8 @@ class Promotion extends Model
             'type' => PromotionType::class,
             'value' => 'decimal:2',
             'is_active' => 'boolean',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
+            'starts_at' => 'immutable_datetime',
+            'ends_at' => 'immutable_datetime',
         ];
     }
 

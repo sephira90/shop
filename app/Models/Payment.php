@@ -34,7 +34,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'status' => PaymentStatus::class,
             'payload' => 'array',
-            'processed_at' => 'datetime',
+            'processed_at' => 'immutable_datetime',
         ];
     }
 

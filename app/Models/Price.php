@@ -21,8 +21,8 @@ class Price extends Model
     {
         return [
             'amount' => 'decimal:2',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
+            'starts_at' => 'immutable_datetime',
+            'ends_at' => 'immutable_datetime',
         ];
     }
 

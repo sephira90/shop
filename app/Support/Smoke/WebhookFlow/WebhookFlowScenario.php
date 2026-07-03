@@ -172,9 +172,9 @@ final class WebhookFlowScenario
                 'name' => 'Smoke User',
                 'email' => $email,
                 'password' => Hash::make(Str::random(24)),
-                'email_verified_at' => now(),
                 'is_active' => true,
             ]);
+            $user->forceFill(['email_verified_at' => now()])->save();
         } else {
             $user->forceFill([
                 'name' => $user->name !== '' ? $user->name : 'Smoke User',

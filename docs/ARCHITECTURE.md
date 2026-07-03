@@ -121,6 +121,8 @@ Forbidden:
 - Login throttling is config-driven and scoped by normalized email hash plus client IP.
 - Every login attempt performs one password-hash verification; unknown, invalid, and inactive credentials keep the same generic `422` error envelope.
 - Auth credential-sensitive flows emit a structured security audit trail (`auth.login.succeeded`, `auth.login.failed`, `auth.logout`, `auth.token.issued`, `auth.token.revoked` with `scope` and `reason`, `auth.password.reset.requested`, `auth.password.reset.completed`, `auth.email.verified`) into the observability channel through the `AuthAuditLogger` contract; the context is an explicit whitelist (correlation id, user id or `sha256` email hash on failure paths, client IP, user-agent) and repositories stay persistence-only.
+- Eloquent strict runtime mode (`shouldBeStrict`) is wired in `AppServiceProvider::boot()` and active in every non-production environment, surfacing lazy loads, silently discarded attributes, and missing-attribute access in dev/test while production behavior stays unchanged; the allowlist can only shrink.
+- All Eloquent datetime attributes use `immutable_datetime` casts and the global date resolver is bound to `CarbonImmutable`, so model timestamp attributes and `now()` share the immutable contract end to end.
 - Checkout/webhook flows are idempotent and transaction-safe.
 - Status transitions are explicit and matrix-guarded.
 - Critical behavior is covered by architecture guardrails + feature/unit tests.
