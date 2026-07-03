@@ -1,6 +1,6 @@
 # Deep Architecture Audit & Refactoring Plan v2
 
-> Date: 2026-03-05 (v2.3 — deep audit refresh + modular monolith migration plan + OWASP Top 10 security intake)
+> Date: 2026-03-07 (v2.4 — deep audit refresh + modular monolith migration plan + OWASP Top 10 security intake + operational production-readiness intake)
 > Status: Candidate backlog (not active execution authority; `Backlog F` promoted to active roadmap on 2026-03-04, `Backlog G` progressed with items `4`, `5`, `6`, `7`, `8`, `Backlog G2` progressed with items `44`, `45` on 2026-03-05, and `Backlog H` progressed with items `9`, `10`, `11` on 2026-03-04)
 > Source-of-truth for architecture execution: `docs/ARCHITECTURE_REFACTOR_NEXT.md`
 > Previous audit: `docs/DEEP_ARCHITECTURE_AUDIT_2026_03.md`
@@ -10,7 +10,7 @@
 Полный аудит проекта shop.ru после завершения 41 wave рефакторинга и Backlog A-D.
 Все пункты ниже — **новые находки**, не пересекающиеся с уже закрытыми Backlog A-E items.
 
-Документ расширен секцией **P3 — Modular Monolith Migration** (items 28-38), секцией **Deep Audit Refresh** (items 39-76) по результатам полного code-level аудита всех слоёв (services, models, domain, handlers, controllers, requests, routes, events, jobs, listeners, policies, repositories, frontend pages/composables/stores/contracts/mappers) и секцией **OWASP Top 10 Security Intake** (items 77-83) по результатам security review auth/config/model/route boundaries.
+Документ расширен секцией **P3 — Modular Monolith Migration** (items 28-38), секцией **Deep Audit Refresh** (items 39-76) по результатам полного code-level аудита всех слоёв (services, models, domain, handlers, controllers, requests, routes, events, jobs, listeners, policies, repositories, frontend pages/composables/stores/contracts/mappers), секцией **OWASP Top 10 Security Intake** (items 77-83) по результатам security review auth/config/model/route boundaries и секцией **Operational Production-Readiness Intake** (items 84-86) по результатам infra/deploy/runtime review.
 
 ## Execution Alignment
 
@@ -64,6 +64,8 @@ This addendum reflects a direct code audit and overrides older item text where s
 - **Closed (verified):** item 41 (promotion/coupon counters are no longer mass assignable; counter mutation stays on explicit increment paths).
 - **Closed (verified):** item 43 (first transition into `cancelled` now restores consumed inventory through a shared order-lifecycle release service used by admin and payment-webhook status sources).
 - **Closed (verified):** items 44, 45 (row-level locking + `DB::transaction()` added for authenticated cart resolve and admin order status update paths).
+- **Closed (verified):** item 77 (Sanctum tokens now have finite TTL, all `auth:sanctum` routes revalidate `is_active`, and password reset / disabled-token reuse revoke all bearer tokens).
+- **Closed (verified):** item 78 (register/reset password policy now uses explicit complexity rules, login lockout is keyed by normalized email + IP, and unknown-email login failures consume dummy hash workload).
 - **Still open (business-rule decision):** item 47 (CANCELLED -> PROCESSING remains allowed by current matrix and tests).
 
 Execution planning should prioritize remaining open safety/concurrency items and skip already closed/invalidated findings.
@@ -72,10 +74,10 @@ Execution planning should prioritize remaining open safety/concurrency items and
 | Приоритет | Кол-во items | Область |
 |-----------|-------------|---------|
 | **P0** | 3+2+1 | Admin state-machine safety, cart ownership + inventory restore on cancel + auth token lifecycle |
-| **P1** | 8+14+4 | Money expansion, service contracts, race conditions, domain deepening + race conditions, atomicity, job reliability, frontend safety, auth hardening, transport security, mass assignment |
+| **P1** | 8+14+4+3 | Money expansion, service contracts, race conditions, domain deepening + race conditions, atomicity, job reliability, frontend safety, auth hardening, transport security, mass assignment, production runtime readiness |
 | **P2** | 12+21+2 | Validation, testing, frontend polish, infrastructure/caching + layer hygiene, type safety, consistency, UX, code smells, data protection, security guardrails |
 | **P3** | 11 | Modular monolith migration: Shared Kernel, module extraction, guardrails |
-| **Closed** | 5+1 | Items 2, 7, 11 resolved; items 3→39, 6→53 refined; item 42 false positive |
+| **Closed** | 5+1+1+1 | Items 2, 7, 11, 77, 78 resolved; items 3→39, 6→53 refined; item 42 false positive |
 
 ---
 
@@ -785,6 +787,8 @@ Execution planning should prioritize remaining open safety/concurrency items and
 
 ### 77. Sanctum access-token lifecycle и revalidation активного пользователя
 
+**Status (2026-03-07): Closed (verified).** Finite Sanctum TTL is now enforced through config/env, every `auth:sanctum` route group revalidates `is_active` via middleware, and global access-token revoke runs on password reset plus disabled-user token reuse.
+
 **Проблема:** `config/sanctum.php` оставляет `'expiration' => null`, поэтому bearer tokens живут бессрочно. Route groups с `auth:sanctum` в `routes/api.php` не выполняют отдельную revalidation `is_active`, а `AuthUserRepository::revokeCurrentAccessToken()` удаляет только текущий token. В результате украденный или stale token может пережить logout, password reset и деактивацию пользователя дольше допустимого окна риска.
 
 **Файлы:** `config/sanctum.php:50`, `routes/api.php:31-67`, `app/Repositories/AuthUserRepository.php:49-52`
@@ -805,6 +809,8 @@ Execution planning should prioritize remaining open safety/concurrency items and
 ## Security Intake — P1
 
 ### 78. Auth credential hardening: password policy, identity lockout, anti-enumeration
+
+**Status (2026-03-07): Closed (verified).** Register/reset now use explicit config-backed password complexity rules, login lockout uses normalized email + IP via dedicated rate limiter, and unknown-email login failures consume dummy password-hash workload before returning the same invalid-credentials response.
 
 **Проблема:** `RegisterRequest` и `ResetPasswordRequest` ограничивают пароль только `min:8`; login route использует generic `throttle:6,1` без identity-aware lockout; `LoginAuthUserHandler` завершает unknown-email path до hash workload, оставляя timing gap между существующим и несуществующим email.
 
@@ -895,6 +901,55 @@ Execution planning should prioritize remaining open safety/concurrency items and
 - Добавить `tests/Unit/Architecture/SensitiveFillableGuardrailTest.php`
 - Добавить security smoke coverage для expired token / disabled user / auth lockout
 - Явно включить в ту же guardrail program existing items `52` (cart throttle) и `65` (LIKE escaping)
+
+---
+
+## Operational Production-Readiness Intake — P1
+
+Ниже заведены только operational/runtime items, которые не конфликтуют с уже зафиксированным architecture-first execution order, но должны стать explicit source-of-truth до любого claim о production readiness.
+
+### 84. Deploy/release pipeline поднимает runtime до smoke verdict и не фиксирует rollback/cache contract
+
+**Проблема:** `deploy/deploy.sh` выполняет `php artisan up` **до** `./deploy/smoke.sh`. Одновременно `config:cache`, `route:cache` и `view:cache` выполняются в том же deploy-path без явного `optimize:clear`/preflight contract. В результате smoke-проверки становятся post-release detection, а не release gate: при провале smoke runtime уже открыт для трафика в potentially inconsistent state.
+
+**Файлы:** `deploy/deploy.sh`, `deploy/smoke.sh`, `README.md:96-113`
+
+**Решение:**
+
+- Разделить release flow на preflight phase и post-switch phase; всё, что не требует открытого трафика, должно выполняться до `php artisan up`
+- Зафиксировать canonical release sequence через versioned alias/script: `ops:clear -> migrate -> cache warmup -> queue restart -> smoke/preflight -> traffic open`
+- Добавить fail-fast rollback/trap contract для случая, когда post-open smoke всё же падает
+- Добавить guardrail coverage для deploy-helper ordering и cache invalidation policy
+
+---
+
+### 85. Docker production runtime смешивает build-time и runtime concerns
+
+**Проблема:** `Dockerfile` одноэтапный, финальный image включает `nodejs`, `npm` и build-зависимости, а также выполняет `php artisan config:cache`, `route:cache`, `view:cache` на этапе image build. При этом `docker-compose.yml` и типовой runtime inject-ят env на запуске контейнера. Это создаёт env/cache drift risk и unnecessarily расширяет production runtime surface.
+
+**Файлы:** `Dockerfile`, `docker-compose.yml`
+
+**Решение:**
+
+- Перевести image на multi-stage build
+- Оставить в финальном runtime только PHP runtime, vendor и уже собранные frontend assets
+- Перенести env-sensitive Laravel cache warmup из image build в container start/release phase
+- Добавить runtime-image guardrails: отсутствие `node/npm` в финальном stage и запрет на build-time cache bake, завязанный на runtime env
+
+---
+
+### 86. Gateway readiness / production scope не зафиксированы как explicit release gate
+
+**Проблема:** `config/payment.php` и `config/shipping.php` содержат только fake drivers, а `.env.stage.example` / `.env.prod.example` продолжают указывать `fake-payment` и `fake-shipping`. Репозиторий позиционируется как production-oriented, но source-of-truth не фиксирует: это integration scaffold с intentional fake-runtime или backend, где non-local environments обязаны использовать реальные provider adapters.
+
+**Файлы:** `config/payment.php`, `config/shipping.php`, `.env.stage.example`, `.env.prod.example`, `README.md`
+
+**Решение:**
+
+- Принять явное решение на уровне architecture/product scope: real-provider rollout vs scaffold-only runtime
+- Если цель — real-commerce runtime, завести отдельный provider block минимум для одного payment и одного shipping adapter с explicit webhook/signature/idempotency contract
+- Если цель — scaffold-only baseline, явно задокументировать это и добавить release/smoke guard, запрещающий fake drivers в non-local env без explicit unsafe override
+- Добавить config/bootstrap/guardrail coverage для driver policy в stage/prod
 
 ---
 
@@ -1253,6 +1308,7 @@ Admin не выделяется в отдельный модуль `Domains/Admi
 | **Backlog K** | P2 | 20, 21, 22 | Frontend polish | Independent |
 | **Backlog K2** | P2 | 74, 75, 76 | Frontend infrastructure: auth race, 404 route, storage keys | After G4 or independent |
 | **Backlog L** | P2 | 23, 24, 25, 26, 27 | Infrastructure and caching | Independent |
+| **Backlog L2** | P1 | 84, 85, 86 | Production runtime hardening: deploy/release fail-fast, Docker runtime separation, gateway readiness gate | After F3 or parallel with L; must land before any production-readiness claim / P3 exit |
 | **Backlog M** | P3 | 28, 36, 37, 38 | Modular monolith: Shared Kernel + Catalog module + guardrails | After G + H + L(25) |
 | **Backlog N** | P3 | 29, 30 | Modular monolith: Cart + Users/Auth modules | After Backlog M |
 | **Backlog O** | P3 | 31, 32 | Modular monolith: Orders + Payments modules | After Backlog N |
@@ -1273,10 +1329,11 @@ Admin не выделяется в отдельный модуль `Domains/Admi
 11. Promote **Backlog J** (P2 testing) — after I stabilizes
 12. Promote **Backlog K** + **Backlog K2** (P2 frontend polish + infrastructure)
 13. Promote **Backlog L** (P2 infra) — item 25 is gate for P3
-14. Promote **Backlog M** (P3 Shared Kernel + Catalog)
-15. Promote **Backlog N** (P3 Cart + Users)
-16. Promote **Backlog O** (P3 Orders + Payments)
-17. Promote **Backlog P** (P3 Checkout + Webhooks + Admin)
+14. Promote **Backlog L2** (P1 production runtime hardening) — before any production-readiness claim and before P3 exit targets are considered met
+15. Promote **Backlog M** (P3 Shared Kernel + Catalog)
+16. Promote **Backlog N** (P3 Cart + Users)
+17. Promote **Backlog O** (P3 Orders + Payments)
+18. Promote **Backlog P** (P3 Checkout + Webhooks + Admin)
 
 **Суммарная оценка (Backlogs F–P):** ~68-80 рабочих дней при последовательном выполнении.
 
