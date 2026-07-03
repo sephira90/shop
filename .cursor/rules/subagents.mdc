@@ -1,0 +1,29 @@
+---
+description: Subagent model policy for Cursor Task tool dispatch in this repository
+alwaysApply: true
+---
+
+# Subagent dispatch policy (this repository)
+
+Every subagent invocation via the Task tool in this workspace MUST pin `model: "composer-2.5-fast"`, regardless of `subagent_type`. This applies to all subagent types: `generalPurpose`, `explore`, `shell`, `cursor-guide`, `ci-investigator`, `bugbot`, `security-review`, `best-of-n-runner`, `code-reviewer`.
+
+## Rationale
+
+- `composer-2.5-fast` is the project default for subagent work: fast enough to keep parallel exploration and dispatch cheap, while remaining capable for code review, security review, and CI investigation.
+- The parent agent (this chat) keeps its own model; only subagent invocations are pinned.
+- Consistency: every subagent in this workspace runs on the same model so review and dispatch decisions are reproducible across sessions.
+
+## Required behavior
+
+- Set `model: "composer-2.5-fast"` on every `Task` tool call. Pin it explicitly in the tool arguments; do not rely on a harness default.
+- This is independent of `subagent_type`, `readonly`, `run_in_background`, or `resume` parameters — the model pin applies in all combinations.
+- When resuming an existing subagent via the `resume` parameter, keep `model: "composer-2.5-fast"` unless the user asked otherwise for that specific call.
+
+## Exceptions
+
+- If the user explicitly requests a different model for a specific subagent call, honor that request for the one call and do not edit this rule unless asked.
+- If `composer-2.5-fast` returns a model-unavailable error from the Task tool, fall back to omitting the `model` parameter (let the harness pick the parent's model) for that single call and surface the fallback to the user in the response. Do not silently swap to an unrelated slug.
+
+## Scope
+
+This rule is workspace-scoped to `c:\OSPanel\home\shop.ru` and does not propagate to other repositories in the user's environment. It complements the global user rules; where global rules say "prefer the latest version" for subagents, this workspace rule narrows that to the specific `composer-2.5-fast` slug.
