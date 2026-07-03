@@ -93,6 +93,12 @@ php artisan app:webhook-flow-smoke --persist
 - `.env.stage.example` for stage
 - `.env.prod.example` for production
 
+Bearer API tokens have a finite lifetime configured by `SANCTUM_TOKEN_EXPIRATION_MINUTES`
+(default: `1440`). New tokens persist an explicit `expires_at`; password reset revokes all
+tokens, while logout revokes only the current bearer token. Authenticated and guest-capable
+cart/checkout routes revalidate `is_active` via the `active.api.user` middleware; an inactive
+bearer is rejected with `401` and all of the user's tokens are revoked on the first API use.
+
 ## Deployment
 
 Use script:
@@ -192,9 +198,12 @@ To enforce blocking merges, configure branch protection for `main` and require s
 
 ## Engineering rules
 
-- Project contribution rules: `AGENTS.md`
-- Cursor/agent rules: `.cursorrules`
+- Project contribution rules (binding policy): `AGENTS.md`
+- Cursor/agent rules loader: `.cursorrules`
+- Architecture contracts: `docs/ARCHITECTURE.md`
+- Navigation maps: `docs/REPO_MAP.md`, `docs/DOMAIN_MAP.md`
+- Accepted conventions: `docs/adr/`
 - Architecture refactor roadmap (active): `docs/ARCHITECTURE_REFACTOR_NEXT.md`
 - Historical architecture roadmap (archived): `docs/ARCHITECTURE_REFACTOR_PLAN.md`
-- Execution plan: `docs/REFACTORING_EXECUTION_PLAN.md`
+- Execution log: `docs/REFACTORING_EXECUTION_PLAN.md`
 - Ops runbook (checkout/webhooks): `docs/OPERATIONS_RUNBOOK_CHECKOUT_WEBHOOKS.md`

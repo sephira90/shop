@@ -1,47 +1,16 @@
 # Cursor Rules
 
-Follow `AGENTS.md` as the primary project policy.
-Use `docs/ARCHITECTURE.md`, `docs/REPO_MAP.md`, and `docs/DOMAIN_MAP.md` as architecture navigation authority before code changes.
+`AGENTS.md` is the binding engineering policy for this repository. Read it before any task and follow it end to end; if any skill, template, or prompt conflicts with it, `AGENTS.md` wins. This file adds no policy of its own.
 
-## Required behavior
+Before implementing:
 
-- Keep solutions production-oriented and minimal in scope.
-- Commit changes in logical blocks (one commit = one coherent concern).
-- Prefer broader coherent execution blocks over shallow fragmented steps when the change can be completed and verified safely.
-- Respect existing architecture and naming conventions.
-- Before implementation, locate the target flow in `docs/REPO_MAP.md` + `docs/DOMAIN_MAP.md` and preserve layer dependency direction from `docs/ARCHITECTURE.md`.
-- Prefer new domain slices to align with target modular structure under `app/Domains/*` when it does not require a breaking migration.
-- Always follow the best-architecture standard strictly; no temporary shortcuts that degrade layering, contracts, or maintainability.
-- Implementation steps must be deep and substantial: complete coherent architectural slices, not superficial micro-edits.
-- Each implementation block should carry through the needed boundaries, contracts, tests, and docs/ops updates for a genuinely complete result.
-- If a request conflicts with architecture quality, clarify constraints first and implement an architecture-safe solution.
-- If a UI/template block appears in `>=2` places, extract it to a shared component.
-- Do not weaken validation, authorization, idempotency, or webhook safety.
-- Prefer explicit, typed, and testable code paths.
-- Add or update tests for behavior changes.
-- Run all test commands sequentially only; never parallelize `php artisan test`/`npm run test` executions.
-- For backend feature tests, avoid parallel runs due shared `database/testing.sqlite` contention/corruption risk.
-- Never commit secrets or real credentials.
+- Map the target flow via `docs/REPO_MAP.md` + `docs/DOMAIN_MAP.md`.
+- Preserve the layer model and dependency direction from `docs/ARCHITECTURE.md`.
+- Treat `docs/ARCHITECTURE_REFACTOR_NEXT.md` as the only active roadmap authority.
 
-## Definition of done
+Restated here because they are the most frequently violated rules (canonical wording in `AGENTS.md`):
 
-- Code is clear and maintainable.
-- No API contract regressions without explicit approval.
-- Relevant tests and static checks pass.
-- After each completed logical block, update `docs/REFACTORING_EXECUTION_PLAN.md` with completed work and checks.
-- README/docs updated when workflow or behavior changes.
-- After any change, run production-readiness checks before completion:
-- `composer run lint`
-- `composer run analyse`
-- `php artisan test`
-- `npm run lint`
-- `npm run lint:ox`
-- `npm run format:ox:check`
-- `npm run type-check`
-- `npm run test`
-- `npm run build`
-- Execute checks in strict sequence (one command at a time), not in parallel.
-- If checks fail, fix and rerun; do not finish on code edits only.
-- If route/controller code changed, run:
-- `php artisan optimize:clear`
-- `php artisan route:list --path=api/v1/admin/promotions`
+- Run the full quality gate sequence after changes, one command at a time, and report the executed checks; do not finish on code edits alone.
+- Never run `php artisan test` or `npm run test` in parallel (shared `database/testing.sqlite`).
+- No temporary hacks, no unrelated refactors, no weakening of guardrail tests or their allowlists.
+- After each completed logical block, update `docs/REFACTORING_EXECUTION_PLAN.md` with the work and the checks run.
