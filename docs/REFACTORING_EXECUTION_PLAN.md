@@ -6162,3 +6162,172 @@
   - local shell notes:
     - `composer run lint` remains unreliable in this environment because `vendor/laravel/pint/builds/pint` fails phar temp decompression; equivalent underlying command was executed via `php -d sys_temp_dir=storage/tmp vendor/bin/pint --test`;
     - `npm run format:ox:check`, `npm run test`, and `npm run build` required unsandboxed reruns due local `spawn EPERM` process restrictions while launching external formatter / esbuild subprocesses.
+
+- `2026-06-27` - external review revalidation and active-roadmap intake:
+  - all review findings were rechecked against runtime call sites, API tests, frontend tests, and existing `DEEP_ARCHITECTURE_AUDIT_2026_03_V2.md` backlog ownership;
+  - active roadmap summary corrected:
+    - promoted safety-concurrency block `55` is closed;
+    - `Backlog F3` item `77` remains the next locked priority.
+  - Review Block R1 promoted after F3:
+    - dedicated API exception renderer and mapping-matrix coverage;
+    - additive stable `error.code` while preserving legacy `error.type`;
+    - typed Orders-owned stale-aggregate failure for payment/shipping with context-specific HTTP/orchestration/queue behavior;
+    - blanket `DomainException -> 404` mapping explicitly rejected because normal route absence, stale post-bind state, checkout orchestration, and queued shipping have different contracts.
+  - Review Refinement R2 merged into existing Money/config backlog:
+    - promotion discount arithmetic must preserve exact decimal/rate input and explicit rounding;
+    - pending idempotency reservation (`30` minutes) and completed replay (`24` hours) become separate configuration values;
+    - duplicate Money debt was not created; ownership remains Backlog G items `4/5` plus Backlog I2 item `59`.
+  - Review Block R3 promoted as P2 operational hardening:
+    - alert channel results must distinguish `disabled`, `delivered`, and `failed`;
+    - aggregate logging applies only when enabled delivery was attempted and every attempt failed;
+    - existing per-channel warning logs and success-only cooldown semantics remain protected.
+  - frontend god-composable hypothesis rejected as unsubstantiated:
+    - reviewed account/catalog/auth/checkout composables have focused responsibilities and dedicated tests;
+    - no refactor item is created without a concrete boundary violation, duplicate behavior, race, or untestable side effect.
+  - planning and governance updates:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` now contains verified dispositions, promoted review blocks, sequencing, DoD, exit targets, and required test coverage;
+    - routes/controllers/runtime code were not changed, so route-cache smoke commands are not required.
+  - verification:
+    - full mandatory quality gate executed sequentially:
+      - `composer run lint`;
+      - `composer run analyse`;
+      - `php artisan test`;
+      - `npm run lint`;
+      - `npm run lint:ox`;
+      - `npm run format:ox:check`;
+      - `npm run type-check`;
+      - `npm run test`;
+      - `npm run build`.
+
+- `2026-06-28` - `Backlog F3` item `77` access-token lifecycle closure:
+  - finite Sanctum token lifetime implemented:
+    - `SANCTUM_TOKEN_EXPIRATION_MINUTES` is an optional env value with a validated positive-integer default of `1440` minutes across local/stage/prod/testing examples;
+    - `config/sanctum.php` resolves and validates the TTL; `AuthAccessTokenIssuer` applies it when issuing tokens;
+    - `AuthUserRepository::issueAccessToken(...)` persists explicit token `expires_at`.
+  - active-user revalidation implemented:
+    - `EnsureActiveApiUser` delegates inactive-user handling to `AuthActiveUserRevalidator`;
+    - every `auth:sanctum` group plus optional-auth cart and place-order routes uses `active.api.user`;
+    - an inactive bearer is rejected with `401` and all user tokens are revoked on the first attempted API use.
+  - current/global revoke semantics separated:
+    - logout deletes only the current `PersonalAccessToken` and leaves other sessions active;
+    - password reset updates the password and revokes every access token in one DB transaction;
+    - the repository contract exposes explicit `revokeCurrentAccessToken` and `revokeAllAccessTokens` operations.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md`, `README.md`, environment examples, active roadmap, and deep-audit status document the security contract;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks item `77` closed and item `78` as the next locked F3 priority.
+  - deterministic coverage added:
+    - `AuthTokenLifecycleGuardrailTest` locks finite config, route middleware coverage, explicit expiry, and revoke contracts;
+    - `AuthFlowTest` covers token expiry, expired rejection, inactive protected/guest-capable requests, global inactive revoke, and current-token-only logout;
+    - `PasswordResetFlowTest` covers global token revoke after password reset.
+  - targeted verification passed:
+    - `php artisan test --filter="AuthFlowTest|PasswordResetFlowTest|AuthTokenLifecycleGuardrailTest"`;
+    - `php artisan test --filter="CheckoutAuthenticatedTokenTest|AdminAclTest|CartCheckoutTest|GuestCheckoutTest"`.
+  - full mandatory quality gate executed sequentially:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+  - route/cache verification executed after middleware and route changes:
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+
+- `2026-06-28` - independent multi-agent review follow-up fixes for item `77`:
+  - `config/sanctum.php` normalizes an empty `SANCTUM_TOKEN_EXPIRATION_MINUTES` env value to the default before validation, preventing boot failure on misconfigured dotenv while keeping strict validation for non-positive values;
+  - `AuthController::register` now catches `AuthApplicationException` to return the contract error envelope, matching the login/forgot/reset error path;
+  - `AuthUserRepository::revokeCurrentAccessToken` guards against null and `TransientToken` current access tokens as defense-in-depth;
+  - `AuthTokenLifecycleGuardrailTest` rewritten to assert middleware alias and route coverage via `Router::getMiddleware()` and `Route::getRoutes()->getRoutes()` instead of exact-string source matching;
+  - `AuthFlowTest` isolates the `sanctum.expiration` override and covers login-for-inactive-user (`403`) and guest-capable cart routes;
+  - added `AuthAccessTokenIssuerTest` and `AuthActiveUserRevalidatorTest` unit coverage;
+  - documentation synchronized: deep-audit item 77 deactivation wording, execution-plan env ownership, and README active-user revalidation note.
+  - full mandatory quality gate executed sequentially:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+  - route/cache verification executed after controller/config changes:
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+
+- `2026-06-28` - A1 closure (approved Breaking Change) - inactive-user error contract unified and de-enumerated:
+  - `LoginAuthUserHandler` now folds the `is_active` check into the credentials failure path, returning `422` `Invalid credentials.` instead of `403` `User account is disabled.`, so login cannot leak account-disabled state to an attacker holding valid credentials;
+  - `EnsureActiveApiUser` throws `AuthenticationException` without an account-state message for inactive bearers, keeping `401` (SPA logout redirect) but returning the generic `Unauthenticated.` body; global token revocation still runs first via `AuthActiveUserRevalidator`;
+  - auth controller error responses (`login`, `register`, `forgot`, `reset`, `verify`) now include `error.type` via `class_basename($exception)`, aligning the application-layer error envelope with the global API exception renderer;
+  - `AuthFlowTest` updated to assert the new contract: inactive login returns `422` `Invalid credentials.` (`type=AuthApplicationException`); inactive bearer on protected and guest-capable routes returns `401` `Unauthenticated.` (`type=AuthenticationException`); revocation assertions unchanged.
+  - breaking change impact: clients that branched on the previous `403` disabled-login status or the `User account is disabled.` message must switch to the unified `422`/`401` generic envelope; SPA `401` handling already covers the middleware path unchanged.
+  - full mandatory quality gate executed sequentially:
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`;
+    - `npm run lint:ox`;
+    - `npm run format:ox:check`;
+    - `npm run type-check`;
+    - `npm run test`;
+    - `npm run build`.
+  - route/cache verification executed after controller changes:
+    - `php artisan optimize:clear`;
+    - `php artisan route:list --path=api/v1/admin/promotions`.
+
+- `2026-07-03` - engineering-rules consolidation (documentation-only governance block):
+  - `AGENTS.md` rewritten as the single deduplicated policy source:
+    - one canonical quality-gate sequence (previously stated in three sections with drift risk);
+    - explicit authority table for rule sources, plus guardrail ownership policy (allowlists only shrink; new boundaries extend `tests/Unit/Architecture/*`);
+    - contradiction fixed: business-logic ownership no longer names the repository layer ("service/repository layers" -> application/domain/service only), matching `RepositoryBusinessDecisionBoundaryTest` semantics;
+    - contradiction fixed: controller responsibilities no longer include "orchestrate"; transport-only wording (authorize/validate/build DTO/delegate/map) now matches `docs/ARCHITECTURE.md` and ADR-0001;
+    - binding code standards added, encoding existing practice: `declare(strict_types=1)`, final-by-default classes, ADR-0002 DTO construction/naming, typed exceptions with `$previous` preservation, `CarbonImmutable` time, no new float arithmetic on money/rates, non-mass-assignable privilege/state fields, validated env/config discipline across all `.env*` examples, invariant-only comment policy (no narrative/commented-out code, `TODO` only with backlog reference);
+    - auth anti-enumeration error contract (`422` `Invalid credentials.` fold; generic `401` `Unauthenticated.` bearer body) recorded as a binding API rule so the A1 breaking change cannot be silently reverted;
+    - deterministic-test requirements made explicit (no sleeps/network/wall-clock/unseeded randomness);
+    - quality-gate scope clarified: documentation-only changes require at minimum `php artisan test` (documentation guardrails execute there); any code/route/config/build-input change keeps the full sequential gate; CI full gate unchanged as the required merge check.
+  - `.cursorrules` reduced to a loader for `AGENTS.md` plus a short restatement of the most-violated rules; the previously drifted duplicate policy copy is removed as a standing drift source.
+  - `README.md` engineering-rules section now lists the architecture contract, navigation maps, and ADR index, and labels `docs/REFACTORING_EXECUTION_PLAN.md` as the execution log (matching its non-authoritative banner).
+  - verification (documentation-only scope; no runtime code, routes, or frontend inputs changed):
+    - `php artisan test --filter="AiRepoMapGovernanceGuardrailTest|DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|SmokeDocumentationGuardrailTest|ReleaseDocsWorkflowGuardrailTest"` - pass;
+    - `php artisan test` - 352 passed (3206 assertions);
+    - lint/static-analysis/frontend chain and route-cache smoke are not applicable to this block; the CI `Quality Gate / Full Quality Gate` check still runs the full gate on merge.
+
+- `2026-07-03` - active roadmap restructuring (documentation-only governance block):
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` rebuilt as a forward-looking execution authority (1906 -> ~450 lines) with no loss of binding commitments:
+    - the 1180-line completed-work narrative (progress items 1-60, duplicating this log in violation of the log/roadmap authority split) replaced by a Program Status Registry: one-line status per wave 0-24 and per promoted block, with details delegated to this log;
+    - broken document structure fixed: progress items 8-60 had been mis-nested under `## Confirmed Findings` with a fractured numbered list; completed waves were still phrased as future work with stale day estimates;
+    - a single locked Execution Queue added (F3-78 -> F3-79 -> R1 -> R2 -> R3 -> security intake 80/81 -> 82/83 -> convergence waves), replacing ordering rules scattered across four sections;
+    - `F3-78` (credential hardening) and `F3-79` (auth audit trail) received wave-grade execution definitions (verified code baseline, steps, tests, DoD, risk/rollback, convergence impact); previously the next active item had no definition inside the active authority document;
+    - modular-monolith end state received an execution path: convergence waves `C0-C7` (module-boundary guardrail foundation, then Catalog, Users/Auth, Cart, Checkout, Orders, Payments, Webhooks) with entry criteria, atomic-move policy (no dual namespaces), and per-wave promotion per the Backlog Intake Rule;
+    - risk register added (lockout DoS, taxonomy churn, decimal-migration precision, relocation churn, allowlist erosion) with mitigations mapped to guardrails/config;
+    - Program Exit Targets split into achieved (each mapped to its verifying guardrail/command) and remaining (each mapped to its owning block);
+    - Interface/Contract Changes split into completed vs pending-by-block; Mandatory Test Matrix refreshed (stale `after Wave X` qualifiers removed; F3-78/79, R1-R3, C0 coverage additions listed);
+    - the fourth duplicated quality-gate command list removed; the section now defers to the canonical sequence in `AGENTS.md`;
+    - Plan Change Control section added (revision log; file changes only on block promotion/closure/re-scope);
+    - preserved verbatim-in-substance: Verified Review Intake (2026-06-27) dispositions, R1/R2/R3 definitions, Locked Constraints, Program Posture, Non-Goals, Backlog Intake Rule (extended with fixed security order and convergence-impact requirement already implied by prior revisions).
+  - verification (documentation-only scope; no runtime code, routes, or frontend inputs changed):
+    - `php artisan test --filter="DocumentationAuthorityGuardrailTest|OperationalDocsConfigGuardrailTest|ReleaseDocsWorkflowGuardrailTest|AiRepoMapGovernanceGuardrailTest|ModularMonolithSkeletonGuardrailTest"` - 10 passed (132 assertions);
+    - `php artisan test` - 352 passed (3206 assertions);
+    - lint/static-analysis/frontend chain and route-cache smoke are not applicable to this block; CI `Quality Gate / Full Quality Gate` remains the full merge check.
+
+- `2026-07-03` - verified improvement intake and roadmap expansion (documentation-only governance block):
+  - internal code review executed against runtime code/config for architecture, quality, and evolution headroom; every finding verified before disposition (evidence: `AppServiceProvider` boot contents, model cast inventory, `.env.prod.example`, `ci.yml`, `psalm.xml`, `tsconfig.json`, `vitest.config.ts`, job/listener correlation grep, `WebhookProcessingPipeline` transaction ordering, `QueuePaymentStatusSideEffects` afterCommit dispatch, `failed_jobs` monitoring absence, migration money column types, request pagination caps);
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` extended:
+    - new `Verified Improvement Intake (2026-07-03)` section with twelve dispositions (eight promoted, three candidates, one verified-healthy set);
+    - seven blocks promoted with wave-grade definitions (verified baseline, steps, tests, DoD, risk/rollback, convergence impact):
+      - `Q1` strict Eloquent runtime guardrails (`Model::shouldBeStrict` non-prod) + immutable date casts/`Date::use(CarbonImmutable)`;
+      - `Q2` supply-chain audit gate (`composer audit`/`npm audit` in CI, dependabot, advisory exception policy);
+      - `A2` correlation propagation across the queue boundary (accessor boundary, scalar payload key, guardrail extension);
+      - `A1` order lifecycle reconciliation (`app:orders-reconcile`, stuck-state detection windows, `failed_jobs` monitoring, outbox recorded as escalation path);
+      - `Q3` Psalm ladder `6 -> 4` with routes scope parity;
+      - `Q4` frontend type flags + vitest coverage signal;
+      - `S1` OpenAPI 3.1 contract source with CI lint and response validation (after `R1`, before `C0`);
+    - execution queue resequenced to fifteen entries with explicit rationale (guardrail-first `Q1/Q2/A2` between locked `F3` pair and `R1`; `A1` before the `80/81` promotion decision; `S1` gates `C0`);
+    - risk register (+6 rows), pending interface/contract changes (+5), exit targets (+7, renumbered), mandatory test matrix, backlog intake rule (item 7), `C0` entry criteria, summary, and change-control log updated accordingly;
+    - candidates recorded without blocks: production provider enablement (fake payment/shipping drivers and `MAIL_MAILER=log` in the prod example; requires business decision), browser E2E checkout smoke, backend coverage floor/mutation testing.
+  - verification (documentation-only scope; no runtime code, routes, or frontend inputs changed):
+    - `php artisan test` - 352 passed (3206 assertions);
+    - lint/static-analysis/frontend chain and route-cache smoke are not applicable to this block; CI `Quality Gate / Full Quality Gate` remains the full merge check.
