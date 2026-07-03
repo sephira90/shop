@@ -1,7 +1,7 @@
 # Architecture Refactor Next (Architecture-First)
 
 Program start: `2026-03-05`
-Last revised: `2026-07-03`
+Last revised: `2026-07-03` (F3-79 closure)
 Last review intake: `2026-06-27`
 Status: `Active`
 Priority mode: `Architecture-first`
@@ -20,8 +20,8 @@ The program strengthens an already-layered Laravel + Vue ecommerce monolith into
 Current position:
 
 - Waves `0-24` are complete (transport purity, webhook hardening, DTO discipline, service decomposition, application/frontend boundary hardening, observability/smoke/operations modularization, governance and release guardrails, PHPStan level 10 with no baseline).
-- All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle) and `78` (credential hardening), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
-- The active block is `Backlog F3` item `79` (auth security audit trail); the full order is fixed in the Execution Queue below.
+- All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle), `78` (credential hardening), and `79` (auth security audit trail), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
+- The active block is `Q1` (strict Eloquent runtime guardrails + immutable dates); the full order is fixed in the Execution Queue below.
 - A verified code-review intake (`2026-07-03`) promoted seven quality/reliability blocks: strict runtime guardrails (`Q1`), supply-chain audit gate (`Q2`), queue correlation propagation (`A2`), order-lifecycle reconciliation (`A1`), Psalm ladder (`Q3`), frontend hardening (`Q4`), and an OpenAPI contract source (`S1`).
 - The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7` (pending promotion, after `S1`).
 
@@ -92,6 +92,7 @@ Detailed completion narrative, per-block file lists, and executed checks: `docs/
 | Governance slices | — | `docs/ARCHITECTURE.md`, `REPO_MAP`/`DOMAIN_MAP` + alias, `app/Domains/*` skeleton, layer-direction and map governance guardrails |
 | F3 item 77 + A1 | Audit v2 P0 / approved BC | Finite Sanctum TTL with persisted `expires_at`, `active.api.user` revalidation with global revoke, current-vs-global revoke split; de-enumerated inactive-login contract (`422 Invalid credentials.` / generic `401`) |
 | F3 item 78 | Audit v2 P0/P1 | Shared 12-character letters-and-numbers password policy; email+IP login limiter; one bcrypt verification for every login attempt |
+| F3 item 79 | Audit v2 P1 | `AuthAuditLogger` contract writing structured `auth.audit.*` events (login s/f, logout, token issued/revoked with scope+reason, password reset request/completed, email verified) into the observability channel; explicit context whitelist with `sha256` email hash on failure paths; repositories stay persistence-only |
 
 ## Execution Queue
 
@@ -99,8 +100,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 
 | # | Block | Priority | State |
 | --- | --- | --- | --- |
-| 1 | `F3-79` Auth security audit trail | P1 | **Active — next up** |
-| 2 | `Q1` Strict Eloquent runtime guardrails and immutable dates | P1 | Defined, waiting |
+| 1 | `F3-79` Auth security audit trail | P1 | **Closed** |
+| 2 | `Q1` Strict Eloquent runtime guardrails and immutable dates | P1 | **Active — next up** |
 | 3 | `Q2` Supply-chain audit gate (CI + dependabot) | P1 | Defined, waiting |
 | 4 | `A2` Correlation propagation across the queue boundary | P1 | Defined, waiting |
 | 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | Defined, waiting |
@@ -434,20 +435,19 @@ This intake records a code-verified external review. It is promoted into the act
 
 ## Interface/Contract Changes
 
-Completed (see registry and execution log): typed webhook payload boundaries; `*FilterDto` migration; enum-based admin order status input; DTO result boundaries for all handlers; async shipping ingestion parity; additive canonical account routes; admin selector endpoints; cleanup config/indexes; `CatalogIndexRequest`; `ResolvesAuthenticatedUser`; canonical `formatPrice`; bounded read repositories + summary projector; finite Sanctum token expiration with active-user revalidation and split revoke semantics; shared password policy, identity-aware login limiter, and timing-parity credential verification.
+Completed (see registry and execution log): typed webhook payload boundaries; `*FilterDto` migration; enum-based admin order status input; DTO result boundaries for all handlers; async shipping ingestion parity; additive canonical account routes; admin selector endpoints; cleanup config/indexes; `CatalogIndexRequest`; `ResolvesAuthenticatedUser`; canonical `formatPrice`; bounded read repositories + summary projector; finite Sanctum token expiration with active-user revalidation and split revoke semantics; shared password policy, identity-aware login limiter, and timing-parity credential verification; structured auth security audit trail (`AuthAuditLogger` contract, stable `auth.audit.*` event taxonomy, whitelisted context with `sha256` email hash on failure paths).
 
 Pending, owned by queued blocks:
 
-1. `F3-79`: `AuthAuditLogger` contract and structured auth security event taxonomy.
-2. `R1`: additive stable `error.code` through a dedicated renderer; Orders-owned stale-aggregate failure with context-specific handling; `error.type` preserved until an approved deprecation migration.
-3. `R2`: exact decimal/rate promotion boundary; separate validated pending/completed idempotency retention config.
-4. `R3`: typed alert-channel delivery outcomes (`disabled`/`delivered`/`failed`).
-5. `Q1`: model date attributes become `CarbonImmutable` (internal semantic change; JSON payloads unchanged); strict Eloquent mode in non-production runtimes.
-6. `Q2`: CI gains blocking dependency-audit steps; dependabot manifest added.
-7. `A2`: queued job payloads gain a scalar `correlation_id` key restored into log context.
-8. `A1`: new `app:orders-reconcile` command with validated `reconciliation.*` config windows and scheduler registration.
-9. `S1`: `docs/api/openapi.yaml` becomes the machine-readable `/api/v1` contract, validated in CI and feature tests.
-10. `C0-C7`: module public-API convention under `app/Domains/*` with cross-module imports restricted to `Contracts` namespaces.
+1. `R1`: additive stable `error.code` through a dedicated renderer; Orders-owned stale-aggregate failure with context-specific handling; `error.type` preserved until an approved deprecation migration.
+2. `R2`: exact decimal/rate promotion boundary; separate validated pending/completed idempotency retention config.
+3. `R3`: typed alert-channel delivery outcomes (`disabled`/`delivered`/`failed`).
+4. `Q1`: model date attributes become `CarbonImmutable` (internal semantic change; JSON payloads unchanged); strict Eloquent mode in non-production runtimes.
+5. `Q2`: CI gains blocking dependency-audit steps; dependabot manifest added.
+6. `A2`: queued job payloads gain a scalar `correlation_id` key restored into log context.
+7. `A1`: new `app:orders-reconcile` command with validated `reconciliation.*` config windows and scheduler registration.
+8. `S1`: `docs/api/openapi.yaml` becomes the machine-readable `/api/v1` contract, validated in CI and feature tests.
+9. `C0-C7`: module public-API convention under `app/Domains/*` with cross-module imports restricted to `Contracts` namespaces.
 
 ## Risk Register
 
@@ -481,10 +481,10 @@ Achieved (mechanically verified):
 9. Guardrails cover controllers, handlers, repositories, queued side effects, and policy completeness — Wave 24 suite.
 10. Finite token lifetime, active-user revalidation, and split revoke semantics — `AuthTokenLifecycleGuardrailTest`, `AuthFlowTest`, `PasswordResetFlowTest`.
 11. Credential policy, identity-aware lockout, and timing parity — `AuthCredentialHardeningGuardrailTest`, `AuthFlowTest`, `PasswordResetFlowTest`.
+12. Structured auth security audit trail wired into observability — `AuthAuditTrailFeatureTest`, `AuthAuditEmissionGuardrailTest`, `AuthAuditEventTest`, `ObservabilityAuthAuditLoggerTest` (`F3-79`).
 
 Remaining (each verified by its owning block's DoD):
 
-12. Structured auth security audit trail wired into observability — `F3-79`.
 13. Stable additive `error.code` through a dedicated renderer; typed stale-aggregate failures across HTTP/orchestration/queue call sites — `R1`.
 14. Exact promotion arithmetic to the JSON boundary; independently configurable idempotency windows — `R2`.
 15. Alert routing distinguishes disabled channels from attempted-delivery failures with aggregate all-failed signal — `R3`.
@@ -548,3 +548,4 @@ This file changes only when a block is promoted, closed, or re-scoped; every rev
 | `2026-07-03` | Plan restructured: completed-work narrative moved to status registry (details in execution log); `F3-78`/`F3-79` given execution definitions; convergence waves `C0-C7` defined; execution queue, risk register, and verifiable exit targets added; quality gate deduplicated to `AGENTS.md` |
 | `2026-07-03` | Verified improvement intake: seven blocks promoted (`Q1` strict runtime + immutable dates, `Q2` supply-chain gate, `A2` queue correlation, `A1` lifecycle reconciliation, `Q3` Psalm ladder, `Q4` frontend hardening, `S1` OpenAPI contract); provider enablement, browser E2E, and coverage floor recorded as candidates; queue resequenced with rationale |
 | `2026-07-03` | `F3-78` closed: shared password policy, identity-aware login limiter, timing-parity verification, and deterministic coverage; `F3-79` is active next |
+| `2026-07-03` | `F3-79` closed: `AuthAuditLogger` contract, stable `auth.audit.*` taxonomy, whitelisted context with `sha256` email hash on failure paths, repository-persistence-only guardrail, and deterministic coverage; `Q1` is active next |

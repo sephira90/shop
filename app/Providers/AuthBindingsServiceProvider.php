@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Application\Auth\Contracts\AuthAuditLogger as AuthAuditLoggerContract;
 use App\Application\Auth\Contracts\AuthPasswordBrokerRepository as AuthPasswordBrokerRepositoryContract;
 use App\Application\Auth\Contracts\AuthUserRepository as AuthUserRepositoryContract;
 use App\Application\Auth\Support\AuthLoginRateLimitKey;
+use App\Infrastructure\Auth\ObservabilityAuthAuditLogger;
 use App\Repositories\AuthPasswordBrokerRepository;
 use App\Repositories\AuthUserRepository;
 use App\Support\Data\TypedValue;
@@ -25,6 +27,7 @@ final class AuthBindingsServiceProvider extends ServiceProvider
     {
         $this->app->bind(AuthUserRepositoryContract::class, AuthUserRepository::class);
         $this->app->bind(AuthPasswordBrokerRepositoryContract::class, AuthPasswordBrokerRepository::class);
+        $this->app->bind(AuthAuditLoggerContract::class, ObservabilityAuthAuditLogger::class);
     }
 
     public function boot(AuthLoginRateLimitKey $rateLimitKey): void

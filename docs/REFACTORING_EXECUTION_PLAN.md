@@ -6366,3 +6366,37 @@
     - route/cache verification:
       - `php artisan optimize:clear`;
       - `php artisan route:list --path=api/v1/admin/promotions`.
+
+- `2026-07-03` - `Backlog F3` item `79` auth security audit trail closure:
+  - structured audit boundary added behind an application-layer contract:
+    - `App\Application\Auth\Contracts\AuthAuditLogger` declares a single `log(AuthAuditEvent, AuthAuditContext): void` port; the caller is guaranteed that an emission failure cannot abort the auth flow;
+    - `App\Application\Auth\Support\AuthAuditEvent` enum fixes the literal taxonomy (`login.succeeded`, `login.failed`, `logout`, `token.issued`, `token.revoked`, `password.reset.requested`, `password.reset.completed`, `email.verified`) as the machine-readable contract;
+    - `App\Application\Auth\Support\AuthAuditContext` exposes only the whitelisted fields (user id, `sha256` email hash, client IP, user-agent, correlation id, token scope, revoke reason); `toLogArray()` omits nulls and never exposes non-whitelisted keys;
+    - `App\Application\Auth\Support\AuthAuditContextResolver` is the single point where HTTP transport metadata is captured for audit, keeping handlers free of direct request coupling;
+    - `App\Infrastructure\Auth\ObservabilityAuthAuditLogger` writes `auth.audit.<event>` records into the configured observability log channel (mirroring `ObservabilityService::logger()`); an emission failure is reported through the default channel as `auth.audit_emission_failed` (without PII) and never propagated.
+  - audit emission wired into every credential-sensitive auth flow:
+    - `LoginAuthUserHandler` emits `login.failed` on the unknown/invalid/inactive path and `login.succeeded` after credential validation, before guest-cart merge;
+    - `AuthAccessTokenIssuer` emits `token.issued` on every issued token (covers login and register);
+    - `LogoutAuthUserHandler` emits `logout` plus `token.revoked` with `token_scope=current, revoke_reason=logout`;
+    - `AuthActiveUserRevalidator` emits `token.revoked` with `token_scope=all, revoke_reason=inactive_user` on the inactive-bearer global revoke;
+    - `ForgotAuthPasswordHandler` emits `password.reset.requested` after a successful reset-link send;
+    - `ResetAuthPasswordHandler` emits `password.reset.completed` plus `token.revoked` with `token_scope=all, revoke_reason=password_reset`;
+    - `VerifyAuthEmailHandler` emits `email.verified` only on the first successful verification (not on `already verified`).
+  - binding and wiring:
+    - `AuthBindingsServiceProvider` binds `AuthAuditLogger` to `ObservabilityAuthAuditLogger`; the audit logger, context resolver, and existing auth services resolve through the container.
+  - identity safety: failure paths (`login.failed`, `password.reset.requested`) emit the `sha256` email hash only, never the raw email; passwords, tokens, and token ids never appear in the audit context.
+  - guardrail extended:
+    - `AuthAuditEmissionGuardrailTest` locks three invariants: repositories contain neither `AuthAuditLogger` usage nor `Log::` facade access; every credential-sensitive auth handler declares `AuthAuditLogger` as a constructor dependency; the container resolves `AuthAuditLogger` to the observability implementation.
+  - deterministic coverage:
+    - `AuthAuditEventTest` (unit) covers literal taxonomy stability, required security surface, null-omission, full whitelist payload, `withEmailHash` normalization, and the leak test asserting `toLogArray()` exposes only whitelisted keys;
+    - `ObservabilityAuthAuditLoggerTest` (unit) covers observability-channel write with safe context, custom-channel routing, and graceful degradation on emission failure without PII leakage;
+    - `LoginAuthUserHandlerTest` (unit) extended to assert `login.failed` is emitted with the `sha256` email hash for an unknown identity while still performing exactly one password verification;
+    - `AuthAuditTrailFeatureTest` (feature) asserts each flow emits exactly its expected event(s) through the `AuthAuditLogger` contract: login success/failure, logout, inactive-bearer revoke, forgot/reset password (with `token.revoked` scope/reason), email verification, and correlation-id propagation.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md` records the audit trail contract in the reliability section;
+    - `README.md` lists the `auth.audit.*` events in the observability baseline;
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `F3-79` closed, advances the locked queue to `Q1`, updates the status registry, exit targets, pending interface/contract changes, and the change-control log.
+  - verification:
+    - targeted regressions: `php artisan test --filter="Auth"` - 60 passed (409 assertions);
+    - F3-79 target suite: `php artisan test --filter="AuthAuditEventTest|ObservabilityAuthAuditLoggerTest|AuthAuditEmissionGuardrailTest|AuthAuditTrailFeatureTest"` - 21 passed (90 assertions);
+    - full mandatory quality gate executed sequentially (see block above for the canonical command list).

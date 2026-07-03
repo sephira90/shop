@@ -4,52 +4,99 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Auth;
 
-use App\Application\Auth\AuthAccessTokenIssuer;
 use App\Application\Auth\AuthApplicationException;
 use App\Application\Auth\Commands\LoginAuthUserCommand;
 use App\Application\Auth\Commands\LoginAuthUserHandler;
-use App\Application\Auth\Contracts\AuthUserRepository;
 use App\Application\Auth\Dto\LoginAuthInputDto;
+use App\Application\Auth\Support\AuthAuditContextResolver;
 use App\Application\Auth\Support\AuthUserDtoMapper;
 use App\Contracts\CartServiceInterface;
-use Mockery;
-use Mockery\CompositeExpectation;
-use Mockery\MockInterface;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\Support\Auth\AuthAuditLoggerSpy;
+use Tests\Support\Auth\AuthUserRepositoryFake;
 use Tests\TestCase;
 
 final class LoginAuthUserHandlerTest extends TestCase
 {
-    public function test_unknown_email_still_performs_exactly_one_password_verification(): void
-    {
-        /** @var AuthUserRepository&MockInterface $repository */
-        $repository = Mockery::mock(AuthUserRepository::class);
-        $findExpectation = $repository->shouldReceive('findByEmail');
-        self::assertInstanceOf(CompositeExpectation::class, $findExpectation);
-        $findExpectation->__call('once', []);
-        $findExpectation->__call('with', ['missing@example.com'])->andReturn(null);
-        $passwordExpectation = $repository->shouldReceive('isPasswordValid');
-        self::assertInstanceOf(CompositeExpectation::class, $passwordExpectation);
-        $passwordExpectation->__call('once', []);
-        $passwordExpectation->__call('with', [null, 'wrong-password-123'])->andReturn(false);
+    use RefreshDatabase;
 
-        $cartService = Mockery::mock(CartServiceInterface::class);
-        $cartService->shouldNotReceive('mergeGuestCart');
-        /** @var CartServiceInterface&MockInterface $cartService */
-        $handler = new LoginAuthUserHandler(
-            $repository,
-            new AuthAccessTokenIssuer($repository),
-            $cartService,
-            new AuthUserDtoMapper,
+    public function test_unknown_email_still_performs_exactly_one_password_verification_and_emits_failure_audit(): void
+    {
+        $repository = new AuthUserRepositoryFake(
+            findByEmailResult: null,
+            passwordValidResult: false,
         );
 
-        $this->expectException(AuthApplicationException::class);
-        $this->expectExceptionMessage('Invalid credentials.');
+        /** @var CartServiceInterface $cartService */
+        $cartService = $this->app->make(CartServiceInterface::class);
+
+        $auditSpy = new AuthAuditLoggerSpy;
+
+        $handler = new LoginAuthUserHandler(
+            $repository,
+            $this->app->make(\App\Application\Auth\AuthAccessTokenIssuer::class),
+            $cartService,
+            $this->app->make(AuthUserDtoMapper::class),
+            $auditSpy,
+            $this->app->make(AuthAuditContextResolver::class),
+        );
+
+        try {
+            $handler->handle(new LoginAuthUserCommand(new LoginAuthInputDto(
+                email: 'missing@example.com',
+                password: 'wrong-password-123',
+                deviceName: null,
+                guestToken: null,
+            )));
+            $this->fail('Expected AuthApplicationException was not thrown.');
+        } catch (AuthApplicationException $exception) {
+            $this->assertSame('Invalid credentials.', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $repository->passwordVerificationCount());
+        $this->assertTrue($auditSpy->hasEvent('login.failed'));
+
+        $context = $auditSpy->contextFor('login.failed');
+        $this->assertNull($context->userId);
+        $this->assertSame(hash('sha256', 'missing@example.com'), $context->emailHash);
+    }
+
+    public function test_successful_login_emits_succeeded_audit_before_token_issued(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'known@example.com',
+            'is_active' => true,
+        ]);
+
+        $repository = new AuthUserRepositoryFake(
+            findByEmailResult: $user,
+            passwordValidResult: true,
+        );
+
+        Sanctum::actingAs($user);
+
+        $auditSpy = new AuthAuditLoggerSpy;
+
+        $handler = new LoginAuthUserHandler(
+            $repository,
+            $this->app->make(\App\Application\Auth\AuthAccessTokenIssuer::class),
+            $this->app->make(CartServiceInterface::class),
+            $this->app->make(AuthUserDtoMapper::class),
+            $auditSpy,
+            $this->app->make(AuthAuditContextResolver::class),
+        );
 
         $handler->handle(new LoginAuthUserCommand(new LoginAuthInputDto(
-            email: 'missing@example.com',
-            password: 'wrong-password-123',
+            email: 'known@example.com',
+            password: 'password',
             deviceName: null,
             guestToken: null,
         )));
+
+        $this->assertSame(1, $repository->passwordVerificationCount());
+        $this->assertTrue($auditSpy->hasEvent('login.succeeded'));
+        $this->assertSame($user->id, $auditSpy->contextFor('login.succeeded')->userId);
     }
 }

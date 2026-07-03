@@ -133,6 +133,7 @@ Structured telemetry is emitted into logs for:
 - API request latency (`observability.api_request`)
 - catalog cache hit/miss samples (`observability.catalog_cache`)
 - webhook processing and lag (`observability.webhook`)
+- auth security audit trail (`auth.audit.login.succeeded`, `auth.audit.login.failed`, `auth.audit.logout`, `auth.audit.token.issued`, `auth.audit.token.revoked` with `token_scope` and `revoke_reason`, `auth.audit.password.reset.requested`, `auth.audit.password.reset.completed`, `auth.audit.email.verified`); identity on failure paths is the `sha256` email hash, never raw email
 - rolling snapshot report (`php artisan app:observability-report --minutes=60`)
 - optional SLO checks with non-zero exit code for CI (`--max-api-slow-rate`, `--max-webhook-lag-warn-rate`)
 - required samples guards (`--require-api-samples`, `--require-webhook-samples`)
