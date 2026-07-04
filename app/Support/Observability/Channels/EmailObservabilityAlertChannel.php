@@ -6,6 +6,7 @@ namespace App\Support\Observability\Channels;
 
 use App\Notifications\ObservabilitySloFailureNotification;
 use App\Support\Data\TypedValue;
+use App\Support\Observability\AlertDeliveryOutcome;
 use App\Support\Observability\Contracts\ObservabilityAlertChannel;
 use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
 use App\Support\Observability\ObservabilityAlertRoutingLogger;
@@ -20,17 +21,17 @@ final readonly class EmailObservabilityAlertChannel implements ObservabilityAler
         return 'email';
     }
 
-    public function send(ObservabilityAlertMessageDto $message): bool
+    public function send(ObservabilityAlertMessageDto $message): AlertDeliveryOutcome
     {
         if (! (bool) config('observability.alerts.email.enabled', false)) {
-            return false;
+            return AlertDeliveryOutcome::DISABLED;
         }
 
         $configuredRecipients = config('observability.alerts.email.recipients', []);
         if (! is_array($configuredRecipients)) {
             $this->routingLogger->warning($this->channel(), 'Configured recipients value is not an array.');
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
         /** @var list<string> $recipients */
@@ -42,7 +43,7 @@ final readonly class EmailObservabilityAlertChannel implements ObservabilityAler
         if ($recipients === []) {
             $this->routingLogger->warning($this->channel(), 'No recipients configured.');
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
         foreach ($recipients as $recipient) {
@@ -50,6 +51,6 @@ final readonly class EmailObservabilityAlertChannel implements ObservabilityAler
                 ->notify(new ObservabilitySloFailureNotification($message->subject, $message->lines));
         }
 
-        return true;
+        return AlertDeliveryOutcome::DELIVERED;
     }
 }

@@ -6568,3 +6568,50 @@ Verification (executed strictly sequentially, one command at a time):
   - full mandatory quality gate executed sequentially (see block above for the canonical command list);
   - route/cache verification after config/controller changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/promotions`.
 
+### `2026-07-04` - `R3` Alert delivery outcome observability
+
+Block scope: replace the boolean-only alert channel delivery contract with an explicit outcome taxonomy so the router can distinguish disabled channels from attempted-delivery failures, and emit one aggregate operational signal only when at least one enabled delivery was attempted and every attempt failed.
+
+Verified baseline (`2026-07-04`):
+  - `App\Support\Observability\Contracts\ObservabilityAlertChannel::send()` declared `bool` as the return type; disabled channels, configuration failures, request failures, and remote errors all collapsed into `false`, so `sent === []` could not distinguish "every channel disabled" from "every attempted delivery failed".
+  - `App\Support\Observability\ObservabilityAlertRouter::routeFailureAlert()` tracked only successful channels and activated cooldown when at least one delivery succeeded; there was no aggregate signal for the all-attempted-channels-failed case, leaving that operational state hidden behind per-channel warnings.
+  - `App\Support\Observability\Dto\ObservabilityAlertRoutingResultDto` exposed `sentChannels` and `suppressed` only; no disabled/failed buckets, no outcome-derived helpers.
+  - `App\Support\Observability\ObservabilityAlertRoutingLogger` exposed only per-channel `warning()`; no aggregate-failure method or event name.
+
+Implemented:
+  - explicit delivery outcome taxonomy:
+    - new `App\Support\Observability\AlertDeliveryOutcome` enum (`disabled`, `delivered`, `failed`) with `isDisabled()`/`isDelivered()`/`isFailed()` predicates and `wasAttempted()` so callers can distinguish intentional disablement from attempted-and-failed delivery.
+  - typed channel contract:
+    - `ObservabilityAlertChannel::send()` now returns `AlertDeliveryOutcome`; the `bool` contract is closed;
+    - `EmailObservabilityAlertChannel`, `SlackObservabilityAlertChannel`, and `PagerDutyObservabilityAlertChannel` map each existing branch (disabled flag, missing configuration, request failure, non-2xx response, successful delivery) to the matching outcome; per-channel `warning()` calls for configuration/request failures are preserved verbatim.
+  - enriched routing result contract:
+    - `ObservabilityAlertRoutingResultDto` now declares `deliveredChannels`, `disabledChannels`, `failedChannels`, and `suppressed`, plus `hasSentChannels()`, `hasAttemptedDeliveries()`, and `everyAttemptedDeliveryFailed()` helpers; the historical `sentChannels` field is removed in favor of `deliveredChannels` for clarity.
+  - router outcome resolution + aggregate signal:
+    - `ObservabilityAlertRouter::routeFailureAlert()` resolves each channel outcome into the matching bucket, activates cooldown only when `delivered !== []`, and emits the new aggregate signal via `ObservabilityAlertRoutingLogger::aggregateFailure()` only when `delivered === [] && failed !== []` (i.e., at least one enabled channel was attempted and every attempt failed); disabled channels never trigger the aggregate warning.
+  - routing logger extension:
+    - `ObservabilityAlertRoutingLogger::aggregateFailure(list<string> $channels)` emits `observability.alert_routing_aggregate_failure` with the failed channel list, owned by the logger so the event name stays centralized.
+  - provider wiring:
+    - `ObservabilityServiceProvider` passes the routing logger into the router constructor; import is added.
+  - console consumer output:
+    - `AppObservabilityAlertCheckCommand::handle()` differentiates four post-failure output states: cooldown-suppressed, alerts-delivered (lists delivered channels), all-attempted-deliveries-failed (lists failed channels as error), and every-channel-disabled (warn); the prior "no channels configured or delivery failed" message is split accordingly.
+  - guardrail extended:
+    - `AlertDeliveryOutcomeContractGuardrailTest` (new) asserts five invariants: the channel contract requires the enum return type and never a `bool`; every concrete channel implementation references the enum and never declares `): bool`; the router resolves outcomes via `isDelivered()`/`isFailed()` predicates, emits `aggregateFailure()`, and gates cooldown on `$delivered !== []`; the routing result DTO exposes the three outcome buckets plus the two outcome-derived helpers; the routing logger owns the aggregate-failure event name and exposes `aggregateFailure()`.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `R3` closed, advances `A1` to active, strikes through `R3` from pending interface/contract changes, moves `R3` exit target `17` into achieved status, and appends a change-control entry.
+    - `docs/REFACTORING_EXECUTION_PLAN.md` (this entry).
+
+Deterministic coverage:
+  - `tests/Unit/Support/Observability/AlertDeliveryOutcomeTest.php` (new): enum string values match the documented taxonomy; predicates disambiguate disabled/failed/delivered; `wasAttempted()` is `false` only for disabled.
+  - `tests/Unit/Support/Observability/Channels/EmailObservabilityAlertChannelTest.php` (new): disabled flag returns `DISABLED`; delivered when at least one recipient receives the notification; failed when recipients are missing/invalid; blank recipients are filtered and the remaining one still receives delivery.
+  - `tests/Unit/Support/Observability/Channels/SlackObservabilityAlertChannelTest.php` (new): disabled flag returns `DISABLED`; failed when webhook URL is empty or the webhook responds non-2xx; delivered on a successful webhook post.
+  - `tests/Unit/Support/Observability/Channels/PagerDutyObservabilityAlertChannelTest.php` (new): disabled flag returns `DISABLED`; failed when integration key is empty or the Events API responds non-2xx; delivered on a successful trigger; severity is clamped to `warning` for unknown values.
+  - `tests/Unit/Support/Observability/ObservabilityAlertRouterTest.php` (rewritten): cooldown suppresses delivery and skips channel calls; all-disabled classifies into `disabledChannels` and emits no aggregate warning; all-attempted-failed emits the aggregate warning and classifies into `failedChannels`; partial success classifies buckets correctly and emits no aggregate warning; full-success records `deliveredChannels` and activates cooldown for the next attempt; no-delivery-succeeds does not activate cooldown across repeated attempts.
+  - `tests/Unit/Architecture/AlertDeliveryOutcomeContractGuardrailTest.php` (new): the five file-content + signature invariants above.
+  - existing `tests/Feature/ObservabilityAlertCheckCommandTest.php` remains green; the "every channel disabled" assertion is updated to the new "every channel is disabled by configuration" output, while partial-delivery and full-delivery assertions continue to read the delivered channel list and stay backward-compatible.
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted regressions: `php artisan test --filter="Observability|Alert"` — 70 passed (221 assertions);
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially;
+  - route/cache verification after channel/router/provider changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/promotions`.
+

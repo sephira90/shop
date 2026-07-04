@@ -19,4 +19,17 @@ final class ObservabilityAlertRoutingLogger
             ...$context,
         ]);
     }
+
+    /**
+     * Emit the aggregate operational signal when at least one enabled
+     * delivery was attempted and every attempt failed.
+     *
+     * @param  list<string>  $channels
+     */
+    public function aggregateFailure(array $channels): void
+    {
+        Log::warning('observability.alert_routing_aggregate_failure', [
+            'channels' => $channels,
+        ]);
+    }
 }

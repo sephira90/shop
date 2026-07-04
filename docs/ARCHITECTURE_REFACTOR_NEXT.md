@@ -1,7 +1,7 @@
 # Architecture Refactor Next (Architecture-First)
 
 Program start: `2026-03-05`
-Last revised: `2026-07-04` (R2 closure)
+Last revised: `2026-07-04` (R3 closure)
 Last review intake: `2026-06-27`
 Status: `Active`
 Priority mode: `Architecture-first`
@@ -21,8 +21,8 @@ Current position:
 
 - Waves `0-24` are complete (transport purity, webhook hardening, DTO discipline, service decomposition, application/frontend boundary hardening, observability/smoke/operations modularization, governance and release guardrails, PHPStan level 10 with no baseline).
 - All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle), `78` (credential hardening), and `79` (auth security audit trail), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
-- Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), `A2` (correlation propagation across the queue boundary), and `R2` (exact promotion arithmetic and idempotency retention) are closed; `R1` (API error contract and stale-aggregate taxonomy) is closed.
-- The active block is `R3` (alert delivery outcome observability); the full order is fixed in the Execution Queue below.
+- Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), `A2` (correlation propagation across the queue boundary), `R2` (exact promotion arithmetic and idempotency retention), and `R3` (alert delivery outcome observability) are closed; `R1` (API error contract and stale-aggregate taxonomy) is closed.
+- The active block is `A1` (order lifecycle reconciliation and stuck-state detection); the full order is fixed in the Execution Queue below.
 - A verified code-review intake (`2026-07-03`) promoted seven quality/reliability blocks: strict runtime guardrails (`Q1`), supply-chain audit gate (`Q2`), queue correlation propagation (`A2`), order-lifecycle reconciliation (`A1`), Psalm ladder (`Q3`), frontend hardening (`Q4`), and an OpenAPI contract source (`S1`).
 - The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7` (pending promotion, after `S1`).
 
@@ -109,8 +109,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 4 | `A2` Correlation propagation across the queue boundary | P1 | **Closed** |
 | 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | **Closed** (`2026-07-04`) |
 | 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | **Closed** (`2026-07-04`) |
-| 7 | `R3` Alert delivery outcome observability | P2 | Active — next up |
-| 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | Defined, waiting |
+| 7 | `R3` Alert delivery outcome observability | P2 | **Closed** (`2026-07-04`) |
+| 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | Active — next up |
 | 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | Candidate — requires promotion |
 | 10 | Security intake items `82/83` (data-at-rest minimization, security guardrails) | P2 | Candidate — requires promotion |
 | 11 | `Q3` Psalm ladder and scope parity | P2 | Defined, waiting |
@@ -309,7 +309,18 @@ DoD:
 - both retention windows are independently configurable and covered by tests;
 - no existing idempotency or API response contract changes.
 
-### Review Block R3 (1-2 days) - Alert Delivery Outcome Observability
+### Review Block R3 (closed) (`2026-07-04`) - Alert Delivery Outcome Observability
+
+**Status: closed on `2026-07-04`.** Delivered:
+
+- Channel delivery contract moves from `bool` to an explicit `AlertDeliveryOutcome` enum (`disabled`, `delivered`, `failed`) so the router can distinguish intentional channel disablement from a failed delivery. The `ObservabilityAlertChannel::send()` return type, all three concrete channels (email/Slack/PagerDuty), and the in-test channel stub now resolve against the enum.
+- `ObservabilityAlertRoutingResultDto` is enriched with three outcome buckets (`deliveredChannels`, `disabledChannels`, `failedChannels`) plus `hasAttemptedDeliveries()` and `everyAttemptedDeliveryFailed()` helpers. The historical `sentChannels` field is removed in favor of `deliveredChannels`; the console command consumer and feature assertion are updated to read the new property and to differentiate the all-disabled output from the all-attempted-failed output.
+- The router emits the aggregate operational signal `observability.alert_routing_aggregate_failure` (owned by `ObservabilityAlertRoutingLogger::aggregateFailure()`) only when at least one enabled channel attempted delivery and every attempt failed. Disabled channels never trigger the aggregate warning, so a fully-disabled configuration does not create false delivery-failure alerts.
+- Cooldown activation stays gated on at least one successful delivery; partial success and cooldown-suppressed behavior remain backward-compatible.
+- Extended guardrail: `AlertDeliveryOutcomeContractGuardrailTest` requires the enum return type on the channel contract, forbids `bool` returns in concrete channels, and locks the router outcome-classification + aggregate-failure emission and the enriched DTO shape.
+- Tests added: `tests/Unit/Support/Observability/AlertDeliveryOutcomeTest.php` (taxonomy and predicates), `tests/Unit/Support/Observability/Channels/{Email,Slack,PagerDuty}ObservabilityAlertChannelTest.php` (disabled/delivered/failed matrix per channel), and the rewritten `tests/Unit/Support/Observability/ObservabilityAlertRouterTest.php` (all-disabled, all-failed, partial-success, full-success, cooldown-activation, and cooldown-suppressed matrices).
+
+Original scope, kept for history:
 
 Priority: `P2`. Sequence: independent after Review Block R1.
 
@@ -467,7 +478,7 @@ Pending, owned by queued blocks:
 
 1. ~~`R1`: additive stable `error.code` through a dedicated renderer; Orders-owned stale-aggregate failure with context-specific handling; `error.type` preserved until an approved deprecation migration.~~ — closed `2026-07-04`.
 2. ~~`R2`: exact decimal/rate promotion boundary; separate validated pending/completed idempotency retention config.~~ — closed `2026-07-04`.
-3. `R3`: typed alert-channel delivery outcomes (`disabled`/`delivered`/`failed`).
+3. ~~`R3`: typed alert-channel delivery outcomes (`disabled`/`delivered`/`failed`).~~ — closed `2026-07-04`.
 4. ~~`A2`: queued job payloads gain a scalar `correlation_id` key restored into log context.~~ — closed.
 5. `A1`: new `app:orders-reconcile` command with validated `reconciliation.*` config windows and scheduler registration.
 6. `S1`: `docs/api/openapi.yaml` becomes the machine-readable `/api/v1` contract, validated in CI and feature tests.
@@ -510,7 +521,7 @@ Remaining (each verified by its owning block's DoD):
 
 15. Stable additive `error.code` through a dedicated renderer; typed stale-aggregate failures across HTTP/orchestration/queue call sites — `R1`.
 16. Exact promotion arithmetic to the JSON boundary; independently configurable idempotency windows — `R2` (closed).
-17. Alert routing distinguishes disabled channels from attempted-delivery failures with aggregate all-failed signal — `R3`.
+17. Alert routing distinguishes disabled channels from attempted-delivery failures with aggregate all-failed signal — `R3` (closed).
 18. One correlation id joins HTTP ingress, queued processing, and side-effect logs — `A2` (closed).
 19. Every silent side-effect-loss window has a bounded, alerting detection time; `failed_jobs` is monitored — `A1`.
 20. Psalm level `4` or stricter clean on extended scope — `Q3`.
@@ -574,3 +585,4 @@ This file changes only when a block is promoted, closed, or re-scoped; every rev
 | `2026-07-04` | `Q2` closed: blocking `composer audit` and `npm audit --omit=dev --audit-level=high` steps added to the CI quality gate; `.github/dependabot.yml` schedules weekly update PRs for composer/npm/github-actions; README documents the audit gate and the dated advisory exception policy (no audit allowlist); `SupplyChainAuditGateGuardrailTest` enforces the contract; `A2` is active next |
 | `2026-07-04` | `A2` closed: `CorrelationContext` accessor (singleton bound in `ObservabilityServiceProvider`) resolves the inbound `X-Correlation-Id` or generates a stable UUID in non-HTTP contexts; all five queued jobs (`DispatchShipmentJob`, `SendOrderConfirmationJob`, `SendOrderStatusChangedNotificationJob`, `ProcessPaymentWebhookJob`, `ProcessShippingWebhookJob`) capture a scalar `correlationId` in their payload and restore it into `Log::withContext()` at the start of `handle()`; side-effect listeners and webhook enqueue handlers resolve the correlation id via `CorrelationContext::currentOrNew()`; `WebhookProcessingPipeline` forwards the true ingress correlation into the `webhook.processing_failed` log context (event-id fallback retained only for direct pipeline calls without an inbound correlation); `QueuedJobSafetyGuardrailTest` extended with correlation-payload and `Log::withContext()` assertions; `CorrelationContextTest` (unit) and `WebhookCorrelationPropagationTest` (feature) added; scalar-only payload discipline preserved; `R1` is active next |
 | `2026-07-04` | `R2` closed: `Money::percentage()` accepts an exact-decimal string rate (up to four decimal places) with integer per-million arithmetic and `PHP_ROUND_HALF_UP`; deprecated `percentageFloat()` alias preserves backward compatibility; `CheckoutDiscountResolver::calculateDiscountTotal()` is now statically typed (`PromotionType`, `string`, `Money`) and the `(float) $promotion->value` cast and `PromotionType\|string` union are removed; PERCENT branch defends its own `[0, 100]` boundary with `CheckoutException::promotionTypeInvalid`; both idempotency retention windows are independently configurable through `config/checkout.php` (`checkout.idempotency.pending_minutes` default 30 / max 10080, `checkout.idempotency.completed_hours` default 24 / max 720) with bounded positive-integer resolution matching `AUTH_LOGIN_THROTTLE_*`; the hardcoded `addMinutes(30)` (×2) and `addHours(24)` (×1) sites are replaced by config reads; four environment examples declare both `CHECKOUT_IDEMPOTENCY_*` keys; `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` forbids the float cast, the union signature, and the hardcoded literals, and locks both config keys + documented defaults; `PromotionValueRateTest`, `CheckoutDiscountResolverTest`, and `CheckoutIdempotencyRetentionConfigTest` cover string-rate arithmetic, percent/fixed/capped/defensive discount behavior, and bounded-resolver semantics; `R3` is active next |
+| `2026-07-04` | `R3` closed: alert channel delivery contract moves from `bool` to an explicit `AlertDeliveryOutcome` enum (`disabled`/`delivered`/`failed`); the `ObservabilityAlertChannel::send()` return type, all three concrete channels (email/Slack/PagerDuty), and the in-test channel stub resolve against the enum; `ObservabilityAlertRoutingResultDto` is enriched with `deliveredChannels`/`disabledChannels`/`failedChannels` plus `hasAttemptedDeliveries()` and `everyAttemptedDeliveryFailed()` helpers; the historical `sentChannels` field is removed in favor of `deliveredChannels` and the console command consumer and feature assertion are updated; the router emits the aggregate operational signal `observability.alert_routing_aggregate_failure` (owned by `ObservabilityAlertRoutingLogger::aggregateFailure()`) only when at least one enabled channel attempted delivery and every attempt failed, so disabled channels never trigger false delivery-failure alerts; cooldown activation stays gated on at least one successful delivery; `AlertDeliveryOutcomeContractGuardrailTest` requires the enum return type on the channel contract, forbids `bool` returns in concrete channels, and locks the router outcome-classification + aggregate-failure emission and the enriched DTO shape; `AlertDeliveryOutcomeTest`, `tests/Unit/Support/Observability/Channels/{Email,Slack,PagerDuty}ObservabilityAlertChannelTest`, and the rewritten `ObservabilityAlertRouterTest` cover the disabled/delivered/failed matrix per channel and the all-disabled/all-failed/partial-success/full-success/cooldown matrices on the router; `A1` is active next |

@@ -52,13 +52,20 @@ class AppObservabilityAlertCheckCommand extends Command
 
         if ($routingResult?->suppressed) {
             $this->warn('Observability alert routing suppressed by cooldown window.');
-        } elseif ($routingResult === null || ! $routingResult->hasSentChannels()) {
-            $this->warn('Observability alert routing skipped: no channels configured or delivery failed.');
-        } else {
+        } elseif ($routingResult === null) {
+            $this->warn('Observability alert routing skipped: no SLO failure detected.');
+        } elseif ($routingResult->hasSentChannels()) {
             $this->error(sprintf(
                 'Observability alerts sent via: %s.',
-                implode(', ', $routingResult->sentChannels),
+                implode(', ', $routingResult->deliveredChannels),
             ));
+        } elseif ($routingResult->everyAttemptedDeliveryFailed()) {
+            $this->error(sprintf(
+                'Observability alert delivery failed for every attempted channel: %s.',
+                implode(', ', $routingResult->failedChannels),
+            ));
+        } else {
+            $this->warn('Observability alert routing skipped: every channel is disabled by configuration.');
         }
 
         return self::FAILURE;

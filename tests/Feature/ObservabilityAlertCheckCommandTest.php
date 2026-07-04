@@ -170,7 +170,7 @@ class ObservabilityAlertCheckCommandTest extends TestCase
 
         $this->artisanCommand('app:observability-alert-check')
             ->assertFailed()
-            ->expectsOutputToContain('Observability alert routing skipped: no channels configured or delivery failed.');
+            ->expectsOutputToContain('Observability alert routing skipped: every channel is disabled by configuration.');
 
         Notification::assertNothingSent();
         Http::assertNothingSent();

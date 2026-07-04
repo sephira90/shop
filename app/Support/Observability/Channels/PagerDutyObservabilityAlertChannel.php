@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Observability\Channels;
 
 use App\Support\Data\TypedValue;
+use App\Support\Observability\AlertDeliveryOutcome;
 use App\Support\Observability\Contracts\ObservabilityAlertChannel;
 use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
 use App\Support\Observability\ObservabilityAlertRoutingLogger;
@@ -21,17 +22,17 @@ final readonly class PagerDutyObservabilityAlertChannel implements Observability
         return 'pagerduty';
     }
 
-    public function send(ObservabilityAlertMessageDto $message): bool
+    public function send(ObservabilityAlertMessageDto $message): AlertDeliveryOutcome
     {
         if (! (bool) config('observability.alerts.pagerduty.enabled', false)) {
-            return false;
+            return AlertDeliveryOutcome::DISABLED;
         }
 
         $integrationKey = TypedValue::trimmedString(config('observability.alerts.pagerduty.integration_key', ''));
         if ($integrationKey === '') {
             $this->routingLogger->warning($this->channel(), 'PagerDuty integration key is empty.');
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
         $severity = strtolower(TypedValue::trimmedString(config('observability.alerts.pagerduty.severity', 'warning')));
@@ -57,7 +58,7 @@ final readonly class PagerDutyObservabilityAlertChannel implements Observability
                 'exception' => $exception->getMessage(),
             ]);
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
         if (! $response->successful()) {
@@ -66,9 +67,9 @@ final readonly class PagerDutyObservabilityAlertChannel implements Observability
                 'body' => Str::limit($response->body(), 500),
             ]);
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
-        return true;
+        return AlertDeliveryOutcome::DELIVERED;
     }
 }

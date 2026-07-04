@@ -21,6 +21,7 @@ final class ObservabilityAlertRouter
     public function __construct(
         private readonly ObservabilityAlertCooldownStore $cooldownStore,
         private readonly ObservabilityAlertMessageBuilder $messageBuilder,
+        private readonly ObservabilityAlertRoutingLogger $routingLogger,
         iterable $channels,
     ) {
         $this->channels = is_array($channels) ? array_values($channels) : iterator_to_array($channels, false);
@@ -32,22 +33,45 @@ final class ObservabilityAlertRouter
     public function routeFailureAlert(ObservabilityAlertPayloadDto $payload): ObservabilityAlertRoutingResultDto
     {
         if ($this->cooldownStore->isSuppressed()) {
-            return new ObservabilityAlertRoutingResultDto([], true);
+            return new ObservabilityAlertRoutingResultDto(
+                deliveredChannels: [],
+                disabledChannels: [],
+                failedChannels: [],
+                suppressed: true,
+            );
         }
 
         $message = $this->messageBuilder->buildFailureMessage($payload);
-        $sent = [];
+        $delivered = [];
+        $disabled = [];
+        $failed = [];
 
         foreach ($this->channels as $channel) {
-            if ($channel->send($message)) {
-                $sent[] = $channel->channel();
+            $outcome = $channel->send($message);
+
+            if ($outcome->isDelivered()) {
+                $delivered[] = $channel->channel();
+            } elseif ($outcome->isFailed()) {
+                $failed[] = $channel->channel();
+            } else {
+                $disabled[] = $channel->channel();
             }
         }
 
-        if ($sent !== []) {
+        if ($delivered !== []) {
             $this->cooldownStore->remember();
+        } elseif ($failed !== []) {
+            // At least one enabled channel attempted delivery and every attempt
+            // failed: emit the aggregate operational signal so the failure does
+            // not stay hidden behind per-channel warnings alone.
+            $this->routingLogger->aggregateFailure($failed);
         }
 
-        return new ObservabilityAlertRoutingResultDto($sent, false);
+        return new ObservabilityAlertRoutingResultDto(
+            deliveredChannels: $delivered,
+            disabledChannels: $disabled,
+            failedChannels: $failed,
+            suppressed: false,
+        );
     }
 }

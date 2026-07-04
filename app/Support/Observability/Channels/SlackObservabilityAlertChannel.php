@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Observability\Channels;
 
 use App\Support\Data\TypedValue;
+use App\Support\Observability\AlertDeliveryOutcome;
 use App\Support\Observability\Contracts\ObservabilityAlertChannel;
 use App\Support\Observability\Dto\ObservabilityAlertMessageDto;
 use App\Support\Observability\ObservabilityAlertRoutingLogger;
@@ -21,17 +22,17 @@ final readonly class SlackObservabilityAlertChannel implements ObservabilityAler
         return 'slack';
     }
 
-    public function send(ObservabilityAlertMessageDto $message): bool
+    public function send(ObservabilityAlertMessageDto $message): AlertDeliveryOutcome
     {
         if (! (bool) config('observability.alerts.slack.enabled', false)) {
-            return false;
+            return AlertDeliveryOutcome::DISABLED;
         }
 
         $webhookUrl = TypedValue::trimmedString(config('observability.alerts.slack.webhook_url', ''));
         if ($webhookUrl === '') {
             $this->routingLogger->warning($this->channel(), 'Slack webhook URL is empty.');
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
         try {
@@ -43,7 +44,7 @@ final readonly class SlackObservabilityAlertChannel implements ObservabilityAler
                 'exception' => $exception->getMessage(),
             ]);
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
         if (! $response->successful()) {
@@ -52,9 +53,9 @@ final readonly class SlackObservabilityAlertChannel implements ObservabilityAler
                 'body' => Str::limit($response->body(), 500),
             ]);
 
-            return false;
+            return AlertDeliveryOutcome::FAILED;
         }
 
-        return true;
+        return AlertDeliveryOutcome::DELIVERED;
     }
 }

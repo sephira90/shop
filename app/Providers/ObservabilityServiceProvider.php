@@ -11,6 +11,7 @@ use App\Support\Observability\CorrelationContext;
 use App\Support\Observability\ObservabilityAlertCooldownStore;
 use App\Support\Observability\ObservabilityAlertMessageBuilder;
 use App\Support\Observability\ObservabilityAlertRouter;
+use App\Support\Observability\ObservabilityAlertRoutingLogger;
 use Illuminate\Support\ServiceProvider;
 
 final class ObservabilityServiceProvider extends ServiceProvider
@@ -27,6 +28,7 @@ final class ObservabilityServiceProvider extends ServiceProvider
             fn (): ObservabilityAlertRouter => new ObservabilityAlertRouter(
                 $this->app->make(ObservabilityAlertCooldownStore::class),
                 $this->app->make(ObservabilityAlertMessageBuilder::class),
+                $this->app->make(ObservabilityAlertRoutingLogger::class),
                 [
                     $this->app->make(EmailObservabilityAlertChannel::class),
                     $this->app->make(SlackObservabilityAlertChannel::class),
