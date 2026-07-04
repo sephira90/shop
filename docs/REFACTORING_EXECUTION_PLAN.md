@@ -6827,3 +6827,45 @@ Verification (executed strictly sequentially, one command at a time):
   - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-04` - `S1` OpenAPI Contract Source Of Truth
+
+**Status: closed.**
+
+Verified baseline (`2026-07-04`, before S1):
+  - `/api/v1` contract exists only as duplicated hand-written artifacts — PHP DTO `data/meta` mapping on the backend (`ApiResponse::data` / `paginated` / `paginatedWithMeta` / `error`) and TypeScript assertion modules on the frontend; no machine-readable schema.
+  - Two distinct error shapes coexist: Shape A (controller-caught `AuthApplicationException`: `{message, request_id?, type}` — no `code`/`validation`) on auth endpoints; Shape B (`ApiExceptionRenderer`-emitted: `{message, request_id?, type, code, validation?}` — `code` from closed 9-member `ApiErrorCode` enum, `validation` on 422 only) on everything else.
+  - No JsonResource classes for auth/catalog/cart domains — bodies come from `*ResultDto::toArray()` outputs per ADR-0002.
+  - Pagination meta is a 4-field trimmed shape (`current_page`, `last_page`, `per_page`, `total`) — no Laravel default `links`/`from`/`to`.
+  - 14 in-scope endpoints mapped: 8 auth, 3 catalog, 3 cart. Notable spec-vs-naive-assumption deltas documented (catalog paths are `/catalog/products` not `/products`; `GET /auth/email/verify/{id}/{hash}` is signed GET; `/auth/me` not `/auth/user`; cart is upsert-only via `POST /cart/items` with no PATCH/PUT and no clear-all; `DELETE /cart/items/{variantId}` returns 200 + cart snapshot not 204; `POST /auth/register` is the only 201; login invalid credentials is 422 by credential folding).
+
+In scope (delivered):
+  - `docs/api/openapi.yaml` authored as a single OpenAPI **3.0.3** document (downgraded from roadmap's "3.1" — see Out of scope). Formalizes: three top-level envelopes (`{data}`, `{data,meta}`, `{error}`); closed `ApiErrorCode` enum (9 literals); two distinct error envelopes (`ErrorResponseController` Shape A, `ErrorResponseRenderer` Shape B); 14 reusable component schemas built verbatim from DTO `toArray()` outputs (`AuthUser`, `AuthToken`, `AuthUserData`, `AuthTokenData`, `CatalogProduct`, `CatalogProductVariant`, `CatalogProductVariantInventory`, `CatalogProductCategory`, `CatalogProductData`, `CatalogProductPaginatedData`, `CatalogCategory`, `CatalogCategoryListData`, `Cart`, `CartItem`, `CartSummary`, `CartData`, `PaginationMeta`, `GenericMessageData`); 3 reusable parameters (`CorrelationIdHeader`, `CartGuestTokenQuery`, `CartTokenHeader`); `BearerAuth` security scheme.
+  - 14 in-scope path operations declared with `requestBody` schemas (from FormRequest rules), `responses` (success + canonical errors per shape), and vendor extensions (`x-throttle`, `x-cache`) for operational metadata.
+  - Tooling: `devizzent/cebe-php-openapi ^1.1.5` added to `require-dev` (the actively maintained fork of `cebe/php-openapi` supporting `symfony/yaml ^3-8` required by Laravel 12; the original `cebe/php-openapi 1.8.0` caps at `^7` and is uninstallable in this project; the fork declares `replace: cebe/php-openapi` so no dependency conflicts). Validates the spec structurally: `vendor/bin/php-openapi validate docs/api/openapi.yaml` → exit 0, "validates against the OpenAPI v3.0 schema."
+  - Validation infrastructure: `tests/Support/OpenApi/SpecAssertionHelper.php` parses the spec once per test run (cached statically, structurally validated at load with `$openapi->validate()` + `getErrors()`), and exposes `assertResponseMatches(TestResponse, method, path)` — locates the operation, confirms the response status is declared, walks the declared body schema(s) (top-level envelope keys, nested required keys, arrays, enums, basic type checking) against the actual JSON, supports `oneOf` alternative shapes (e.g. 422 returns either Shape A or Shape B). Convenience trait `tests/Support/OpenApi/AssertsOpenApiResponse.php` wraps it as `assertResponseMatchesOpenApiSpec($response, $method, $path)`.
+  - Conformance suite: `tests/Feature/OpenApiConformanceFeatureTest.php` (18 tests, 37 assertions) covers the happy-path success response of every in-scope endpoint plus the canonical error shapes (422 validation, 401 unauth, 404 not_found). `tests/Unit/Support/OpenApi/SpecAssertionHelperTest.php` (4 tests, 20 assertions) locks parse + path coverage + `ApiErrorCode` parity + spec caching.
+  - Guardrail: `tests/Unit/Architecture/OpenApiContractSourceGuardrailTest.php` (8 tests, 40 assertions) locks spec existence, OpenAPI 3.0.x declaration, structural validity (zero errors), 14-path coverage, `ApiErrorCode` enum parity (closed-set, no drift), composer `require-dev` package presence, helper/trait/conformance-test file existence, and the two distinct error envelopes.
+  - `docs/superpowers/plans/2026-07-04-s1-openapi-contract.md` records the design pass, the resolved decisions (OpenAPI 3.0 vs 3.1, cebe vs alternatives, scope, test strategy), and slice-by-slice execution.
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `S1` closed, appends a closed-block definition (with convergence impact: machine-readable freeze protects `/api/v1/*` through `C1-C7` module moves), strikes through risk register #8 (no machine-readable contract), adds risk register #24 (OpenAPI 3.1 upgrade follow-up), moves exit target `24` into achieved status, updates roadmap wording from "OpenAPI 3.1" to "OpenAPI 3.0", and appends a change-control entry.
+
+Out of scope (deliberate):
+  - OpenAPI 3.1 dialect — deferred (risk register #24). The `devizzent` fork supports 3.1 spec loading; the dialect bump is a single-PR follow-up when the API needs 3.1 features (webhooks, exclusive bounds, examples array) or when justified independently. 3.0.3 is sufficient for this REST API.
+  - Frontend contract-type generation (TypeScript types from spec) — separate follow-up decision per module (roadmap item 3 of S1 is plan-only here). The spec is the prerequisite; the generation switch is per-module.
+  - Admin routes (`/api/v1/admin/*`) — covered in a later block (admin is not in the agreed "auth + catalog + cart" first-increment scope).
+  - Account orders / checkout / webhook endpoints — later blocks.
+  - Coverage floor enforcement for the spec — out of DoD.
+  - No runtime contract changes — controllers, DTOs, FormRequests, middleware, routes untouched.
+
+Deterministic coverage:
+  - `tests/Feature/OpenApiConformanceFeatureTest.php` (new): 18 tests / 37 assertions — every in-scope endpoint has at least one feature test asserting response/spec conformance via `assertResponseMatchesOpenApiSpec`; covers happy-path + canonical error shapes (422 validation, 401 unauth, 404 not_found).
+  - `tests/Unit/Support/OpenApi/SpecAssertionHelperTest.php` (new): 4 tests / 20 assertions — spec loads and validates structurally; 14 in-scope paths declared; spec instance cached; `ApiErrorCode` enum in spec matches PHP enum literals.
+  - `tests/Unit/Architecture/OpenApiContractSourceGuardrailTest.php` (new): 8 tests / 40 assertions — locks the S1 contract surface (see Slice 7 above).
+  - `tests/Support/OpenApi/SpecAssertionHelper.php` + `AssertsOpenApiResponse.php` (new): the executable enforcement infrastructure.
+
+Verification (executed strictly sequentially, one command at a time):
+  - spec structural validation: `vendor/bin/php-openapi validate docs/api/openapi.yaml` → exit 0;
+  - targeted unit: `php artisan test --filter="OpenApiContractSourceGuardrailTest|SpecAssertionHelperTest"` — 12 passed (60 assertions);
+  - targeted feature: `php artisan test --filter="OpenApiConformanceFeatureTest"` — 18 passed (37 assertions);
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially.
+

@@ -1,0 +1,1230 @@
+openapi: 3.0.3
+info:
+  title: Shop API
+  version: 1.0.0
+  description: |
+    Machine-readable source of truth for the `/api/v1` surface of the Shop application.
+
+    ## Envelope
+
+    Every response uses one of three top-level shapes:
+
+    - `{ "data": <resource|array> }` for single-resource and unpaginated list responses.
+    - `{ "data": [<resource>, ...], "meta": <PaginationMeta> }` for paginated list responses.
+    - `{ "error": <ErrorObject> }` for all error responses.
+
+    ## Error taxonomy
+
+    Two error shapes coexist (see `ErrorResponseController` and `ErrorResponseRenderer`):
+
+    - **Controller-caught auth errors** (`POST /auth/login`, `POST /auth/register`,
+      `POST /auth/forgot-password`, `POST /auth/reset-password`,
+      `GET /auth/email/verify/{id}/{hash}`) emit `{message, type}` (and optional
+      `request_id`). They do NOT emit `code` or `validation`.
+    - **Renderer-emitted errors** (everything else) emit `{message, type, code}` plus
+      optional `request_id` and (on 422 only) `validation`. The `code` value is drawn
+      from the closed `ApiErrorCode` enum (9 literals).
+
+    The `error.type` field is the PHP class basename of the underlying exception and
+    is preserved byte-for-byte for backward compatibility; clients should pin on
+    `error.code` for machine handling. Removing `error.type` is a future breaking
+    change tracked separately.
+
+    ## Authentication
+
+    Bearer-token auth via Laravel Sanctum. Send `Authorization: Bearer <token>` for
+    authenticated endpoints. Cart endpoints support guest identity via the
+    `guest_token` query param OR the `X-Cart-Token` request header.
+
+    ## Correlation
+
+    An optional `X-Correlation-Id` request header is echoed back as
+    `error.request_id` on error responses when present.
+servers:
+  - url: /api/v1
+    description: Local development server
+components:
+  schemas:
+    PaginationMeta:
+      type: object
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          example: 1
+        last_page:
+          type: integer
+          minimum: 1
+          example: 5
+        per_page:
+          type: integer
+          minimum: 1
+          example: 12
+        total:
+          type: integer
+          minimum: 0
+          example: 58
+    ApiErrorCode:
+      type: string
+      description: |
+        Closed set of stable machine-readable API error codes emitted as `error.code`
+        on renderer-emitted error responses. Controller-caught auth errors do not emit
+        `code`.
+      enum:
+        - validation_failed
+        - unauthenticated
+        - forbidden
+        - not_found
+        - state_transition_not_allowed
+        - stale_aggregate
+        - webhook_ingress_rejected
+        - domain_failure
+        - internal_error
+    ErrorObjectController:
+      type: object
+      description: |
+        Error envelope emitted by controller-caught auth application exceptions
+        (login/register/forgot-password/reset-password/verify). Does NOT include
+        `code` or `validation`.
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Invalid credentials.
+        request_id:
+          type: string
+          description: Present only when the request carried an `X-Correlation-Id` header.
+        type:
+          type: string
+          description: PHP class basename of the caught exception.
+          example: AuthApplicationException
+    ErrorResponseController:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorObjectController'
+    ErrorObjectRenderer:
+      type: object
+      description: |
+        Error envelope emitted by the global API exception renderer. Always carries
+        `code` (closed `ApiErrorCode` enum); carries `validation` only on 422
+        responses.
+      required: [message, type, code]
+      properties:
+        message:
+          type: string
+          example: The email field is required.
+        request_id:
+          type: string
+          description: Present only when the request carried an `X-Correlation-Id` header.
+        type:
+          type: string
+          description: PHP class basename of the underlying exception.
+          example: ValidationException
+        code:
+          $ref: '#/components/schemas/ApiErrorCode'
+        validation:
+          type: object
+          description: |
+            Present only on 422 validation failures (`code: validation_failed`).
+            Object keyed by field name → array of message strings, matching Laravel's
+            `validator->errors()` shape.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            email:
+              - The email field is required.
+    ErrorResponseRenderer:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorObjectRenderer'
+    GenericMessageData:
+      type: object
+      description: "Generic `{data: {message: string}}` shape used by message-only responses."
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [message]
+          properties:
+            message:
+              type: string
+              example: Logged out successfully.
+    AuthUser:
+      type: object
+      required: [id, first_name, last_name, name, email, phone, is_email_verified, roles]
+      properties:
+        id:
+          type: integer
+          example: 1
+        first_name:
+          type: string
+          example: Jane
+        last_name:
+          type: string
+          example: Doe
+        name:
+          type: string
+          example: Jane Doe
+        email:
+          type: string
+          format: email
+          example: jane@example.com
+        phone:
+          type: string
+          nullable: true
+          example: '+15551234567'
+        is_email_verified:
+          type: boolean
+          example: false
+        roles:
+          type: array
+          items:
+            type: string
+          example: [customer]
+    AuthToken:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+          description: Laravel Sanctum bearer token.
+          example: 1|abcdef0123456789abcdef0123456789
+        user:
+          $ref: '#/components/schemas/AuthUser'
+    AuthTokenData:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthToken'
+    AuthUserData:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthUser'
+    CatalogProductCategory:
+      type: object
+      description: Category embedded on a product (subset of CatalogCategory).
+      required: [id, name, slug]
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: Apparel
+        slug:
+          type: string
+          example: apparel
+    CatalogProductVariantInventory:
+      type: object
+      required: [quantity, reserved_quantity, available_quantity]
+      properties:
+        quantity:
+          type: integer
+          nullable: true
+          example: 100
+        reserved_quantity:
+          type: integer
+          nullable: true
+          example: 5
+        available_quantity:
+          type: integer
+          nullable: true
+          example: 95
+    CatalogProductVariant:
+      type: object
+      required: [id, sku, name, attributes, price, compare_at_price, currency, is_active, inventory]
+      properties:
+        id:
+          type: integer
+          example: 10
+        sku:
+          type: string
+          example: TSHIRT-001-RED-M
+        name:
+          type: string
+          example: Red / M
+        attributes:
+          type: object
+          nullable: true
+          description: Associative map of attribute name → value. Serialized as `{}` when empty; `null` for non-array sources.
+          additionalProperties: true
+          example:
+            color: red
+            size: M
+        price:
+          type: number
+          format: float
+          example: 19.99
+        compare_at_price:
+          type: number
+          format: float
+          nullable: true
+          example: 24.99
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+          example: RUB
+        is_active:
+          type: boolean
+          example: true
+        inventory:
+          $ref: '#/components/schemas/CatalogProductVariantInventory'
+    CatalogProduct:
+      type: object
+      required: [id, sku, name, slug, short_description, description, status, is_featured, brand, weight_grams, category, meta, variants, published_at, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          example: 1
+        sku:
+          type: string
+          example: TSHIRT-001
+        name:
+          type: string
+          example: Cotton T-Shirt
+        slug:
+          type: string
+          example: cotton-t-shirt
+        short_description:
+          type: string
+          example: 100% cotton
+        description:
+          type: string
+          example: Long form product copy.
+        status:
+          type: string
+          example: published
+        is_featured:
+          type: boolean
+          example: false
+        brand:
+          type: string
+          nullable: true
+          example: Acme
+        weight_grams:
+          type: integer
+          nullable: true
+          example: 200
+        category:
+          allOf:
+            - $ref: '#/components/schemas/CatalogProductCategory'
+          nullable: true
+          description: Present (non-null) when the category relation is loaded.
+        meta:
+          type: object
+          required: [title, description]
+          properties:
+            title:
+              type: string
+              nullable: true
+              example: SEO title
+            description:
+              type: string
+              nullable: true
+              example: SEO description
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogProductVariant'
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-06-01T10:00:00+00:00'
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-05-01T09:00:00+00:00'
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-06-02T12:00:00+00:00'
+    CatalogProductData:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CatalogProduct'
+    CatalogProductPaginatedData:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogProduct'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    CatalogCategory:
+      type: object
+      description: Standalone category list element (richer than CatalogProductCategory).
+      required: [id, parent_id, name, slug, meta_title, meta_description]
+      properties:
+        id:
+          type: integer
+          example: 3
+        parent_id:
+          type: integer
+          nullable: true
+          example: null
+        name:
+          type: string
+          example: Apparel
+        slug:
+          type: string
+          example: apparel
+        meta_title:
+          type: string
+          nullable: true
+          example: null
+        meta_description:
+          type: string
+          nullable: true
+          example: null
+    CatalogCategoryListData:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogCategory'
+    CartItem:
+      type: object
+      required: [product_variant_id, sku, name, quantity, unit_price, line_total]
+      properties:
+        product_variant_id:
+          type: integer
+          example: 10
+        sku:
+          type: string
+          example: TSHIRT-001-RED-M
+        name:
+          type: string
+          example: Red / M
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        unit_price:
+          type: number
+          format: float
+          example: 19.99
+        line_total:
+          type: number
+          format: float
+          example: 39.98
+    CartSummary:
+      type: object
+      required: [subtotal, discount_total, shipping_total, total]
+      properties:
+        subtotal:
+          type: number
+          format: float
+          example: 39.98
+        discount_total:
+          type: number
+          format: float
+          example: 0.0
+        shipping_total:
+          type: number
+          format: float
+          example: 0.0
+        total:
+          type: number
+          format: float
+          example: 39.98
+    Cart:
+      type: object
+      required: [id, guest_token, currency, status, items, summary]
+      properties:
+        id:
+          type: string
+          description: Cart UUID.
+          example: 01HW1234567890ABCDEF
+        guest_token:
+          type: string
+          nullable: true
+          description: Null for authenticated-user carts; present for guest carts.
+          example: null
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+          example: RUB
+        status:
+          type: string
+          example: active
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        summary:
+          $ref: '#/components/schemas/CartSummary'
+    CartData:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Cart'
+  parameters:
+    CorrelationIdHeader:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Optional client-supplied correlation id; echoed as `error.request_id` on error responses.
+    CartGuestTokenQuery:
+      name: guest_token
+      in: query
+      required: false
+      schema:
+        type: string
+        maxLength: 80
+      description: Guest cart identity (alternative to the `X-Cart-Token` header).
+    CartTokenHeader:
+      name: X-Cart-Token
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 80
+      description: Guest cart identity (alternative to the `guest_token` query param).
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "Laravel Sanctum bearer token. Send as `Authorization: Bearer <token>`."
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user account
+      description: |
+        Creates a new user, issues a Sanctum bearer token (device name `api-register`),
+        and returns the auth token result. The only endpoint in this surface that
+        returns HTTP 201.
+      operationId: registerAuthUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name, last_name, email, password, password_confirmation]
+              properties:
+                first_name:
+                  type: string
+                  maxLength: 80
+                  example: Jane
+                last_name:
+                  type: string
+                  maxLength: 80
+                  example: Doe
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: jane@example.com
+                phone:
+                  type: string
+                  nullable: true
+                  maxLength: 32
+                  example: '+15551234567'
+                password:
+                  type: string
+                  format: password
+                  maxLength: 128
+                  description: Must satisfy Laravel `Password::default()` (mixed case, letters, numbers, symbols, ≥8 chars).
+                  example: Strong-Password-1!
+                password_confirmation:
+                  type: string
+                  format: password
+                  maxLength: 128
+                  example: Strong-Password-1!
+      responses:
+        '201':
+          description: Account created; bearer token issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenData'
+        '422':
+          description: |
+            Validation failure (Shape B renderer) OR handler-thrown auth application
+            error (Shape A controller). The two shapes are distinguishable by the
+            presence of `code` and `validation`.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponseRenderer'
+                  - $ref: '#/components/schemas/ErrorResponseController'
+              examples:
+                validation:
+                  summary: FormRequest validation failure.
+                  value:
+                    error:
+                      message: The email has already been taken.
+                      type: ValidationException
+                      code: validation_failed
+                      validation:
+                        email:
+                          - The email has already been taken.
+                auth:
+                  summary: Handler-thrown auth application error.
+                  value:
+                    error:
+                      message: Registration disabled.
+                      type: AuthApplicationException
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      x-throttle: '6,1'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and obtain a bearer token
+      description: |
+        Validates credentials and issues a Sanctum bearer token. Invalid credentials
+        return HTTP 422 (deliberate credential folding per the auth policy: unknown,
+        invalid, and inactive credentials all fold into the generic 422
+        `Invalid credentials.` Shape A body).
+      operationId: loginAuthUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                  example: Strong-Password-1!
+                device_name:
+                  type: string
+                  nullable: true
+                  maxLength: 80
+                  example: mobile-app
+                guest_token:
+                  type: string
+                  nullable: true
+                  maxLength: 80
+                  description: Optional guest cart token to merge on successful login.
+      responses:
+        '200':
+          description: Authenticated; bearer token issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenData'
+        '422':
+          description: |
+            Invalid credentials (Shape A, no `code`/`validation`) OR FormRequest
+            validation failure (Shape B, `code: validation_failed`, `validation` present).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponseController'
+                  - $ref: '#/components/schemas/ErrorResponseRenderer'
+              examples:
+                invalid_credentials:
+                  summary: Invalid credentials (credential folding).
+                  value:
+                    error:
+                      message: Invalid credentials.
+                      type: AuthApplicationException
+                validation:
+                  summary: FormRequest validation failure.
+                  value:
+                    error:
+                      message: The email field is required.
+                      type: ValidationException
+                      code: validation_failed
+                      validation:
+                        email:
+                          - The email field is required.
+        '429':
+          description: Throttle limit exceeded (`throttle:auth.login`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      x-throttle: auth.login
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current bearer token
+      description: |
+        Revokes the current Sanctum token (current-token logout, not global revoke).
+        Requires authentication.
+      operationId: logoutAuthUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessageData'
+              example:
+                data:
+                  message: Logged out successfully.
+        '401':
+          description: Unauthenticated (short-circuit, no `code`/`type`).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: object
+                    required: [message]
+                    properties:
+                      message:
+                        type: string
+                        example: Authentication is required.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the authenticated user's profile
+      description: Returns the current authenticated user. Requires authentication.
+      operationId: getAuthProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Authenticated user profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserData'
+        '401':
+          description: Unauthenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+              example:
+                error:
+                  message: Unauthenticated.
+                  type: AuthenticationException
+                  code: unauthenticated
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+  /auth/profile:
+    patch:
+      tags: [Auth]
+      summary: Update the authenticated user's profile
+      description: Updates profile fields (first/last name, phone). Requires authentication.
+      operationId: updateAuthProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name, last_name]
+              properties:
+                first_name:
+                  type: string
+                  maxLength: 80
+                  example: Jane
+                last_name:
+                  type: string
+                  maxLength: 80
+                  example: Doe
+                phone:
+                  type: string
+                  nullable: true
+                  maxLength: 32
+                  example: '+15551234567'
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserData'
+        '401':
+          description: Unauthenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+        '422':
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Send a password reset link email
+      description: |
+        Sends a password reset link to the supplied email if the account exists.
+        Returns a generic success message regardless of whether the email exists.
+      operationId: forgotAuthPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane@example.com
+      responses:
+        '200':
+          description: Reset link sent (or would-be sent).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessageData'
+              example:
+                data:
+                  message: We have emailed your password reset link.
+        '422':
+          description: Validation failure OR broker error (Shape A controller).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponseRenderer'
+                  - $ref: '#/components/schemas/ErrorResponseController'
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      x-throttle: '6,1'
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset the password using a reset token
+      description: Resets the password for the supplied email using the broker-issued token.
+      operationId: resetAuthPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, email, password, password_confirmation]
+              properties:
+                token:
+                  type: string
+                  example: abc123resettoken
+                email:
+                  type: string
+                  format: email
+                  example: jane@example.com
+                password:
+                  type: string
+                  format: password
+                  maxLength: 128
+                  description: Must satisfy Laravel `Password::default()`.
+                  example: New-Strong-Password-2!
+                password_confirmation:
+                  type: string
+                  format: password
+                  maxLength: 128
+                  example: New-Strong-Password-2!
+      responses:
+        '200':
+          description: Password reset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessageData'
+              example:
+                data:
+                  message: Your password has been reset.
+        '422':
+          description: Validation failure OR broker error (Shape A controller).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponseRenderer'
+                  - $ref: '#/components/schemas/ErrorResponseController'
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      x-throttle: '6,1'
+  /auth/email/verify/{id}/{hash}:
+    get:
+      tags: [Auth]
+      summary: Verify an email address via signed URL
+      description: |
+        Verifies the email for the supplied user id. The URL must carry a valid
+        signed-route signature (Laravel `signed` middleware); a missing or invalid
+        signature returns 403.
+      operationId: verifyAuthEmail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+            example: abc123hash
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Email verified (or already verified).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessageData'
+              examples:
+                verified:
+                  value:
+                    data:
+                      message: Email verified successfully.
+                already:
+                  value:
+                    data:
+                      message: Email already verified.
+        '403':
+          description: Invalid signature OR hash mismatch.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponseController'
+                  - type: object
+                    required: [error]
+                    properties:
+                      error:
+                        type: object
+                        required: [message]
+                        properties:
+                          message:
+                            type: string
+                            example: Invalid verification link.
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseController'
+      x-throttle: '6,1'
+  /auth/email/verification-notification:
+    post:
+      tags: [Auth]
+      summary: Resend the email verification notification
+      description: Resends the verification email to the authenticated user. Requires authentication.
+      operationId: resendAuthVerification
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notification sent (or email already verified).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessageData'
+              examples:
+                sent:
+                  value:
+                    data:
+                      message: Verification email has been sent.
+                already:
+                  value:
+                    data:
+                      message: Email already verified.
+        '401':
+          description: Unauthenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      x-throttle: '6,1'
+  /catalog/products:
+    get:
+      tags: [Catalog]
+      summary: List published products
+      description: |
+        Paginated list of published products with optional filtering and sorting.
+        Cached at the edge via HTTP cache headers (`Cache-Control: public, max-age=60` + ETag).
+      operationId: listCatalogProducts
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 120
+          description: Full-text search query.
+        - name: category_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 180
+          description: Filter by category slug.
+        - name: min_price
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+          description: Minimum variant price (inclusive).
+        - name: max_price
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+          description: Maximum variant price (inclusive).
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [newest, price_asc, price_desc, name_asc]
+          description: Sort order.
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 60
+          description: Page size.
+          example: 12
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Paginated product list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogProductPaginatedData'
+        '422':
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+      x-throttle: search
+      x-cache: 'public, max-age=60'
+  /catalog/products/{slug}:
+    get:
+      tags: [Catalog]
+      summary: Get a single product by slug
+      operationId: getCatalogProductBySlug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          example: cotton-t-shirt
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Product found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogProductData'
+        '404':
+          description: Product not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+              example:
+                error:
+                  message: Product not found.
+                  type: NotFoundHttpException
+                  code: not_found
+      x-throttle: search
+      x-cache: 'public, max-age=60'
+  /catalog/categories:
+    get:
+      tags: [Catalog]
+      summary: List all catalog categories
+      description: Bare list of categories (no pagination meta).
+      operationId: listCatalogCategories
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Category list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogCategoryListData'
+      x-throttle: search
+      x-cache: 'public, max-age=60'
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Get the current cart (user or guest)
+      description: |
+        Returns the cart for the authenticated user OR the guest cart identified by
+        `guest_token` query param or `X-Cart-Token` header. Returns an empty-shape
+        cart snapshot when no cart exists.
+      operationId: getCurrentCart
+      parameters:
+        - $ref: '#/components/parameters/CartGuestTokenQuery'
+        - $ref: '#/components/parameters/CartTokenHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Cart snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartData'
+        '401':
+          description: Unauthenticated (rare on this endpoint; only if a re-auth check fires).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+        '403':
+          description: Policy deny.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Upsert a cart item (add or update quantity)
+      description: |
+        Idempotent upsert: if the variant already exists in the cart, the quantity
+        is added to the existing line; otherwise a new line is created. Returns the
+        full cart snapshot (NOT 201 on first insert — always 200).
+      operationId: upsertCartItem
+      parameters:
+        - $ref: '#/components/parameters/CartGuestTokenQuery'
+        - $ref: '#/components/parameters/CartTokenHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_variant_id, quantity]
+              properties:
+                product_variant_id:
+                  type: integer
+                  example: 10
+                quantity:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  example: 2
+                guest_token:
+                  type: string
+                  nullable: true
+                  maxLength: 80
+                  description: Optional guest cart token in the body (alternative to query/header).
+      responses:
+        '200':
+          description: Cart snapshot after upsert.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartData'
+        '403':
+          description: Policy deny.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+        '422':
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+              example:
+                error:
+                  message: The selected product variant id is invalid.
+                  type: ValidationException
+                  code: validation_failed
+                  validation:
+                    product_variant_id:
+                      - The selected product variant id is invalid.
+  /cart/items/{variantId}:
+    delete:
+      tags: [Cart]
+      summary: Remove a cart item by variant id
+      description: |
+        Removes the line for the supplied variant id. Returns the full cart snapshot
+        (NOT 204). `variantId` is route-constrained to integers.
+      operationId: removeCartItem
+      parameters:
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+        - $ref: '#/components/parameters/CartGuestTokenQuery'
+        - $ref: '#/components/parameters/CartTokenHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Cart snapshot after deletion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartData'
+        '403':
+          description: Policy deny.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+        '422':
+          description: Validation failure (e.g. variant does not exist).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseRenderer'
+
