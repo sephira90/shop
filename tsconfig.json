@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
     "jsx": "preserve",
     "sourceMap": true,
     "resolveJsonModule": true,

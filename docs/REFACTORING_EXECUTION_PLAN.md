@@ -6790,3 +6790,40 @@ Verification (executed strictly sequentially, one command at a time):
   - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-04` - `Q4` Frontend Type And Test-Signal Hardening
+
+**Status: closed.**
+
+Verified baseline (`2026-07-04`, before Q4):
+  - `tsconfig.json` declares `"strict": true` only; `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess` all absent. `moduleResolution: "Bundler"`, `target: "ES2022"`, `lib: ["ES2022","DOM","DOM.Iterable"]` — appropriate for Vite + Vue 3.
+  - `vitest.config.ts` runs `environment: "jsdom"` with no coverage configuration; `package.json` `test` script is `vitest run` (no `--coverage`).
+  - `@vitest/coverage-v8` absent from `devDependencies`. Vitest 4.x requires the explicit v8 provider package for `--coverage`.
+  - Frontend test baseline: 306 passed across 85 files.
+
+In scope (delivered):
+  - `tsconfig.json` extended with `"noImplicitOverride": true` and `"noFallthroughCasesInSwitch": true`. `npm run type-check` surfaced **zero churn** — the existing Vue 3 + TypeScript codebase already follows both disciplines (uses `override` keyword where applicable; no fall-through switches).
+  - `noUncheckedIndexedAccess` measured (added temporarily, then removed): **55 errors** total.
+    - **2 production errors**: `resources/js/components/admin/products/AdminProductVariantsSection.vue:17` (`ProductVariantForm | undefined` from indexed access not assignable to `ProductVariantForm`), `resources/js/composables/admin/orders/useAdminOrderDetailsState.ts:44` (`StatusDraft | undefined` not assignable to `StatusDraft`).
+    - **53 test-only errors**: `tests/composables/use-admin-mutation-flows.spec.ts` (21), `tests/components/admin/admin-component-contracts.spec.ts` (11), `tests/components/auth/auth-component-contracts.spec.ts` (5), `tests/components/account/account-orders-component-contracts.spec.ts` (4), `tests/components/product/product-component-contracts.spec.ts` (4), `tests/api/catalog-account-contract.spec.ts` (2), `tests/components/ui/ui-data-display-component-contracts.spec.ts` (2), `tests/api/admin-contract.spec.ts` (1), `tests/composables/admin/orders/useAdminOrderDetailsState.spec.ts` (1). Almost all are indexed access into fixture arrays or `Object.keys(...)` enumeration where the runtime shape is known but the static type widens to `T | undefined`.
+    - **Decision: defer.** Per Q4 DoD ("enable only if the fix surface is bounded"), the flag was removed because the 2 production fixes do not justify 53 test-only fixes that risk introducing `!` assertions or `as` casts around test-fixture convenience. Blocker set documented in the plan and risk register (#23) for a dedicated follow-up that first tightens test fixtures to typed factories.
+  - V8 coverage reporting wired:
+    - `@vitest/coverage-v8 ^4.1.9` added to `devDependencies` (version aligned with `vitest ^4.0.18`).
+    - `vitest.config.ts` extended with `coverage: { provider: "v8", reporter: ["text", "html"], reportsDirectory: "coverage/", all: true }`. `all: true` ensures untested files appear in the report for an honest baseline (no hidden gaps).
+    - `package.json` `test:coverage` script added: `vitest run --coverage`. The default `test` script stays `vitest run` — coverage is opt-in, not implicit in the quality gate.
+    - `.gitignore` excludes `/coverage`.
+  - Baseline coverage observed (run: `npm run test:coverage`): **86.96% statements (2269/2609), 75.35% branches (1104/1465), 86.36% functions (741/858), 88.18% lines (2173/2464)**. No coverage floor introduced — that is a separate decision after baseline observation, not in this block's DoD.
+  - `docs/superpowers/plans/2026-07-04-q4-frontend-hardening.md` records the design pass, slice-by-slice decisions, and the `noUncheckedIndexedAccess` measurement.
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `Q4` closed, advances `S1` to active, appends a closed-block definition (with convergence impact), strikes through risk register #7 (frontend hardening headroom), adds risk register #23 (`noUncheckedIndexedAccess` follow-up), moves exit target `23` into achieved status, and appends a change-control entry.
+
+Out of scope (deliberate): coverage floor / threshold enforcement (separate decision after baseline observation); migration to a different test runner or assertion library; component-level restructuring to satisfy the new flags (Slice 1 surfaced zero churn so none was needed); ESLint rule changes (the lint gate was already green and is orthogonal to this block); the `noUncheckedIndexedAccess` follow-up itself (needs test-factory typing first).
+
+Deterministic coverage:
+  - `tests/Unit/Architecture/FrontendTypeAndTestSignalGuardrailTest.php` (new): 5 tests / 17 assertions lock `strict: true` + `noImplicitOverride` + `noFallthroughCasesInSwitch`, assert `noUncheckedIndexedAccess` stays deferred (flips to present when the follow-up lands), enforce v8 coverage provider + html+text reporters + `coverage/` directory + `all: true`, require `test:coverage` script and `@vitest/coverage-v8` in devDependencies, and exclude `/coverage` from git.
+  - existing frontend contract tests and lint gate remain the runtime-behavior authority — this block is type-only and tooling-only.
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted suite: `php artisan test --filter="FrontendTypeAndTestSignalGuardrailTest"` — 5 passed (17 assertions);
+  - targeted frontend: `npm run type-check` (Slice 1 green with both new flags) → exit 0; `npm run test:coverage` (Slice 3 produces report) → 306 passed + coverage summary;
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially.
+
