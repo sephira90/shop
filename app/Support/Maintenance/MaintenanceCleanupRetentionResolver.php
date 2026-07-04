@@ -64,6 +64,6 @@ final class MaintenanceCleanupRetentionResolver
             throw new InvalidArgumentException(sprintf('Option --%s must be a positive integer.', $label));
         }
 
-        return (int) $parsed;
+        return $parsed;
     }
 }

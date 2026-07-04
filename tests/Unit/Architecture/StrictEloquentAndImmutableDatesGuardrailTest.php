@@ -33,9 +33,9 @@ final class StrictEloquentAndImmutableDatesGuardrailTest extends TestCase
         $source = File::get(app_path('Providers/AppServiceProvider.php'));
 
         $this->assertStringContainsString(
-            'Model::shouldBeStrict(! $this->app->isProduction());',
+            'Model::shouldBeStrict(! $this->app->environment(\'production\'));',
             $source,
-            'Strict Eloquent mode must be wired in AppServiceProvider::boot(), gated on non-production.',
+            'Strict Eloquent mode must be wired in AppServiceProvider::boot(), gated on non-production via the Application contract.',
         );
 
         $this->assertStringContainsString(

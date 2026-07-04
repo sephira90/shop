@@ -25,6 +25,6 @@ final class ObservabilityAlertCooldownStore
             return;
         }
 
-        Cache::put(self::CACHE_KEY, now()->timestamp, now()->addMinutes($cooldownMinutes));
+        Cache::put(self::CACHE_KEY, now()->getTimestamp(), now()->addMinutes($cooldownMinutes));
     }
 }

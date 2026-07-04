@@ -58,7 +58,7 @@ final class OrdersReconcileRunner
 
     private function emitTelemetry(OrdersReconcileRunResultDto $result): void
     {
-        $failedJobsCount = $result->failedJobs === [] ? 0 : (int) ($result->failedJobs[0]->count ?? 0);
+        $failedJobsCount = $result->failedJobs === [] ? 0 : ($result->failedJobs[0]->count ?? 0);
 
         Log::info('observability.reconciliation', [
             'clean' => $result->isClean(),

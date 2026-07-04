@@ -36,6 +36,6 @@ final class MaintenanceCleanupExecutor
             'options' => ['min_range' => 1],
         ]);
 
-        return $configured === false ? 500 : (int) $configured;
+        return $configured === false ? 500 : $configured;
     }
 }

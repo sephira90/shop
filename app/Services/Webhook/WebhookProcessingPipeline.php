@@ -134,7 +134,7 @@ final readonly class WebhookProcessingPipeline
         try {
             $receivedAt = CarbonImmutable::parse($receivedAtIso8601);
 
-            return (float) $receivedAt->diffInMilliseconds(now(), false);
+            return $receivedAt->diffInMilliseconds(now(), false);
         } catch (\Throwable) {
             return null;
         }

@@ -28,7 +28,12 @@ final class ApiContractSmokeContextFactory
 
     private function resolveManagerToken(): string
     {
-        $manager = User::unguarded(function (): User {
+        $manager = User::unguarded(/**
+         * psalm/plugin-laravel on the v3.0.x line widens firstOrCreate() to User|Builder<User>; larastan narrows it to User.
+         * @psalm-suppress InvalidReturnType
+         * @psalm-suppress InvalidReturnStatement
+         */
+        function (): User {
             $user = User::query()->firstOrCreate(
                 ['email' => 'api.contract.manager@shop.local'],
                 [

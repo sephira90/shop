@@ -9,9 +9,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * @property int $id
+ * @property string $name
+ * @property string|null $code
  * @property PromotionType $type
  * @property numeric-string $value Exact decimal promotion value as returned by the Eloquent decimal:2 cast.
  * @property bool $is_active
+ * @property \Carbon\CarbonImmutable|null $starts_at
+ * @property \Carbon\CarbonImmutable|null $ends_at
+ * @property int<1, max>|null $usage_limit
+ * @property int $usage_count
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
  */
 class Promotion extends Model
 {

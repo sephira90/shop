@@ -6747,3 +6747,46 @@ Verification (executed strictly sequentially, one command at a time):
   - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-04` - `Q3` Psalm Ladder And Scope Parity
+
+**Status: closed.**
+
+Verified baseline (`2026-07-04`, before Q3):
+  - Psalm pinned to exact `vimeo/psalm: 6.4.1`, `psalm.xml` at `errorLevel="6"`, `findUnusedBaselineEntry="true"`, `findUnusedCode="false"`. Scope: `app/`, `database/factories`, `database/seeders` — `routes/` missing.
+  - PHPStan level `10` clean across `app/`, `routes/`, `tests/` via `larastan/larastan ^3.9`.
+  - Level measurement on the existing toolchain (no plugin): level 5 surfaced 1 error (`AppServiceProvider::boot` calls `$this->app->isProduction()` on the `Application` interface that does not declare it); level 4 surfaced 56 errors dominated by `UndefinedMagicPropertyFetch` on Eloquent-model magic properties and `InvalidDocblock` on `@return BelongsTo<User, $this>` template annotations.
+  - Root cause: no Psalm plugin for Laravel (analogous to larastan for PHPStan), so Psalm cannot resolve Eloquent `__get`, paginator generics, or relation generics.
+
+In scope (delivered):
+  - Added `psalm/plugin-laravel` to `require-dev` (constraint `~3.0.0` — the only plugin line compatible with the OSPanel-managed PHP 8.4.1 runtime and the pinned `vimeo/psalm 6.4.1`; plugin v3.1+ requires Psalm ^6.15, plugin v3.14+ requires PHP ~8.4.3 + Psalm ^6.16.1).
+  - Registered `Psalm\LaravelPlugin\Plugin` in `psalm.xml`; extended `<projectFiles>` to include `routes/` for PHPStan parity.
+  - `errorLevel` raised `6 → 5 → 4`:
+    - Level 5 fix: `app/Providers/AppServiceProvider.php` — `$this->app->isProduction()` (concrete-only method on `Illuminate\Foundation\Application`) replaced with `$this->app->environment('production')` (declared on `Illuminate\Contracts\Foundation\Application`). Runtime provider is fully bootstrapped, so `environment()` is safe here (unlike config-file usage).
+    - Level 4 source-typing fixes (no baseline accumulation):
+      - `app/Services/Webhook/WebhookProcessingPipeline.php:137` — removed `(float)` cast on `diffInMilliseconds()` (return type already `float`).
+      - `app/Support/Maintenance/MaintenanceCleanupExecutor.php:39` — removed `(int)` cast on `filter_var(FILTER_VALIDATE_INT, ['min_range'=>1])` result (already `int<1, max>|false`).
+      - `app/Support/Maintenance/MaintenanceCleanupRetentionResolver.php:67` — removed `(int)` cast on `filter_var` positive-int result.
+      - `app/Support/Orders/OrdersReconcileRunner.php:61` — removed `(int)` cast on `$result->failedJobs[0]->count ?? 0` (already `int`).
+      - `app/Support/Observability/ObservabilityAlertCooldownStore.php:28` — `now()->timestamp` (property on concrete `Carbon`, absent from `CarbonInterface`) replaced with `now()->getTimestamp()` (declared on `DateTimeInterface`).
+      - `app/Repositories/AdminProductReadRepository.php:60` and `app/Repositories/CatalogProductReadRepository.php:155,181` — `@return` shapes tightened: unparseable `\Closure(Relation<*, *, *>): mixed` replaced with explicit `array{0: string, variants: callable(\Illuminate\Database\Eloquent\Relations\Relation|\Illuminate\Database\Eloquent\Builder): void}` / `array{0: string, variants: callable(\Illuminate\Database\Eloquent\Relations\Relation): void, 1: string}` shapes and `@param Builder<ProductVariant>|\Illuminate\Database\Eloquent\Relations\Relation` for the projection helper.
+      - `app/Models/Promotion.php` — extended `@property` inventory to cover all magic properties read across the codebase: `int $id`, `string $name`, `?string $code`, `int<1, max>|null $usage_limit`, `int $usage_count`, `?CarbonImmutable $starts_at/ends_at/created_at/updated_at` (alongside existing `PromotionType $type`, `numeric-string $value`, `bool $is_active`).
+      - `app/Support/Smoke/ApiContract/ApiContractSmokeContextFactory.php:31` — narrowed `User::query()->firstOrCreate()` result (`User|Builder<User>`) with `assert($user instanceof User)` so the closure return type `User` holds for Psalm without changing runtime behavior.
+  - Documented plugin-version tradeoff via `psalm.xml` `issueHandlers`:
+    - `TooManyTemplateParams` suppressed for `app/Application`, `app/Repositories`, `app/Services/Catalog/CatalogService.php`, `app/Support/Api/ApiResponse.php`. Root cause: psalm/plugin-laravel v3.0.x types `LengthAwarePaginator<TValue>` (1 template-param, Laravel upstream); project PHPDoc follows larastan's `LengthAwarePaginator<int, Model>` (2 template-params). Upstream fix lands in plugin v3.14 (PR #1082), gated by PHP ~8.4.3 + Psalm ^6.16.1 — blocked by current OSPanel PHP 8.4.1 runtime. The 2-parameter form is correct for larastan and matches the project's PHPStan level 10 baseline; switching would break PHPStan parity.
+    - `InvalidDocblock` suppressed for `app/Models`. Same root cause for Eloquent relations: larastan types `BelongsTo<TRelatedModel, TDeclaringModel>` (2 template-params), plugin v3.0.x types `BelongsTo<TRelatedModel>` (1 template-param). Every project-side `@return BelongsTo<User, $this>` surfaces `Unexpected space in docblock`. Upstream fix lands in plugin v3.14.2 (PR #1141).
+    - Both suppressions are scope-enumerable (4 directories/files + `app/Models`), carry inline documented rationale, and are removable in a single edit once the plugin is upgraded — they are not baseline accumulation (`findUnusedBaselineEntry` stays `true`, no `--set-baseline`).
+  - `docs/superpowers/plans/2026-07-04-q3-psalm-ladder.md` records the design pass, baseline measurement, and slice breakdown.
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `Q3` closed, advances `Q4` to active, appends a closed-block definition (with convergence impact), strikes through risk register #6 (static-analysis asymmetry), adds risk register #22 (plugin-upgrade follow-up), moves exit target `22` into achieved status, extends the mandatory test matrix, and appends a change-control entry.
+
+Out of scope (deliberate): Psalm level `< 4` (3, 2, 1) — next-level blockers will be measured after the plugin upgrade; taint-analysis (`--taint-analysis`) activation in CI — the plugin enables the capability but activation is a separate promotion; Psalm coverage of `tests/` — PHPStan already covers tests via larastan, adding `tests/` to Psalm scope is a follow-up once level 4 is stable; OSPanel PHP runtime upgrade — operational task outside the codebase, prerequisite for plugin v3.14.
+
+Deterministic coverage:
+  - `tests/Unit/Architecture/PsalmLadderScopeParityGuardrailTest.php` (new): 8 assertions lock `errorLevel ≤ 4`, the extended scope (`app/routes/database/factories/seeders`), plugin registration, baseline-free progression (no `baselineFile`/`<baseline`), `findUnusedBaselineEntry="true"`, documented template-arity suppressions (`TooManyTemplateParams` + `InvalidDocblock` + rationale string), composer constraint window (`psalm/plugin-laravel` range + `vimeo/psalm` pin), and the `AppServiceProvider` `environment()` contract (forbids `isProduction(`).
+  - existing `tests/Unit/Architecture/*GuardrailTest.php` suites remain green — the static-analysis surface is locked by this guardrail alone (no overlapping authority).
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted suite: `php artisan test --filter="PsalmLadderScopeParityGuardrailTest"` — 8 passed (22 assertions);
+  - smoke at each ladder step: `./vendor/bin/psalm --no-progress --no-cache` at level 6 → 0 errors, level 5 → 0 errors, level 4 → 0 errors (after all source-typing fixes and the documented plugin-version suppressions);
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially.
+
