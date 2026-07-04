@@ -21,6 +21,13 @@ Target modular-monolith module paths:
 - `app/Domains/Payments`
 - `app/Domains/Webhooks`
 
+## Module Boundary Contract
+
+The C0 foundation wave formalizes the contract surface every module must expose. Each module's public API lives in `app/Domains/<Module>/Contracts/` (interfaces + DTOs; no Eloquent models at the boundary). Cross-module imports go through Contracts only; the shared domain kernel (`App\Domain\*`) and legacy bridge namespaces are always importable during the migration.
+
+Authoritative definition: `docs/ARCHITECTURE.md` → Module Boundary Contract.
+Mechanical enforcement: `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php`.
+
 ## Current runtime module status (`2026-03-05`)
 
 - Active runtime ownership currently lives in `app/Application/*`, `app/Services/*`, `app/Repositories/*`, and `app/Http/*`.
@@ -51,6 +58,7 @@ Operational integration around order lifecycle:
 ### Catalog
 
 - Public product/category read models.
+- Migration state: `[migration: pending C1]` → `app/Domains/Catalog`.
 - Entry points:
   - `app/Application/Catalog/*`
   - `app/Repositories/CatalogProductReadRepository.php`
@@ -59,6 +67,7 @@ Operational integration around order lifecycle:
 ### Cart
 
 - Cart read/mutation orchestration and ownership guards.
+- Migration state: `[migration: pending C3]` → `app/Domains/Cart`.
 - Entry points:
   - `app/Application/Cart/*`
   - `app/Services/Cart/*`
@@ -66,6 +75,7 @@ Operational integration around order lifecycle:
 ### Checkout
 
 - Place-order orchestration: identity, idempotency, inventory, discount, finalization.
+- Migration state: `[migration: pending C4]` → `app/Domains/Checkout`.
 - Entry points:
   - `app/Application/Checkout/*`
   - `app/Services/Checkout/*`
@@ -73,6 +83,7 @@ Operational integration around order lifecycle:
 ### Order lifecycle
 
 - Status transition policies and admin status mutation behavior.
+- Migration state: `[migration: pending C5]` → `app/Domains/Orders`.
 - Entry points:
   - `app/Services/Order/OrderStatusTransitionPolicy.php`
   - `app/Services/Admin/AdminOrderService.php`
@@ -82,6 +93,7 @@ Operational integration around order lifecycle:
 ### Webhook
 
 - Ingress validation, receipt/idempotency, transition application, observability.
+- Migration state: `[migration: pending C7]` → `app/Domains/Webhooks`.
 - Entry points:
   - `app/Services/Webhook/WebhookProcessingPipeline.php`
   - `app/Services/Payment/*Webhook*`
@@ -91,6 +103,10 @@ Operational integration around order lifecycle:
 ### Account/Auth/Admin
 
 - Transport and use-case boundaries for authenticated and management APIs.
+- Migration state:
+  - Auth/Users: `[migration: pending C2]` → `app/Domains/Users`.
+  - Account order reads: `[migration: pending C5]` → `app/Domains/Orders` (read-model ownership follows the order lifecycle module).
+  - Admin contexts (catalog/categories/orders/products/promotions): split across `Catalog` (C1), `Orders` (C5), plus admin-specific contract surfaces defined per wave.
 - Entry points:
   - `app/Http/Controllers/Api/V1/Account/*`
   - `app/Http/Controllers/Api/V1/Auth/*`
@@ -98,6 +114,15 @@ Operational integration around order lifecycle:
   - `app/Application/Account/*`
   - `app/Application/Auth/*`
   - `app/Application/Admin/*`
+
+### Payments
+
+- Payment gateway contracts and payment transition policy.
+- Migration state: `[migration: pending C6]` → `app/Domains/Payments`.
+- Entry points:
+  - `app/Services/Payment/PaymentService.php`
+  - `app/Contracts/PaymentGatewayInterface.php`
+  - `app/Services/Payment/PaymentStatusTransitionPolicy.php`
 
 ## Cross-context interaction rules
 

@@ -58,15 +58,59 @@ app/
 Each domain module converges toward internal subfolders:
 
 - `Controllers`
+- `Application`
 - `Services`
 - `Repositories`
 - `Models`
+- `Contracts` — the module's public API (interfaces + DTOs); see Module Boundary Contract below.
 
 Migration policy:
 
 1. Keep current `Application/Services/Repositories` boundaries stable while moving slices incrementally.
 2. Move one coherent flow per block with tests and contract compatibility.
 3. Do not break `/api/v1/*` envelopes or persistence schema contracts during relocation.
+
+## Module Boundary Contract
+
+The C0 foundation wave formalizes the contract surface every module must expose. This section is load-bearing for all later convergence waves (`C1-C7`): once runtime code lands in `app/Domains/*`, the rules below are mechanically enforced by `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php`.
+
+### Module public API
+
+A module's public API is `app/Domains/<Module>/Contracts/`. It exposes:
+
+- Interfaces (repository, service, gateway, adapter contracts consumed by other modules).
+- DTOs (`*InputDto`, `*ResultDto`, `*PayloadDto`, `*FilterDto` per ADR-0002) that cross module boundaries.
+- Value objects and enums that cross module boundaries.
+
+It must NOT expose Eloquent models (`App\Models\*`). Module-to-module communication uses DTOs, scalars, and value objects only. Eloquent models stay module-private (or shared in `app/Models/*` until a dedicated model-ownership wave post-`C7`).
+
+### Cross-module imports
+
+Within `app/Domains/<Module>/`, an import of `App\Domains\<OtherModule>\` is **allowed only** when the imported namespace is `App\Domains\<OtherModule>\Contracts\`. Importing any other sub-namespace of another module (`Services`, `Controllers`, `Repositories`, `Application`, `Models`, etc.) is forbidden.
+
+### Always-allowed namespaces (shared kernel and infrastructure)
+
+The following cross-cutting namespaces are importable from any module without restriction:
+
+- `App\Domain\*` (singular) — the shared domain kernel: typed exceptions (`CartException`, `CheckoutException`, `OrderTransitionException`, `OrderStaleAggregateException`), `StatusTransitionSource` enum, `OrderPaymentStatusResolver`, `Money` value object.
+- `App\Support\*` — cross-cutting infrastructure (observability, smoke, maintenance, API envelope).
+- `App\Contracts\*` — legacy root-level cross-context wiring (`CartServiceInterface`, `CheckoutServiceInterface`, `PaymentGatewayInterface`, `ShippingGatewayInterface`). Retained until each module owns its own contract surface; retired post-`C7`.
+- `App\Application\*`, `App\Services\*`, `App\Repositories\*`, `App\Http\*`, `App\Models\*` — the legacy directories still in use. Allowlisted during the migration so the guardrail does not block before slices relocate. Each wave (`C1-C7`) closes one of these bridges for one module; the allowlist **only shrinks**.
+- `Illuminate\*` and PHP/stdlib.
+
+The allowlist is enumerable in `ModuleBoundaryGuardrailTest::LEGACY_BRIDGE_NAMESPACES` and is asserted to match this section: any silent widening fails the test.
+
+### Relocation mechanics
+
+- **Namespace move per slice.** When `CatalogController` moves into `app/Domains/Catalog/Controllers/`, its namespace changes from `App\Http\Controllers\...` to `App\Domains\Catalog\Controllers\...` in the same block.
+- **No dual-namespace compatibility shims.** No `class_alias`, no proxy layer, no "old namespace extends new namespace" bridges. The slice moves atomically with its tests.
+- **Atomic relocation.** Route definitions, DI bindings, FormRequest mappings, and test references update in the same commit. No transitional state where two namespaces point at the same logic.
+- **API envelope preserved.** `/api/v1/*` request and response shapes stay byte-identical across the move. The `S1` OpenAPI conformance suite catches drift.
+
+### Provider re-registration
+
+Each module ships a `<Module>ServiceProvider` (e.g., `App\Domains\Catalog\CatalogServiceProvider`) that binds its `Contracts` interfaces to their implementations. The provider is registered in `bootstrap/providers.php`. C0 does NOT add providers (no module has runtime code yet); each wave from `C1` onward adds one provider per moving slice.
+
 
 ## Layer model
 

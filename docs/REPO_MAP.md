@@ -45,7 +45,21 @@ app/
     Webhooks/
 ```
 
-The migration is incremental and must keep public API and DB contracts stable.
+The migration is incremental and must keep public API and DB contracts stable. The module-boundary contract that governs `app/Domains/*` is defined in `docs/ARCHITECTURE.md` → Module Boundary Contract (C0). Each module exposes `app/Domains/<Module>/Contracts/` as its public API; cross-module imports go through Contracts only.
+
+### Per-module ownership and migration state
+
+| Module | Public API (Contracts surface) | Owning wave | Migration state |
+| --- | --- | --- | --- |
+| `Catalog` | `CatalogProductReadRepository`, catalog cache versioning contract | `C1` | pending |
+| `Users` | auth token issuer/revalidator, `AuthUserRepository`, `AuthPasswordBrokerRepository`, `AuthAuditLogger`, `EnsureActiveApiUser` wiring | `C2` | pending |
+| `Cart` | cart resolver/mutation contracts, `CartPolicy` | `C3` | pending |
+| `Checkout` | checkout place-order contract, idempotency guard | `C4` | pending |
+| `Orders` | order transition policies, `OrderInventoryReleaseService`, stale-aggregate failure contract | `C5` | pending |
+| `Payments` | gateway contracts (`PaymentGatewayInterface`), payment transition policy | `C6` | pending |
+| `Webhooks` | `WebhookProcessorAdapterInterface`, ingress resolvers/appliers, `Process*WebhookJob` | `C7` | pending |
+
+Legacy bridge namespaces importable from any module during the migration are listed in `docs/ARCHITECTURE.md` → Module Boundary Contract → Always-allowed namespaces and locked by `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php`. The allowlist only shrinks as modules relocate.
 
 ## Current state snapshot (`2026-03-05`)
 

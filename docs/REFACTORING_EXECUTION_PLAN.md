@@ -6869,3 +6869,49 @@ Verification (executed strictly sequentially, one command at a time):
   - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-05` - `C0` Module Boundary Foundation
+
+Block scope: formalize the contract surface every module under `app/Domains/*` must expose and mechanically enforce the cross-module import rules before any runtime code moves. C0 is the prerequisite for every later convergence wave (`C1-C7`); it lands documentation, one new architecture guardrail, and map updates only — no runtime relocation.
+
+Verified baseline (`2026-07-05`, mapping by read-only explore pass):
+  - `app/Domains/*` exists as 7 README-only module skeletons (`Catalog`, `Cart`, `Checkout`, `Orders`, `Users`, `Payments`, `Webhooks`), pinned by `ModularMonolithSkeletonGuardrailTest`. Zero PHP files.
+  - `app/Domain/*` (singular) is the shared domain kernel: 4 typed exceptions (`CartException`, `CheckoutException`, `OrderTransitionException`, `OrderStaleAggregateException`), `StatusTransitionSource` enum, `OrderPaymentStatusResolver`, `Money` value object. Cross-module imports from here MUST stay allowed.
+  - Existing layer-direction guardrail `LayerDependencyDirectionGuardrailTest` uses literal-substring matching (not namespace-aware, not module-aware) and is the canonical rule for the legacy directories. C0 composes alongside it, not by rewriting it (AGENTS.md shrink-only allowlist policy).
+  - Existing `Contracts` convention: `Application/<Context>/Contracts/` already in use for Auth, Admin (per sub-context), Catalog, Account. Cart, Checkout, Webhook expose cross-context surface through root `app/Contracts/*Interface.php` (5 interfaces, returning Eloquent `Cart`/`Order`).
+  - Cross-context coupling today: `Application/<X>Handler → App\Services\<Y>` is the dominant pattern (concrete class, not contract). Application→Application DTO coupling across contexts is already zero — the precedent C0 locks in.
+  - Composer autoload: `App\` → `app/` only; `App\Domains\` not declared separately (not required for C0; covered by the `App\` prefix).
+
+Implemented:
+  - `docs/ARCHITECTURE.md` — extended `## Modular Monolith Target Layout` with `Contracts` in the per-module subfolder list and added a new `## Module Boundary Contract` subsection declaring:
+    - module public API = `app/Domains/<Module>/Contracts/` (interfaces + DTOs + value objects + enums; no Eloquent models at the boundary);
+    - cross-module imports allowed only to `<OtherModule>\Contracts\`;
+    - always-allowed namespaces (shared kernel `App\Domain\*`, infra `App\Support\*`, legacy bridge list `App\Contracts\Application\Services.Repositories.Http.Models.Exceptions.Policies.Providers` + `Database\Factories\Seeders`);
+    - relocation mechanics (namespace move per slice, no dual-namespace shims, no `class_alias`, atomic with route/DI/test updates);
+    - provider re-registration policy (each module ships a `<Module>ServiceProvider` from `C1` onward; C0 adds none).
+  - `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php` (new, 5 tests / 16 assertions) — namespace-aware use-statement scanner:
+    - `test_legacy_bridge_allowlist_matches_documented_set` — `LEGACY_BRIDGE_NAMESPACES` constant mirrors the documented allowlist; silent widening fails the test;
+    - `test_cross_module_imports_go_through_contracts_only` — for every PHP file under each `app/Domains/<Module>/`, any `use App\Domains\<OtherModule>\*` import must target `<OtherModule>\Contracts\*`; intra-module imports and the shared-kernel/legacy-bridge namespaces are skipped;
+    - `test_module_internal_layer_direction_for_controllers` — module controllers don't depend on `Services`/`Repositories` directly (mirror of `LayerDependencyDirectionGuardrailTest` scoped to the module);
+    - `test_module_internal_layer_direction_for_application_handlers` — module application handlers don't import HTTP transport types;
+    - `test_module_internal_layer_direction_for_repositories` — module repositories stay persistence-only.
+  - `docs/REPO_MAP.md` — extended `## Target layout` with a per-module ownership table (`Module | Public API (Contracts surface) | Owning wave | Migration state`) for all 7 modules (Catalog → C1, Users → C2, Cart → C3, Checkout → C4, Orders → C5, Payments → C6, Webhooks → C7) and a cross-reference to the architecture contract.
+  - `docs/DOMAIN_MAP.md` — added `## Module Boundary Contract` cross-reference; added per-context migration-state markers (`[migration: pending C1]` through `[migration: pending C7]`) in every context H3 section; added a new `### Payments` H3 to surface the `C6` gateway-contract migration target.
+  - `docs/ARCHITECTURE_REFACTOR_NEXT.md` — marked `C0` closed, split execution-queue rows (`C0` closed; `C1-C7` remain pending promotion), appended a closed-block definition (with convergence impact), added two risk-register entries (cross-context service coupling as the dominant pre-C0 pattern; contract-bridge migration surface), moved exit target `25` into achieved status and added `26` for `C1-C2`, and appended a change-control entry.
+  - `docs/superpowers/plans/2026-07-05-c0-module-boundary-foundation.md` (new) — design pass with verified baseline, resolved decisions, invariants, out-of-scope, slice breakdown, and DoD.
+
+Invariants preserved:
+  - No runtime contract changes — controllers, services, repositories, DTOs, FormRequests, middleware, routes untouched.
+  - `ModularMonolithSkeletonGuardrailTest` (7 module skeletons + README headings + `## Modular Monolith Target Layout`/`## Target layout` doc sections) still green.
+  - `AiRepoMapGovernanceGuardrailTest` (existence + core sections of ARCHITECTURE/REPO_MAP/DOMAIN_MAP/AI_REPO_MAP + agent-rules references) still green.
+  - `LayerDependencyDirectionGuardrailTest` untouched — C0 composes alongside, not by rewriting it.
+
+Deterministic coverage:
+  - `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php` (new): 5 tests / 16 assertions. Passes trivially today (empty `app/Domains/*`); becomes load-bearing with `C1`.
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted guardrail run: `php artisan test --filter="ModuleBoundaryGuardrailTest"` — 5 passed (16 assertions);
+  - skeleton guardrail regression: `php artisan test --filter="ModularMonolithSkeletonGuardrailTest"` — 2 passed (27 assertions);
+  - docs-governance regression: `php artisan test --filter="AiRepoMapGovernanceGuardrailTest"` — 2 passed (16 assertions);
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially.
+

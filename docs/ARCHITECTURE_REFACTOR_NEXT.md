@@ -1,7 +1,7 @@
 # Architecture Refactor Next (Architecture-First)
 
 Program start: `2026-03-05`
-Last revised: `2026-07-04` (`S1` closure)
+Last revised: `2026-07-05` (`C0` closure)
 Last review intake: `2026-06-27`
 Status: `Active`
 Priority mode: `Architecture-first`
@@ -22,9 +22,9 @@ Current position:
 - Waves `0-24` are complete (transport purity, webhook hardening, DTO discipline, service decomposition, application/frontend boundary hardening, observability/smoke/operations modularization, governance and release guardrails, PHPStan level 10 with no baseline).
 - All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle), `78` (credential hardening), and `79` (auth security audit trail), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
 - Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), `A2` (correlation propagation across the queue boundary), `R2` (exact promotion arithmetic and idempotency retention), and `R3` (alert delivery outcome observability) are closed; `R1` (API error contract and stale-aggregate taxonomy) is closed.
-- The active block is `S1` (OpenAPI contract source of truth); the full order is fixed in the Execution Queue below. `S1` is closed (`2026-07-04`); the convergence waves `C0-C7` are the remaining roadmap surface and require promotion before activation.
+- The active block is the convergence wave `C0` (Module Boundary Foundation); `C0` is closed (`2026-07-05`), and the convergence waves `C1-C7` are the remaining roadmap surface, each requiring promotion before activation.
 - A verified code-review intake (`2026-07-03`) promoted seven quality/reliability blocks: strict runtime guardrails (`Q1`), supply-chain audit gate (`Q2`), queue correlation propagation (`A2`), order-lifecycle reconciliation (`A1`), Psalm ladder (`Q3`), frontend hardening (`Q4`), and an OpenAPI contract source (`S1`).
-- The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7` (pending promotion, after `S1`).
+- The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7`. `C0` (foundation) is closed (`2026-07-05`); `C1-C7` (slice moves) remain pending promotion.
 
 ## Direction Policy
 
@@ -116,7 +116,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 11 | `Q3` Psalm ladder and scope parity | P2 | **Closed** (`2026-07-04`) |
 | 12 | `Q4` Frontend type/test hardening | P2 | **Closed** (`2026-07-04`) |
 | 13 | `S1` OpenAPI contract source of truth | P1 | **Closed** (`2026-07-04`) |
-| 14 | Convergence waves `C0-C7` (modular monolith migration) | P1 | Defined below — each wave requires promotion |
+| 14 | Convergence wave `C0` (module boundary foundation) | P1 | **Closed** (`2026-07-05`) |
+| 15 | Convergence waves `C1-C7` (modular monolith migration slices) | P1 | Defined below — each wave requires promotion |
 
 Sequencing rationale: `Q1`/`Q2`/`A2` are small guardrail-first blocks placed after the locked `F3` sequence and before `R1` — they tighten regression detection for every later block and do not touch the fixed security-intake order. `A1` precedes the `80/81` promotion decision because it closes a verified customer-impacting silent-loss window. `S1` lands after `R1` (the `error.code` taxonomy belongs in the spec) and before `C0` (module API freeze references the spec).
 
@@ -301,6 +302,34 @@ DoD: covered routes fail tests on any response/spec divergence (enforced by `Ope
 
 Convergence impact: a machine-readable API freeze protects `/api/v1/*` compatibility through the physical module moves of `C1-C7`.
 
+### C0 — Closed (`2026-07-05`) - Module Boundary Foundation
+
+Priority: `P1`. Sequence: after `S1` (closed; the API freeze is the contract reference for module moves).
+
+**Status: closed on `2026-07-05`.** Delivered:
+
+- `docs/ARCHITECTURE.md` extended with a `## Module Boundary Contract` subsection under the existing `## Modular Monolith Target Layout` section. The contract formalizes:
+  - **Module public API = `app/Domains/<Module>/Contracts/`** (interfaces + DTOs + value objects + enums; no Eloquent models at the boundary).
+  - **Cross-module imports go through Contracts only**: within `app/Domains/<Module>/`, an import of `App\Domains\<OtherModule>\` is allowed only when the imported namespace is `<OtherModule>\Contracts\`.
+  - **Always-allowed namespaces**: shared domain kernel (`App\Domain\*`), cross-cutting infrastructure (`App\Support\*`), and the legacy bridge namespaces (`App\Contracts\*`, `App\Application\*`, `App\Services\*`, `App\Repositories\*`, `App\Http\*`, `App\Models\*`, plus `App\Exceptions\*`/`App\Policies\*`/`App\Providers\*`/`Database\Factories\*`/`Database\Seeders\*`). The legacy bridge list only shrinks as modules relocate.
+  - **Relocation mechanics**: namespace move per slice, no dual-namespace shims, no `class_alias`, atomic with route/DI/test updates; `/api/v1/*` envelope preserved (verified by the S1 conformance suite).
+  - **Provider re-registration**: each module ships a `<Module>ServiceProvider` that binds its Contracts; C0 adds none yet (no module has runtime code).
+- `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php` (5 tests) enforces: (1) the legacy-bridge allowlist is the documented enumerable set; (2) cross-module imports target `<OtherModule>\Contracts\` only (namespace-aware use-statement scanner, not literal substring); (3) module-internal controllers depend on Application handlers only (not Services/Repositories directly); (4) module-internal application handlers don't import HTTP transport types; (5) module-internal repositories stay persistence-only. Passes trivially today (empty `app/Domains/*`) and becomes load-bearing with `C1`.
+- `docs/REPO_MAP.md` extended under `## Target layout` with a per-module ownership table (`Module | Public API (Contracts surface) | Owning wave | Migration state`) and a cross-reference to the architecture contract.
+- `docs/DOMAIN_MAP.md` extended with the `## Module Boundary Contract` cross-reference and per-context migration-state markers (`[migration: pending C1]` through `[migration: pending C7]`) in every context H3 section; a new `### Payments` H3 added to surface the gateway contract migration target for `C6`.
+
+Verified baseline findings (from the pre-C0 mapping pass) feed the contract-design surface for `C1-C7`:
+
+- `app/Domains/*` is empty of runtime code today (7 README-only module skeletons pinned by `ModularMonolithSkeletonGuardrailTest`).
+- `app/Domain/*` (singular) is the shared domain kernel: 4 typed exceptions, `StatusTransitionSource` enum, `OrderPaymentStatusResolver`, `Money` value object. Cross-module imports from here must remain allowed; the guardrail allowlists it.
+- Cross-context coupling today is dominated by `Application/<X>Handler → App\Services\<Y>` (concrete class, not contract). Application→Application DTO coupling across contexts is already zero; the C0 contract convention locks this precedent in.
+- `Cart → Catalog` coupling exists only at the Eloquent model level (no application/service cross-reference), giving `C1` and `C3` clean contract surfaces to design.
+- The hardest module-pair contract surface is `Payment ↔ Webhook ↔ Orders` (`PaymentService` consumes `WebhookProcessingPipeline`; `PaymentWebhookTransitionApplier` consumes four service namespaces). The C0 contract convention accommodates this pattern before `C6`/`C7` can move.
+
+Convergence impact: the boundary is load-bearing before any runtime code moves. Every later wave (`C1-C7`) extends the guardrail to cover its newly introduced contracts and shrinks the legacy-bridge allowlist as one slice migrates; the documented allowlist makes the migration progress visible.
+
+DoD: `ModuleBoundaryGuardrailTest` active and green; `docs/ARCHITECTURE.md` declares the contract; `REPO_MAP.md`/`DOMAIN_MAP.md` carry per-module ownership and migration markers; no runtime code moves (controllers, services, repositories untouched).
+
 ## Promoted Review Blocks (`2026-06-27`)
 
 ### Review Block R1 — Closed (`2026-07-04`) - API Error Contract And Stale-Aggregate Failure Taxonomy
@@ -403,16 +432,16 @@ End-state execution path for the declared `app/Domains/*` target. Each wave is o
 
 Sequencing follows the domain dependency direction (`Catalog -> Cart -> Checkout -> Orders`, with `Payments`/`Webhooks` around order lifecycle) plus `Users` early to capitalize on the F3 auth boundary work.
 
-### Wave C0 (2-3 days) - Module Boundary Foundation
+### Wave C0 — Closed (`2026-07-05`) - Module Boundary Foundation
 
 1. Define the module contract convention: a module exposes `Contracts` (interfaces + DTOs) and application handlers as its public API; everything else is module-private.
 2. Add a module-boundary guardrail: within `app/Domains/*`, cross-module imports are allowed only from another module's `Contracts` namespace; transport, application, service, and repository layer direction rules apply unchanged inside modules.
 3. Decide and document relocation mechanics in `docs/ARCHITECTURE.md` (namespace move per slice, no dual-namespace compatibility shims, provider re-registration policy).
 4. Update `docs/REPO_MAP.md` and `docs/DOMAIN_MAP.md` with per-module ownership and the migration state marker per module.
 
-DoD: guardrail active before any runtime code moves; architecture/maps documents define the module contract; no runtime relocation in this wave.
+DoD: guardrail active before any runtime code moves; architecture/maps documents define the module contract; no runtime relocation in this wave. **Met on `2026-07-05`.**
 
-Entry criteria: `R1` and `S1` closed (stable error taxonomy and a machine-readable spec precede the module API freeze).
+Entry criteria: `R1` and `S1` closed (stable error taxonomy and a machine-readable spec precede the module API freeze). **Met before activation.**
 
 ### Wave C1 (3-5 days) - Catalog Module
 
@@ -562,8 +591,9 @@ Pending, owned by queued blocks:
 | New `error.code` taxonomy churns into a second unstable contract | R1 | Codes are literal constants from one taxonomy; additive-only; feature matrix locks values |
 | Exact-decimal migration changes computed totals | R2 | Half-up rounding fixed by tests on cent edges; existing fixtures asserted byte-compatible (closed `2026-07-04`) |
 | Idempotency window misconfiguration breaks replay semantics | R2 | Bounded positive-int validation; override tests prove replay/mismatch behavior per window (closed `2026-07-04`) |
-| Module relocation conflicts with parallel feature work | C1-C7 | One module per block; atomic move with tests; no dual namespaces; entry criteria gate the start |
-| Guardrail erosion during moves (allowlist growth) | C0-C7 | `AGENTS.md` shrink-only allowlist rule; module-boundary guardrail lands before first move (C0) |
+| Module relocation conflicts with parallel feature work | C1-C7 | One module per block; atomic move with tests; no dual namespaces; entry criteria gate the start. C0 boundary contract (`2026-07-05`) makes the contract surface explicit before any slice moves. |
+| Guardrail erosion during moves (allowlist growth) | C0-C7 | `AGENTS.md` shrink-only allowlist rule; module-boundary guardrail lands before first move (C0, closed `2026-07-05`). `LEGACY_BRIDGE_NAMESPACES` is enumerable and asserted against the documented allowlist; the list only shrinks as modules relocate. |
+| Cross-context service coupling (Application handler → concrete Service) blocks clean module moves | C1-C7 | Pre-C0 mapping pass recorded the coupling surface (`Application/<X>Handler → App\Services\<Y>` is the dominant pattern; `Payment ↔ Webhook ↔ Orders` is the hardest pair). Each wave defines a contract at the boundary before the slice moves; legacy `App\Contracts\*` stays allowlisted until retired. |
 | Reconciliation false positives page on-call | A1 | Config-driven detection windows; alerts flow through the existing cooldown router |
 | Mass-assignment regression reintroduces privilege/state into `$fillable` | 80/81 | `SensitiveStateFillableGuardrailTest` + `SensitiveFieldsRejectMassAssignmentTest` lock the contract; allowlist-only-shrinks rule applies |
 | Transport-security drift breaks cookies/CORS/HTTPS in deployment | 80/81 | `TransportSecurityBaselineGuardrailTest` enforces file invariants; env defaults ship secure-cookie `true`, force-https `true` in non-local; local-env exemption prevents dev breakage |
@@ -604,7 +634,8 @@ Remaining (each verified by its owning block's DoD):
 22. ~~Psalm level `4` or stricter clean on extended scope — `Q3`.~~ — closed `2026-07-04`. Psalm runs at `errorLevel="4"` over `app/routes/database` with `psalm/plugin-laravel` registered; `TooManyTemplateParams` and `InvalidDocblock` plugin-version suppressions enumerable and documented (see risk register #22 for upgrade path).
 23. ~~Frontend hardening flags enabled; per-run coverage signal visible in CI — `Q4`.~~ — closed `2026-07-04`. `noImplicitOverride` + `noFallthroughCasesInSwitch` enabled in `tsconfig.json` with zero churn; `@vitest/coverage-v8` provider wired in `vitest.config.ts` with text+html reporters; `npm run test:coverage` produces baseline report (86.96% statements / 75.35% branches). `noUncheckedIndexedAccess` deferred (see risk register #23 for follow-up prerequisites).
 24. ~~Covered `/api/v1` routes are validated against a machine-readable spec in CI — `S1`.~~ — closed `2026-07-04`. `docs/api/openapi.yaml` (OpenAPI 3.0.3) covers 14 in-scope paths (auth + catalog + cart); `OpenApiConformanceFeatureTest` (18 tests) enforces response conformance via `SpecAssertionHelper`; `OpenApiContractSourceGuardrailTest` (8 tests) locks spec existence, structural validity, `ApiErrorCode` parity, and toolchain presence. OpenAPI 3.1 dialect deferred (risk register #24).
-25. Module-boundary guardrail active and first module slices (Catalog, Users) serving production traffic from `app/Domains/*` — `C0-C2`.
+25. ~~Module-boundary guardrail active before any runtime code moves — `C0`.~~ — closed `2026-07-05`. `ModuleBoundaryGuardrailTest` (5 tests) enforces cross-module Contracts-only imports, enumerable legacy-bridge allowlist, and module-internal layer direction; `docs/ARCHITECTURE.md` declares the contract; `REPO_MAP.md`/`DOMAIN_MAP.md` carry per-module ownership and migration markers. First runtime slice (`C1` Catalog) still pending promotion.
+26. First module slices (Catalog, Users) serving production traffic from `app/Domains/*` — `C1-C2`.
 
 ## Backlog Intake Rule
 
@@ -668,3 +699,5 @@ This file changes only when a block is promoted, closed, or re-scoped; every rev
 | `2026-07-04` | `Q3` closed: `psalm/plugin-laravel` (v3.0.x, the only line compatible with OSPanel PHP 8.4.1 + pinned Psalm 6.4.1) registered via `Psalm\LaravelPlugin\Plugin`; Psalm scope extended to `routes/` for PHPStan parity (`app/routes/database/factories/seeders`); `errorLevel` raised `6→5→4`; level 5 fix `AppServiceProvider::boot` migrated `$this->app->isProduction()` → `$this->app->environment('production')` (interface-declared contract vs concrete-only method); level 4 source-typing fixes — `RedundantCast` removed from `WebhookProcessingPipeline`/`MaintenanceCleanupExecutor`/`MaintenanceCleanupRetentionResolver`/`OrdersReconcileRunner`, `now()->timestamp` → `now()->getTimestamp()` in `ObservabilityAlertCooldownStore`, repository `@return` shapes tightened in `AdminProductReadRepository`/`CatalogProductReadRepository`, `Promotion` model annotated with full `@property` inventory (id/name/code/usage_limit/usage_count/starts_at/ends_at/created_at/updated_at), `ApiContractSmokeContextFactory` narrowed `firstOrCreate` with `assert($user instanceof User)`; documented plugin-version tradeoff — `TooManyTemplateParams` (4 directories/files) and `InvalidDocblock` (`app/Models`) suppressed via `psalm.xml` `issueHandlers` with enumerable scope, removable in a single edit once plugin v3.14 + PHP 8.4.3 + Psalm 6.16.1 are available (risk register #22); `PsalmLadderScopeParityGuardrailTest` (8 assertions) locks errorLevel ≤ 4, extended scope, plugin registration, baseline-free progression, `findUnusedBaselineEntry=true`, documented template-arity suppressions, composer constraint window, and `environment()` contract; `Q4` is active next |
 | `2026-07-04` | `Q4` closed: `tsconfig.json` extended with `noImplicitOverride` + `noFallthroughCasesInSwitch` (both zero churn — existing Vue 3 + TypeScript code already followed the discipline); `noUncheckedIndexedAccess` measured at 55 errors (2 production: `AdminProductVariantsSection.vue:17`, `useAdminOrderDetailsState.ts:44`; 53 test-only concentrated in `use-admin-mutation-flows.spec.ts` 21, `admin-component-contracts.spec.ts` 11, plus five other test files) and **deferred** per Q4 DoD — test-fixture tightening to typed factories should land first (risk register #23); v8 coverage reporting wired — `@vitest/coverage-v8 ^4.1.9` (aligned with vitest `^4.0.18`), `vitest.config.ts` extended with `{ provider: "v8", reporter: ["text","html"], reportsDirectory: "coverage/", all: true }`, `package.json` `test:coverage` script added, `.gitignore` excludes `/coverage`; default `test` script stays `vitest run` (no implicit coverage in the gate); baseline coverage observed: 86.96% statements / 75.35% branches / 86.36% functions / 88.18% lines (2609 statements across `resources/js`); no coverage floor introduced (separate decision after baseline observation); `FrontendTypeAndTestSignalGuardrailTest` (5 tests, 17 assertions) locks the strict flags, the deferred state of `noUncheckedIndexedAccess`, the v8 provider config, the test:coverage script + dep, and the gitignore entry; `S1` is active next |
 | `2026-07-04` | `S1` closed: `docs/api/openapi.yaml` (OpenAPI **3.0.3** — downgraded from roadmap's "3.1" because `cebe/php-openapi` stable is 3.0-only and no stable PHP validator supports 3.1 on the Symfony YAML v8 stack Laravel 12 ships; spec dialect bump is a single-PR follow-up, risk register #24) authored as the machine-readable source of truth for 14 in-scope paths (auth 8 + catalog 3 + cart 3); three top-level envelopes (`{data}`, `{data,meta}`, `{{error}}`) formalized; closed 9-member `ApiErrorCode` enum embedded as `components/schemas/ApiErrorCode`; two distinct error shapes modeled — `ErrorResponseController` (Shape A, controller-caught `AuthApplicationException`: `{message, request_id?, type}`, no `code`/`validation`) and `ErrorResponseRenderer` (Shape B, `ApiExceptionRenderer`-emitted: `{message, request_id?, type, code, validation?}` with `validation` on 422 only); component schemas (`AuthUser`, `AuthToken`, `CatalogProduct`, `CatalogProductVariant`, `CatalogCategory`, `Cart`, `CartItem`, `CartSummary`, `PaginationMeta`) built verbatim from `*ResultDto::toArray()` outputs (no JsonResource classes for these domains per ADR-0002); tooling — `devizzent/cebe-php-openapi ^1.1.5` added to `require-dev` (the actively maintained fork supporting `symfony/yaml ^3-8` required by Laravel 12; original `cebe/php-openapi 1.8.0` capped at `^7` is uninstallable; fork declares `replace: cebe/php-openapi` so no conflicts); `tests/Support/OpenApi/SpecAssertionHelper.php` parses spec once per run (cached statically, structurally validated at load) and walks declared body schemas against actual JSON; `AssertsOpenApiResponse` trait wraps it as `assertResponseMatchesOpenApiSpec($response, $method, $path)`; conformance coverage — `OpenApiConformanceFeatureTest` (18 tests) covers happy-path + canonical error shapes for every in-scope endpoint, `SpecAssertionHelperTest` (4 tests) locks parse + path coverage + ApiErrorCode parity; `OpenApiContractSourceGuardrailTest` (8 tests) locks spec existence, OpenAPI 3.0 declaration, structural validity, 14-path coverage, ApiErrorCode enum parity, composer dev dependency, helper/trait/conformance-test presence, and the two distinct error envelopes; no runtime contract changes (controllers, DTOs, middleware untouched); convergence waves `C0-C7` are the remaining roadmap surface |
+| `2026-07-05` | `C0` closed: `docs/ARCHITECTURE.md` extended with `## Module Boundary Contract` (module public API = `app/Domains/<Module>/Contracts/`, interfaces + DTOs only, no Eloquent at boundary; cross-module imports through `<OtherModule>\Contracts\` only; always-allowed namespaces — shared kernel `App\Domain\*`, infra `App\Support\*`, and the enumerable legacy bridge list `App\Contracts\Application\Services\Repositories\Http.Models.Exceptions.Policies.Providers` + `Database\Factories\Seeders` that only shrinks; relocation mechanics — namespace move per slice, no dual-namespace shims, no `class_alias`, atomic with route/DI/test updates; provider policy — each module ships a `<Module>ServiceProvider` from `C1` onward); `tests/Unit/Architecture/ModuleBoundaryGuardrailTest.php` (5 tests) — namespace-aware use-statement scanner enforcing cross-module Contracts-only imports, enumerable legacy-bridge allowlist asserted against documented set, module-internal layer direction (controllers don't depend on Services/Repositories directly, application handlers don't import HTTP transport, repositories stay persistence-only); `docs/REPO_MAP.md` extended under `## Target layout` with per-module ownership table (Module / Public API / Owning wave / Migration state); `docs/DOMAIN_MAP.md` extended with `## Module Boundary Contract` cross-reference and per-context migration-state markers (`[migration: pending C1]` through `[migration: pending C7]`) plus a new `### Payments` H3 surfacing the `C6` gateway-contract migration target; risk register entries added for cross-context service coupling and the contract-bridge migration surface; exit target #25 marked achieved; execution-queue rows split — `C0` closed, `C1-C7` remain pending promotion; guardrail passes trivially today (empty `app/Domains/*`) and becomes load-bearing with `C1`; no runtime code moves (controllers, services, repositories untouched); `C1-C7` are the remaining roadmap surface |
+
