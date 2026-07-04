@@ -77,6 +77,12 @@ The migration is incremental and must keep public API and DB contracts stable.
 - `app/Http/Middleware/ForceHttpsMiddleware.php` — redirect-to-HTTPS in non-local env when force-https enabled; honors `X-Forwarded-Proto: https` to prevent proxy redirect loops; registered globally in `bootstrap/app.php`.
 - `config/session.php` — secure-cookie default `env('SESSION_SECURE_COOKIE', env('APP_ENV', 'production') !== 'local')` (defaults secure in non-local without explicit env override).
 
+## Data classification and payload boundaries
+
+- `docs/SECURITY_DATA_CLASSIFICATION.md` — inventory of PII-bearing columns (`users.email/phone/password`, `orders.email/billing_address/shipping_address`, `payments.payload`, `shipments.payload`), allowed key sets per JSON column, plaintext-at-rest threat model, and field-level-encryption follow-up prerequisites. Enforced by `tests/Unit/Architecture/SecurityDataClassificationDocGuardrailTest.php`.
+- `app/Application/Checkout/Dto/CheckoutAddressInputDto.php` — emits the closed address shape `{line1, city, country, postcode}`; the only sanctioned address constructor for persistence. Locked by `tests/Unit/Architecture/AddressPayloadBoundaryGuardrailTest.php` (scans all `billing_address`/`shipping_address` blob construction sites under `app/`).
+- `app/Contracts/PaymentGatewayInterface.php` + `app/Contracts/ShippingGatewayInterface.php` — gateway contracts; concrete adapters (`app/Infrastructure/Payments/FakePaymentGateway.php`, `app/Infrastructure/Shipping/FakeShippingGateway.php`) build payloads through `App\Support\Data\JsonPayload::fromArray()` using provider-operational key sets only. Locked by `tests/Unit/Architecture/GatewayPayloadBoundaryGuardrailTest.php` (bans `card`/`card_number`/`pan`/`cvv`/`cvc`/`ssn`/`password`/`recipient_name` literals).
+
 ## API
 
 Main API prefix: `/api/v1`

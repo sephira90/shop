@@ -6710,3 +6710,40 @@ Verification (executed strictly sequentially, one command at a time):
   - full mandatory quality gate executed sequentially;
   - route/cache verification after config/middleware changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/orders`.
 
+### `2026-07-04` - `82/83` Data-at-rest minimization and security guardrails
+
+Block scope: lock the persisted PII surface (address blobs, gateway payloads) into closed-shape contracts backed by an explicit data-classification inventory, and aggregate the cross-cutting security-config invariants into a single rollup guardrail so drift in any one of them fails one obvious gate.
+
+Verified baseline (`2026-07-04`):
+  - `App\Application\Checkout\Dto\CheckoutAddressInputDto::toArray()` already emits the allowlisted shape `{line1, city, country, postcode}`, and the validated checkout flow (`PlaceOrderRequest` rules + DTO factory) cannot push any other key into `orders.billing_address` / `orders.shipping_address`. The boundary is implicit — there is no guardrail that fails a future adapter that smuggles a `phone`/`email`/`notes` key into a smoke fixture or a new checkout construction site.
+  - `App\Infrastructure\Payments\FakePaymentGateway` and `App\Infrastructure\Shipping\FakeShippingGateway` already build their payloads through `App\Support\Data\JsonPayload::fromArray()` using a closed operational key set (`provider`, `idempotency_key`, `order_number`, `amount`, `currency`, `checkout_url` for payment; `provider`, `order_id` for shipping). No cardholder data, CVV, or customer PII is present. There is no guardrail that locks this boundary before a real-provider adapter lands.
+  - There is no central data-classification inventory listing the PII-bearing columns (`users.email/phone/password`, `orders.email/billing_address/shipping_address`, `payments.payload`, `shipments.payload`), their allowed key sets, or the field-level-encryption follow-up prerequisites.
+  - Security-config invariants are enforced by scattered point guardrails: `AuthTokenLifecycleGuardrailTest` (finite Sanctum TTL, `active.api.user` middleware coverage), `AuthCredentialHardeningGuardrailTest` (login limiter, password defaults), `TransportSecurityBaselineGuardrailTest` (CORS / secure-cookie / force-https file invariants). There is no single rollup that fails one obvious gate when any cross-cutting security invariant drifts.
+
+Implemented:
+  - address payload boundary:
+    - new `tests/Unit/Architecture/AddressPayloadBoundaryGuardrailTest.php` (8 cases) asserts `CheckoutAddressInputDto::toArray()` emits exactly the allowlisted four keys with a typed return shape, and scans every `billing_address` / `shipping_address` blob construction site under `app/` (`CheckoutAddressInputDto`, `PlaceOrderRequest`, `CheckoutOrderWriter`, `PerformanceSmokeSetupFactory`, `WebhookFlowScenario`, `CheckoutApiContractScenario`) for rejected PII keys (`phone`, `email`, `notes`, `recipient_name`, `full_name`, `card`, `cvv`). The lexical scanner distinguishes address-payload blobs from validation-rule arrays (list items without string keys) and supports both multiline and inline shapes.
+  - gateway payload boundary:
+    - new `tests/Unit/Architecture/GatewayPayloadBoundaryGuardrailTest.php` (5 cases) forbids PII literals (`card`, `card_number`, `pan`, `cvv`, `cvc`, `ssn`, `password`, `recipient_name`) in `FakePaymentGateway` and `FakeShippingGateway`, requires payload construction through `JsonPayload::fromArray(`, and asserts both gateway contracts live under `app/Contracts/`. The boundary is in place before any real-provider adapter lands.
+  - central data-classification inventory:
+    - new `docs/SECURITY_DATA_CLASSIFICATION.md` records the PII-bearing columns, the allowed key sets for each JSON column (`orders.billing_address` / `orders.shipping_address` → `{line1, city, country, postcode}`; `payments.payload` → operational keys; `shipments.payload` → operational keys), the plaintext-at-rest threat model, and the field-level-encryption follow-up prerequisites (closed JSON shapes, central inventory, `JsonPayload` abstraction at every construction site).
+    - new `tests/Unit/Architecture/SecurityDataClassificationDocGuardrailTest.php` (5 cases) prevents silent drift: asserts the doc exists, names every PII column row, locks the address allowlist + rejection list, references the encryption follow-up (`APP_ENCRYPTION_KEY`, `backfill`), and references the two enforcing guardrails.
+  - unified security-config rollup:
+    - new `tests/Unit/Architecture/SecurityConfigGuardrailTest.php` (12 cases) aggregates the cross-cutting contract in one place: finite Sanctum expiration; bounded `auth.login_throttle.max_attempts` (1..100) and `decay_seconds` (1..3600); `session.secure` resolves to a bool; `session.secure` defaults to `true` in non-local `APP_ENV` when `SESSION_SECURE_COOKIE` is unset (resolved in isolation to avoid config-cache coupling); `security.force_https` resolves to a bool; `security.trusted_proxies` is a non-empty string; `cors.allowed_origins` is a list; `cors.supports_credentials` is `false`; `cors.paths` is `api/*`-scoped with no global wildcard; login route uses `throttle:auth.login` (never `throttle:6,1`); `active.api.user` middleware alias is registered; every `auth:sanctum` api/v1 route also carries `active.api.user`. The point guardrails remain the per-contract authority; this rollup is the cross-cutting canary.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `82/83` closed, advances `Q3` to active, appends a closed-block definition (with convergence impact), strikes through `82/83` from pending interface/contract changes and adds the field-level-encryption follow-up as a candidate, appends three risks to the register, moves exit target `21` into achieved status, extends the mandatory test matrix, and appends a change-control entry.
+
+Out of scope (deliberate): field-level encryption / encrypted casts on address or provider payloads; backfill migrations rewriting existing rows; changes to the `/api/v1/*` response envelope. The encryption follow-up is recorded as a roadmap candidate with prerequisites satisfied by this block's boundary work.
+
+Deterministic coverage:
+  - `tests/Unit/Architecture/AddressPayloadBoundaryGuardrailTest.php` (new): DTO emits exactly `{line1, city, country, postcode}`; `toArray()` return type is documented with each key; six address-blob construction sites scanned for PII drift (multiline + inline blob support, validation-rule arrays skipped).
+  - `tests/Unit/Architecture/GatewayPayloadBoundaryGuardrailTest.php` (new): both gateway adapters reject PII literals and route payloads through `JsonPayload::fromArray()`; both gateway contracts live under `app/Contracts/`.
+  - `tests/Unit/Architecture/SecurityDataClassificationDocGuardrailTest.php` (new): doc exists; names every PII column row; locks allowlist + rejection list; references encryption follow-up and enforcing guardrails.
+  - `tests/Unit/Architecture/SecurityConfigGuardrailTest.php` (new): 12 cross-cutting invariants aggregated into one canary.
+  - existing `tests/Unit/Architecture/AuthTokenLifecycleGuardrailTest`, `AuthCredentialHardeningGuardrailTest`, `TransportSecurityBaselineGuardrailTest`, `SensitiveStateFillableGuardrailTest`, and `SensitiveFieldsRejectMassAssignmentTest` remain green — they stay the per-contract authority.
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted 82/83 suites: `php artisan test --filter="AddressPayloadBoundaryGuardrailTest|GatewayPayloadBoundaryGuardrailTest|SecurityDataClassificationDocGuardrailTest|SecurityConfigGuardrailTest"` — 30 passed (208 assertions);
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially.
+
