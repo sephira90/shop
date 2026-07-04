@@ -16,6 +16,11 @@ Schedule::command('app:observability-alert-check')
     ->withoutOverlapping()
     ->when(static fn (): bool => (bool) config('observability.alerts.enabled', true));
 
+Schedule::command('app:orders-reconcile')
+    ->cron(TypedValue::string(config('orders.reconciliation.cron', '*/15 * * * *')))
+    ->withoutOverlapping()
+    ->when(static fn (): bool => (bool) config('orders.reconciliation.enabled', true));
+
 $oncallDrillParameters = [];
 
 if ((bool) config('oncall.drill.with_write_smokes', false)) {

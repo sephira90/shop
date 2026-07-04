@@ -25,6 +25,11 @@ class OperationalSchedulerWiringGuardrailTest extends TestCase
         $this->assertTrue($observabilityAlertCheck->withoutOverlapping);
         $this->assertFalse($observabilityAlertCheck->runInBackground);
 
+        $ordersReconcile = $this->findEvent($schedule, 'app:orders-reconcile');
+        $this->assertSame(TypedValue::string(config('orders.reconciliation.cron', '*/15 * * * *')), $ordersReconcile->expression);
+        $this->assertTrue($ordersReconcile->withoutOverlapping);
+        $this->assertFalse($ordersReconcile->runInBackground);
+
         $oncallDrill = $this->findEvent($schedule, 'app:oncall-drill-smoke');
         $this->assertSame(TypedValue::string(config('oncall.drill.cron', '45 3 * * *')), $oncallDrill->expression);
         $this->assertTrue($oncallDrill->withoutOverlapping);

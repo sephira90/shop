@@ -6615,3 +6615,54 @@ Verification (executed strictly sequentially, one command at a time):
   - full mandatory quality gate executed sequentially;
   - route/cache verification after channel/router/provider changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/promotions`.
 
+### `2026-07-04` - `A1` Order lifecycle reconciliation and stuck-state detection
+
+Block scope: surface every verified silent-loss window in the order lifecycle (post-commit dispatch failure, exhausted job retries, stale pending payments, failed-jobs growth) with a bounded detection time, orchestration-only, observable, and documented.
+
+Verified baseline (`2026-07-04`):
+  - webhook receipts are marked `processed_at` inside the ingress transaction while side-effect jobs (`DispatchShipmentJob`, `SendOrderConfirmationJob`, `SendOrderStatusChangedNotificationJob`) dispatch `afterCommit()`; a post-commit dispatch failure or exhausted retries strand a paid order without shipment dispatch.
+  - `DispatchShipmentJob::handle()` is already idempotent: `hasCapturedPayment` re-check + `ShippingService::createShipment` guard against duplicate shipment rows, so re-dispatch is the safe action.
+  - provider retries are deduplicated by the processed receipt.
+  - the `queue.failed_jobs` table exists but is monitored by nothing — the loss is silent by construction.
+
+Implemented:
+  - operational command architecture (mirrors `app:observability-report`):
+    - `app/Support/Orders/OrdersReconcileOptionsResolver.php` (final) maps CLI options + bounded config defaults into `OrdersReconcileOptionsDto`, rejecting non-positive integers with an explicit per-option error.
+    - `app/Support/Orders/OrdersReconcileRunner.php` (final) is orchestration-only: it iterates the tagged detector set and aggregates results; it never mutates state, dispatches jobs, or modifies orders.
+    - `app/Support/Orders/OrdersReconcileOutputBuilder.php` (final) renders both table and JSON shapes through `OrdersReconcileOutputDto`, with an explicit "No order lifecycle stuck-state findings." signal for clean runs.
+    - `app/Console/Commands/AppOrdersReconcileCommand.php` wires resolver → runner → output builder; exits SUCCESS on clean state and FAILURE on any finding, mirroring the alert-check command contract.
+  - three independent detectors (each final, implementing `OrdersReconcileDetector`):
+    - `StuckShipmentDetector`: paid orders (`payment_status = captured`, `shipment_status = pending`) with no shipment row and `placed_at` older than the configured window.
+    - `StalePendingPaymentDetector`: orders with `payment_status = pending` past the configured window.
+    - `FailedJobsDetector`: a non-empty `queue.failed_jobs` table above the configured threshold (default 1).
+  - bounded config under `config/orders.php` (`reconciliation` block):
+    - `stuck_shipment_minutes` (default 90, max 43200), `stale_pending_payment_minutes` (default 60, max 43200), `failed_jobs_threshold` (default 1, max 100000) via a shared `resolvePositiveInt` closure with bounded positive-integer validation.
+    - scheduler gate `enabled` (default true) and `cron` (default `*/15 * * * *`).
+    - env keys (`ORDERS_RECONCILE_STUCK_SHIPMENT_MINUTES`, `ORDERS_RECONCILE_STALE_PENDING_PAYMENT_MINUTES`, `ORDERS_RECONCILE_FAILED_JOBS_THRESHOLD`, `APP_ORDERS_RECONCILE_ENABLED`, `APP_ORDERS_RECONCILE_CRON`) added to `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`.
+  - DI wiring:
+    - new `app/Providers/OrdersServiceProvider.php` tags the three detectors under `OrdersReconcileDetector` and binds `OrdersReconcileRunner` with the tagged iterable; registered in `bootstrap/providers.php`.
+    - `Order` model gains the `HasFactory` trait so feature tests can build paid/stale/pending fixtures through the existing `OrderFactory`.
+  - observability integration:
+    - `OrdersReconcileRunner::emitTelemetry()` emits one structured `observability.reconciliation` log record per run with `clean`, per-detector counts, and the resolved windows.
+    - `--route-alerts` option on the command reuses the existing `ObservabilityAlertRouter` channel infrastructure (email/slack/pagerduty) for delivery when findings are present; the scheduled invocation leaves the flag off by default and relies on the structured log plus optional operator-driven alerting.
+  - scheduler registration + guardrail extension:
+    - `routes/console.php` schedules `app:orders-reconcile` with `->cron(...)->withoutOverlapping()->when(config('orders.reconciliation.enabled'))`, matching the operational scheduler guardrail pattern.
+    - `OperationalSchedulerWiringGuardrailTest` extended to assert the cadence, overlap policy, and background mode.
+  - operations runbook:
+    - new `docs/OPERATIONS_RUNBOOK_ORDER_RECONCILIATION.md` documents the fast triage sequence, replay procedures per stuck-state class (stuck shipment, stale pending payment, failed jobs), threshold/schedule configuration, alert routing, escalation matrix, and the transactional outbox as the explicit escalation path (out of scope for this block).
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `A1` closed, advances the locked queue to the `80/81` security intake, updates the active-block pointer, and appends a closed-block summary.
+    - `docs/REFACTORING_EXECUTION_PLAN.md` (this entry).
+
+Deterministic coverage:
+  - `tests/Unit/Support/Orders/OrdersReconcileOptionsResolverTest.php` (new): config-defaults resolution, explicit CLI override precedence, rejection of non-positive integers for all three windows, JSON flag propagation.
+  - `tests/Unit/Support/Orders/OrdersReconcileDetectorsTest.php` (new, `RefreshDatabase`): stuck-shipment detector surfaces only paid-without-shipment rows older than the window; stale-pending-payment detector surfaces only pending payments older than the window; failed-jobs detector reports the count above threshold and stays empty below threshold.
+  - `tests/Unit/Support/Orders/OrdersReconcileOutputBuilderTest.php` (new): table shape lists each finding class with the right columns; clean result emits the explicit clean message; JSON shape serializes findings by kind with the `clean` flag set correctly for both clean and finding states.
+  - `tests/Feature/Commands/AppOrdersReconcileCommandTest.php` (new, `RefreshDatabase`): clean state (table and JSON) exits SUCCESS; stuck shipment, stale pending payment, and failed-jobs findings exit FAILURE; invalid option exits FAILURE with the per-option message; paid order with a SHIPPED shipment is not reported (regression guard against the detector contract).
+  - `tests/Unit/Architecture/OperationalSchedulerWiringGuardrailTest.php` (extended): asserts the new scheduled event's cron expression, `withoutOverlapping`, and foreground execution.
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted A1 suites: `php artisan test --filter="OrdersReconcile|AppOrdersReconcileCommand|OperationalSchedulerWiring"` — green;
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - full mandatory quality gate executed sequentially.
+

@@ -8,6 +8,7 @@ return [
     App\Providers\GatewayServiceProvider::class,
     App\Providers\MaintenanceServiceProvider::class,
     App\Providers\ObservabilityServiceProvider::class,
+    App\Providers\OrdersServiceProvider::class,
     App\Providers\AppServiceProvider::class,
     App\Providers\EventServiceProvider::class,
 ];

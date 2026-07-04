@@ -22,7 +22,7 @@ Current position:
 - Waves `0-24` are complete (transport purity, webhook hardening, DTO discipline, service decomposition, application/frontend boundary hardening, observability/smoke/operations modularization, governance and release guardrails, PHPStan level 10 with no baseline).
 - All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle), `78` (credential hardening), and `79` (auth security audit trail), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
 - Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), `A2` (correlation propagation across the queue boundary), `R2` (exact promotion arithmetic and idempotency retention), and `R3` (alert delivery outcome observability) are closed; `R1` (API error contract and stale-aggregate taxonomy) is closed.
-- The active block is `A1` (order lifecycle reconciliation and stuck-state detection); the full order is fixed in the Execution Queue below.
+- The active block is the `80/81` security intake (mass-assignment surface, transport security baseline); the full order is fixed in the Execution Queue below.
 - A verified code-review intake (`2026-07-03`) promoted seven quality/reliability blocks: strict runtime guardrails (`Q1`), supply-chain audit gate (`Q2`), queue correlation propagation (`A2`), order-lifecycle reconciliation (`A1`), Psalm ladder (`Q3`), frontend hardening (`Q4`), and an OpenAPI contract source (`S1`).
 - The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7` (pending promotion, after `S1`).
 
@@ -110,8 +110,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | **Closed** (`2026-07-04`) |
 | 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | **Closed** (`2026-07-04`) |
 | 7 | `R3` Alert delivery outcome observability | P2 | **Closed** (`2026-07-04`) |
-| 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | Active — next up |
-| 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | Candidate — requires promotion |
+| 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | **Closed** (`2026-07-04`) |
+| 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | Active — next up |
 | 10 | Security intake items `82/83` (data-at-rest minimization, security guardrails) | P2 | Candidate — requires promotion |
 | 11 | `Q3` Psalm ladder and scope parity | P2 | Defined, waiting |
 | 12 | `Q4` Frontend type/test hardening | P2 | Defined, waiting |
@@ -205,6 +205,8 @@ Tests: unit coverage for plan/threshold resolution; feature matrices for clean s
 DoD: every verified silent-loss window has a bounded detection time with an operational alert; the command is orchestration-only; runbook updated.
 
 Convergence impact: order-lifecycle consistency invariants become explicit and observable before `Domains/Orders` extraction (`C5`).
+
+**Closed (`2026-07-04`)**: `app:orders-reconcile` ships with three independent detectors (`StuckShipmentDetector`, `StalePendingPaymentDetector`, `FailedJobsDetector`) wired through `OrdersReconcileOptionsResolver` → `OrdersReconcileRunner` → `OrdersReconcileOutputBuilder`, mirroring the operational command architecture. Each threshold is a bounded positive integer in `config/orders.php` (`reconciliation.stuck_shipment_minutes`, `reconciliation.stale_pending_payment_minutes`, `reconciliation.failed_jobs_threshold`); the schedule is gated by `APP_ORDERS_RECONCILE_ENABLED` and `APP_ORDERS_RECONCILE_CRON`. Every run emits a structured `observability.reconciliation` log record with per-detector counts, and `--route-alerts` reuses the existing `ObservabilityAlertRouter` channel infrastructure for delivery. The `OperationalSchedulerWiringGuardrailTest` was extended to assert the schedule; the dedicated runbook lives at `docs/OPERATIONS_RUNBOOK_ORDER_RECONCILIATION.md`. Coverage: resolver/detector/output unit suites plus a feature matrix (clean, stuck shipment, stale pending payment, failed_jobs, invalid option, paid-with-shipped-shipment). Quality gate: lint/analyse/test green.
 
 ### Q3 (2-4 days) - Psalm Ladder And Scope Parity
 

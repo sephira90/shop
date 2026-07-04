@@ -11,6 +11,7 @@ use App\Providers\EventServiceProvider;
 use App\Providers\GatewayServiceProvider;
 use App\Providers\MaintenanceServiceProvider;
 use App\Providers\ObservabilityServiceProvider;
+use App\Providers\OrdersServiceProvider;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use ReflectionClass;
@@ -29,6 +30,7 @@ final class InfrastructureProviderBoundaryTest extends TestCase
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
             ObservabilityServiceProvider::class,
+            OrdersServiceProvider::class,
             AppServiceProvider::class,
             EventServiceProvider::class,
         ], $providers);
@@ -60,6 +62,7 @@ final class InfrastructureProviderBoundaryTest extends TestCase
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
             ObservabilityServiceProvider::class,
+            OrdersServiceProvider::class,
         ];
 
         foreach ($providers as $providerClass) {

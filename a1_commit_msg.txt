@@ -1,0 +1,27 @@
+feat(orders): add order lifecycle reconciliation command (A1)
+
+Add app:orders-reconcile command surfacing three verified silent-loss
+windows in the order lifecycle: paid orders without dispatched shipment
+(post-commit dispatch failure or exhausted retries), stale pending
+payments beyond the operational window, and a non-empty queue.failed_jobs
+table. Detection is orchestration-only and never mutates state.
+
+Architecture mirrors app:observability-report: OptionsResolver ->
+Runner -> OutputBuilder with table and JSON output shapes. Each detector
+(StuckShipment, StalePendingPayment, FailedJobs) is final and
+independently bounded through config/orders.php with bounded
+positive-integer validation (defaults 90/60/1 minutes).
+
+The command is scheduled with withoutOverlapping cadence */15 * * * *
+gated by APP_ORDERS_RECONCILE_ENABLED. Every run emits a structured
+observability.reconciliation log record with per-detector counts; the
+optional --route-alerts flag reuses the existing ObservabilityAlertRouter
+channel infrastructure (email/slack/pagerduty) for delivery.
+
+Coverage: resolver/detector/output unit suites plus a feature matrix
+(clean, stuck shipment, stale pending payment, failed_jobs, invalid
+option, paid-with-shipped-shipment). Scheduler guardrail extended;
+provider boundary guardrail extended for OrdersServiceProvider.
+
+Operational replay procedures per stuck-state class are documented in
+docs/OPERATIONS_RUNBOOK_ORDER_RECONCILIATION.md.
