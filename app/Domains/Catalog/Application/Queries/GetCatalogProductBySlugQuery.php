@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Catalog\Queries;
+namespace App\Domains\Catalog\Application\Queries;
 
 final readonly class GetCatalogProductBySlugQuery
 {

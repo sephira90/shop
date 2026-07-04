@@ -6,8 +6,8 @@ namespace App\Services\Admin;
 
 use App\Application\Admin\Categories\Dto\CreateAdminCategoryInputDto;
 use App\Application\Admin\Categories\Dto\UpdateAdminCategoryInputDto;
+use App\Domains\Catalog\Contracts\CatalogCacheVersion;
 use App\Models\Category;
-use App\Services\Catalog\CatalogVersionService;
 
 final class AdminCategoryService
 {
@@ -15,7 +15,7 @@ final class AdminCategoryService
      * Create service instance.
      */
     public function __construct(
-        private readonly CatalogVersionService $catalogVersionService,
+        private readonly CatalogCacheVersion $catalogVersionService,
     ) {}
 
     /**

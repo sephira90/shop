@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Catalog;
+namespace App\Domains\Catalog\Services;
 
+use App\Domains\Catalog\Contracts\CatalogCacheVersion;
 use App\Support\Data\TypedValue;
 use Illuminate\Support\Facades\Cache;
 
-final class CatalogVersionService
+final class CatalogVersionService implements CatalogCacheVersion
 {
     private const CACHE_KEY = 'catalog:version';
 

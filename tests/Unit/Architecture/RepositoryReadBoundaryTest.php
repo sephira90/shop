@@ -40,13 +40,8 @@ class RepositoryReadBoundaryTest extends TestCase
             [
                 'path' => app_path('Repositories/AdminProductReadRepository.php'),
                 'forbidden' => [
-                    'App\\Application\\Catalog\\Dto\\',
-                ],
-            ],
-            [
-                'path' => app_path('Repositories/CatalogProductReadRepository.php'),
-                'forbidden' => [
-                    'App\\Application\\Admin\\Products\\Dto\\',
+                    'App\\Domains\\Catalog\\Application\\Dto\\',
+                    'App\\Domains\\Catalog\\Contracts\\Dto\\',
                 ],
             ],
         ];

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Catalog\Queries;
+namespace App\Domains\Catalog\Application\Queries;
 
-use App\Application\Catalog\Dto\CatalogCategoriesResultDto;
-use App\Services\Catalog\CatalogService;
+use App\Domains\Catalog\Application\Dto\CatalogCategoriesResultDto;
+use App\Domains\Catalog\Contracts\CatalogReadService;
 
 final class ListCatalogCategoriesHandler
 {
@@ -13,7 +13,7 @@ final class ListCatalogCategoriesHandler
      * Create query handler instance.
      */
     public function __construct(
-        private readonly CatalogService $catalogService,
+        private readonly CatalogReadService $catalogService,
     ) {}
 
     /**

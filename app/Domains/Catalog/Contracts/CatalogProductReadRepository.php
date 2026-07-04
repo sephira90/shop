@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Catalog\Contracts;
+namespace App\Domains\Catalog\Contracts;
 
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
 

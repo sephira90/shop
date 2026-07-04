@@ -58,11 +58,14 @@ Operational integration around order lifecycle:
 ### Catalog
 
 - Public product/category read models.
-- Migration state: `[migration: pending C1]` → `app/Domains/Catalog`.
-- Entry points:
-  - `app/Application/Catalog/*`
-  - `app/Repositories/CatalogProductReadRepository.php`
-  - `resources/js/pages/CatalogPage.vue`
+- Migration state: `[migration: complete C1]` → `app/Domains/Catalog` (`2026-07-05`).
+- Module contracts: `App\Domains\Catalog\Contracts\{CatalogProductReadRepository, CatalogCacheVersion, CatalogReadService, Dto/CatalogProductListFilterDto}`. Admin writes consume `CatalogCacheVersion` for cache invalidation.
+- Entry points (post-C1):
+  - `app/Domains/Catalog/Controllers/CatalogController.php`
+  - `app/Domains/Catalog/Application/Queries/*Handler.php`
+  - `app/Domains/Catalog/Services/{CatalogService,CatalogVersionService}.php`
+  - `app/Domains/Catalog/Repositories/CatalogProductReadRepository.php`
+  - `resources/js/pages/CatalogPage.vue` (frontend untouched)
 
 ### Cart
 

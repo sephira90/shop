@@ -2,20 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Domains\Catalog\Controllers;
 
-use App\Application\Catalog\Queries\GetCatalogProductBySlugHandler;
-use App\Application\Catalog\Queries\GetCatalogProductBySlugQuery;
-use App\Application\Catalog\Queries\ListCatalogCategoriesHandler;
-use App\Application\Catalog\Queries\PaginateCatalogProductsHandler;
-use App\Application\Catalog\Queries\PaginateCatalogProductsQuery;
+use App\Domains\Catalog\Application\Queries\GetCatalogProductBySlugHandler;
+use App\Domains\Catalog\Application\Queries\GetCatalogProductBySlugQuery;
+use App\Domains\Catalog\Application\Queries\ListCatalogCategoriesHandler;
+use App\Domains\Catalog\Application\Queries\PaginateCatalogProductsHandler;
+use App\Domains\Catalog\Application\Queries\PaginateCatalogProductsQuery;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Catalog\CatalogIndexRequest;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class CatalogController extends Controller
+final class CatalogController extends Controller
 {
     /**
      * Create controller instance.

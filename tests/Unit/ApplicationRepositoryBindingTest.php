@@ -8,10 +8,10 @@ use App\Application\Admin\Categories\Contracts\AdminCategoryReadRepository as Ad
 use App\Application\Admin\Orders\Contracts\AdminOrderReadRepository as AdminOrderReadRepositoryContract;
 use App\Application\Admin\Products\Contracts\AdminProductReadRepository as AdminProductReadRepositoryContract;
 use App\Application\Admin\Promotions\Contracts\AdminPromotionReadRepository as AdminPromotionReadRepositoryContract;
-use App\Application\Catalog\Contracts\CatalogProductReadRepository as CatalogProductReadRepositoryContract;
+use App\Domains\Catalog\Contracts\CatalogProductReadRepository as CatalogProductReadRepositoryContract;
+use App\Domains\Catalog\Repositories\CatalogProductReadRepository;
 use App\Repositories\AdminOrderReadRepository;
 use App\Repositories\AdminProductReadRepository;
-use App\Repositories\CatalogProductReadRepository;
 use App\Repositories\CategoryRepository;
 use App\Repositories\PromotionRepository;
 use Tests\TestCase;

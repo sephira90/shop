@@ -12,6 +12,7 @@ use App\Providers\GatewayServiceProvider;
 use App\Providers\MaintenanceServiceProvider;
 use App\Providers\ObservabilityServiceProvider;
 use App\Providers\OrdersServiceProvider;
+use App\Domains\Catalog\CatalogServiceProvider;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use ReflectionClass;
@@ -26,6 +27,7 @@ final class InfrastructureProviderBoundaryTest extends TestCase
 
         $this->assertSame([
             ApplicationBindingsServiceProvider::class,
+            CatalogServiceProvider::class,
             AuthBindingsServiceProvider::class,
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
@@ -58,6 +60,7 @@ final class InfrastructureProviderBoundaryTest extends TestCase
     {
         $providers = [
             ApplicationBindingsServiceProvider::class,
+            CatalogServiceProvider::class,
             AuthBindingsServiceProvider::class,
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,

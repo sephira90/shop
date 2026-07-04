@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Catalog\Queries;
+namespace App\Domains\Catalog\Application\Queries;
 
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
 
 final readonly class PaginateCatalogProductsQuery
 {

@@ -46,7 +46,11 @@
             <errorLevel type="suppress">
                 <directory name="app/Application" />
                 <directory name="app/Repositories" />
-                <file name="app/Services/Catalog/CatalogService.php" />
+                <directory name="app/Domains/Catalog/Repositories" />
+                <directory name="app/Domains/Catalog/Application/Dto" />
+                <file name="app/Domains/Catalog/Contracts/CatalogProductReadRepository.php" />
+                <file name="app/Domains/Catalog/Contracts/CatalogReadService.php" />
+                <file name="app/Domains/Catalog/Services/CatalogService.php" />
                 <file name="app/Support/Api/ApiResponse.php" />
             </errorLevel>
         </TooManyTemplateParams>
@@ -71,6 +75,7 @@
             <errorLevel type="suppress">
                 <directory name="app/Models" />
                 <directory name="app/Repositories" />
+                <directory name="app/Domains/Catalog/Repositories" />
             </errorLevel>
         </InvalidDocblock>
     </issueHandlers>

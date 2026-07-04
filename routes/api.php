@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Catalog\Controllers\CatalogController;
 use App\Http\Controllers\Api\V1\Account\AccountOrdersController;
 use App\Http\Controllers\Api\V1\Admin\CacheController as AdminCacheController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
@@ -12,7 +13,6 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordController;
 use App\Http\Controllers\Api\V1\Auth\VerificationController;
 use App\Http\Controllers\Api\V1\CartController;
-use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\Webhook\PaymentWebhookController;
 use App\Http\Controllers\Api\V1\Webhook\ShippingWebhookController;

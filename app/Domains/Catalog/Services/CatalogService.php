@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Catalog;
+namespace App\Domains\Catalog\Services;
 
-use App\Application\Catalog\Contracts\CatalogProductReadRepository;
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+use App\Domains\Catalog\Contracts\CatalogCacheVersion;
+use App\Domains\Catalog\Contracts\CatalogProductReadRepository;
+use App\Domains\Catalog\Contracts\CatalogReadService;
+use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
 use App\Models\Category;
 use App\Models\Product;
 use App\Support\Observability\ObservabilityService;
@@ -13,14 +15,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 
-final readonly class CatalogService
+final readonly class CatalogService implements CatalogReadService
 {
     /**
      * Create service instance.
      */
     public function __construct(
         private CatalogProductReadRepository $catalogProductReadRepository,
-        private CatalogVersionService $catalogVersionService,
+        private CatalogCacheVersion $catalogVersionService,
         private ObservabilityService $observabilityService,
     ) {}
 

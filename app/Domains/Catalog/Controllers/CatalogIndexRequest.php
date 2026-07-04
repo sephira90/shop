@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\Catalog;
+namespace App\Domains\Catalog\Controllers;
 
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
 use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Http\FormRequest;
 

@@ -6915,3 +6915,72 @@ Verification (executed strictly sequentially, one command at a time):
   - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-05` - `C1` Catalog Module
+
+Block scope: physically relocate the public Catalog read slice into `app/Domains/Catalog/*` with namespace moves and zero dual-namespace shims; introduce the module's public contract surface; wire the new `CatalogServiceProvider`; update every cross-reference atomically (routes, providers, admin services, smoke scenarios, tests, psalm.xml). First runtime module move — proves the C0 boundary contract is load-bearing.
+
+Verified baseline (`2026-07-05`, mapping by read-only explore pass):
+  - Migration surface: 2 transport files (`CatalogController`, `CatalogIndexRequest`); 14 application files under `app/Application/Catalog/` (1 contract, 8 DTOs, 3 handlers, 2 query payloads); 1 repository (`CatalogProductReadRepository`, stateless); 2 services (`CatalogService`, `CatalogVersionService`); 2 test files (`tests/Feature/CatalogTest.php` mixing an unrelated SPA-shell test; `tests/Unit/CatalogVersionServiceTest.php`).
+  - `CatalogService` consumed ONLY by the moving slice + 2 performance-smoke scenarios → moves wholesale.
+  - `CatalogVersionService` consumed by BOTH the moving slice (`CatalogService`) AND 3 admin services (`AdminCatalogService`, `AdminCategoryService`, `AdminCacheService`) → moves with a new contract surface.
+  - DI binding in `ApplicationBindingsServiceProvider:41`; no catalog-specific middleware (`throttle:search` and `cache.headers` are framework/config-driven).
+  - `psalm.xml:49` per-file `TooManyTemplateParams` suppression path-bound to `CatalogService`.
+  - 2 performance-smoke scenarios import `CatalogService` directly (would violate the C0 guardrail post-move).
+  - Performance-smoke infrastructure (`PerformanceSmokeSetupFactory`, `PerformanceSmokeContextDto`) constructs `CatalogProductListFilterDto::fromValidated()` — DTO becomes part of the contract surface.
+  - Eloquent model imports: `Product`, `ProductVariant`, `Category`, `Inventory` — stay shared in `App\Models\*` per C0 (model-ownership wave is post-C7).
+  - `RepositoryReadBoundaryTest:43` and `RepositoryBusinessDecisionBoundaryTest` held catalog-product entries that needed post-move adjustment.
+  - Frontend: zero coupling to PHP namespaces; the wire contract is locked by `docs/api/openapi.yaml` (S1).
+
+Implemented (atomic relocation in one block):
+  - Contract surface under `app/Domains/Catalog/Contracts/`:
+    - `CatalogProductReadRepository.php` (moved verbatim; keeps `Product` at boundary as a documented shared-kernel allowance pending the model-ownership wave);
+    - `CatalogCacheVersion.php` (new interface: `current(): int`, `bump(): int`);
+    - `CatalogReadService.php` (new interface mirroring `CatalogService` public surface);
+    - `Dto/CatalogProductListFilterDto.php` (moved verbatim — consumed cross-module by smoke infrastructure).
+  - Implementation under `app/Domains/Catalog/` (all moved via `git mv` to preserve history):
+    - `Services/CatalogService.php` — now `implements CatalogReadService`; depends on `CatalogCacheVersion` contract (not the concrete `CatalogVersionService`); namespace `App\Domains\Catalog\Services`.
+    - `Services/CatalogVersionService.php` — now `implements CatalogCacheVersion`; namespace `App\Domains\Catalog\Services`.
+    - `Repositories/CatalogProductReadRepository.php` — implements the relocated contract; namespace `App\Domains\Catalog\Repositories`.
+    - `Application/Queries/{PaginateCatalogProductsHandler,GetCatalogProductBySlugHandler,ListCatalogCategoriesHandler}.php` + 2 query payloads — depend on `CatalogReadService` contract; namespace `App\Domains\Catalog\Application\Queries`.
+    - `Application/Dto/*` — 7 DTOs moved; namespace `App\Domains\Catalog\Application\Dto`.
+    - `Controllers/CatalogController.php` (now `final`) + `Controllers/CatalogIndexRequest.php`; namespace `App\Domains\Catalog\Controllers`.
+    - `CatalogServiceProvider.php` (new) — binds 3 contracts; registered in `bootstrap/providers.php` immediately after `ApplicationBindingsServiceProvider`.
+  - Wiring:
+    - `routes/api.php` import → `App\Domains\Catalog\Controllers\CatalogController`.
+    - `ApplicationBindingsServiceProvider` — catalog binding + imports removed.
+    - 3 admin services (`AdminCatalogService`, `AdminCategoryService`, `AdminCacheService`) — constructor type `CatalogVersionService` → `CatalogCacheVersion`.
+    - 2 performance-smoke scenarios (`CatalogListColdPerformanceSmokeScenario`, `CatalogListWarmPerformanceSmokeScenario`) — constructor type `CatalogService` → `CatalogReadService`.
+    - 2 performance-smoke infra files (`PerformanceSmokeSetupFactory`, `PerformanceSmokeContextDto`) — `CatalogProductListFilterDto` import → new contract namespace.
+    - `psalm.xml` — per-file `TooManyTemplateParams` suppression relocated; `app/Domains/Catalog/Repositories` added to `TooManyTemplateParams` + `InvalidDocblock` suppressions (same `Closure(Relation<*, *, *>)` shapes as legacy `app/Repositories`).
+  - Old files removed: `app/Application/Catalog/` (entire directory), `app/Services/Catalog/` (entire directory), `app/Http/Requests/Catalog/` (entire directory), `app/Http/Controllers/Api/V1/CatalogController.php`, `app/Repositories/CatalogProductReadRepository.php`.
+  - Module README replaced with the active module documentation (subfolders, contract surface, operational `catalog:version` cache-key contract, migration state).
+  - Tests:
+    - `tests/Feature/CatalogModuleRelocationTest.php` (new, 2 tests) — locks contract bindings (`CatalogCacheVersion` → `CatalogVersionService`, `CatalogReadService` → `CatalogService`, `CatalogProductReadRepository` → implementation) and verifies the route resolves to `App\Domains\Catalog\Controllers\CatalogController@index` post-move.
+    - `tests/Feature/SpaShellCacheTest.php` (new) — the unrelated SPA-shell cache test extracted from `CatalogTest.php`.
+    - `tests/Feature/CatalogTest.php` — kept; SPA-shell test removed; no PHP imports of catalog classes (HTTP-only).
+    - `tests/Unit/CatalogVersionServiceTest.php` — resolves via `app(CatalogCacheVersion::class)`; `'catalog:version'` cache-key assertions unchanged.
+    - `tests/Unit/ApplicationRepositoryBindingTest.php` — catalog row imports updated to the new contract/implementation pair.
+    - `tests/Unit/Architecture/RepositoryReadBoundaryTest.php` — catalog-product row removed (file moved); admin-product forbidden-namespace strings updated to the new catalog module namespaces.
+    - `tests/Unit/Architecture/RepositoryBusinessDecisionBoundaryTest.php` — catalog-product entries removed (file moved; cross-module boundary now enforced by `ModuleBoundaryGuardrailTest`).
+
+Invariants preserved:
+  - `/api/v1/catalog/*` wire contract byte-identical (verified by `OpenApiConformanceFeatureTest`): paths, verbs, request schemas, response schemas, status codes, throttle (`search`), cache-control (`public, max-age=60`).
+  - `catalog:version` cache key unchanged; admin write behavior unchanged (only constructor types moved from concrete to contract).
+  - Eloquent models stay shared under the `App\Models\` legacy-bridge allowance.
+  - `ModuleBoundaryGuardrailTest` continues to pass with the new module content (legacy-bridge allowlist effectively shrinks by one concrete service class).
+  - Performance-smoke query-budget gates (≤8 queries for catalog list) still green.
+
+Deterministic coverage:
+  - `tests/Feature/CatalogModuleRelocationTest.php` (new): 2 tests — contract bindings + route namespace post-move.
+  - `tests/Feature/SpaShellCacheTest.php` (new): 1 test — extracted from `CatalogTest.php`.
+  - `tests/Feature/CatalogTest.php`: 6 tests (was 7; SPA-shell test extracted) — endpoint contract + cache headers + validation + projection parity + numeric sort + variant ordering.
+  - `tests/Unit/CatalogVersionServiceTest.php`: 4 tests — version read/bump behavior (now resolves through the contract).
+  - `OpenApiConformanceFeatureTest`: 18 tests — the 3 catalog endpoints (list/show/categories) covered by happy-path + canonical error shapes; no PHP-import drift because the suite is HTTP-only.
+
+Verification (executed strictly sequentially, one command at a time):
+  - route registration: `php artisan route:list --path=api/v1/catalog` → 3 routes resolve to `App\Domains\Catalog\Controllers\CatalogController`;
+  - targeted regression: `php artisan test --filter="CatalogTest|CatalogModuleRelocationTest|CatalogVersionServiceTest|ApplicationRepositoryBindingTest|ModuleBoundaryGuardrailTest|RepositoryReadBoundaryTest|RepositoryBusinessDecisionBoundaryTest|ModularMonolithSkeletonGuardrailTest|SpaShellCacheTest|OpenApiConformanceFeatureTest|PerformanceSmokeTest|ApiContractSmokeCommandTest"` — all green;
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - route-smoke (controllers/routes changed): `php artisan optimize:clear` and `php artisan route:list --path=api/v1/catalog`;
+  - full mandatory quality gate executed sequentially.
+

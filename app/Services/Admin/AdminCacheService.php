@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
-use App\Services\Catalog\CatalogVersionService;
+use App\Domains\Catalog\Contracts\CatalogCacheVersion;
 
 final class AdminCacheService
 {
     /**
      * Create service instance.
      */
-    public function __construct(private readonly CatalogVersionService $catalogVersionService) {}
+    public function __construct(private readonly CatalogCacheVersion $catalogVersionService) {}
 
     /**
      * Bump catalog cache version and return new value.

@@ -6,9 +6,9 @@ namespace App\Support\Smoke\Performance;
 
 use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
 use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Contracts\CartServiceInterface;
+use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
 use App\Enums\ProductStatus;
 use App\Models\Order;
 use App\Models\ProductVariant;

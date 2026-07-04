@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Repositories;
+namespace App\Domains\Catalog\Repositories;
 
-use App\Application\Catalog\Contracts\CatalogProductReadRepository as CatalogProductReadRepositoryContract;
-use App\Application\Catalog\Dto\CatalogProductListFilterDto;
+use App\Domains\Catalog\Contracts\CatalogProductReadRepository as CatalogProductReadRepositoryContract;
+use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
 use App\Enums\ProductStatus;
 use App\Models\Product;
 use App\Models\ProductVariant;

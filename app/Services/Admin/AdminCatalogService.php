@@ -6,9 +6,9 @@ namespace App\Services\Admin;
 
 use App\Application\Admin\Products\Dto\CreateAdminProductInputDto;
 use App\Application\Admin\Products\Dto\UpdateAdminProductInputDto;
+use App\Domains\Catalog\Contracts\CatalogCacheVersion;
 use App\Models\Product;
 use App\Services\Admin\ProductWrites\AdminProductVariantSyncService;
-use App\Services\Catalog\CatalogVersionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -18,7 +18,7 @@ final class AdminCatalogService
      * Create service instance.
      */
     public function __construct(
-        private readonly CatalogVersionService $catalogVersionService,
+        private readonly CatalogCacheVersion $catalogVersionService,
         private readonly AdminProductVariantSyncService $adminProductVariantSyncService,
     ) {}
 

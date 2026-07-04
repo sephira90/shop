@@ -7,7 +7,6 @@ namespace Tests\Unit\Architecture;
 use App\Repositories\AccountOrderReadRepository;
 use App\Repositories\AdminOrderReadRepository;
 use App\Repositories\AdminProductReadRepository;
-use App\Repositories\CatalogProductReadRepository;
 use App\Repositories\CategoryRepository;
 use App\Repositories\PromotionRepository;
 use Illuminate\Support\Facades\File;
@@ -24,7 +23,6 @@ class RepositoryBusinessDecisionBoundaryTest extends TestCase
             app_path('Repositories/AccountOrderReadRepository.php'),
             app_path('Repositories/AdminOrderReadRepository.php'),
             app_path('Repositories/AdminProductReadRepository.php'),
-            app_path('Repositories/CatalogProductReadRepository.php'),
             app_path('Repositories/CategoryRepository.php'),
             app_path('Repositories/PromotionRepository.php'),
         ];
@@ -60,7 +58,6 @@ class RepositoryBusinessDecisionBoundaryTest extends TestCase
             AccountOrderReadRepository::class,
             AdminOrderReadRepository::class,
             AdminProductReadRepository::class,
-            CatalogProductReadRepository::class,
             CategoryRepository::class,
             PromotionRepository::class,
         ];

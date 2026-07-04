@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Catalog\Dto;
+namespace App\Domains\Catalog\Application\Dto;
 
 use App\Models\Category;
 
