@@ -32,7 +32,9 @@ class ShippingWebhookTest extends TestCase
             'status' => 'shipped',
         ])
             ->assertBadRequest()
-            ->assertJsonPath('error.message', 'Missing X-Signature header.');
+            ->assertJsonPath('error.message', 'Missing X-Signature header.')
+            ->assertJsonPath('error.type', 'BadRequestHttpException')
+            ->assertJsonPath('error.code', 'domain_failure');
     }
 
     /**

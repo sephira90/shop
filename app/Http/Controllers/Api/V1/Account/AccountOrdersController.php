@@ -18,7 +18,7 @@ use App\Http\Requests\Account\AccountOrderIndexRequest;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class AccountOrdersController extends Controller
 {
@@ -62,7 +62,7 @@ final class AccountOrdersController extends Controller
         );
 
         if ($detail === null) {
-            return ApiResponse::error('Order not found.', Response::HTTP_NOT_FOUND);
+            throw new NotFoundHttpException('Order not found.');
         }
 
         return ApiResponse::data($detail->toArray());

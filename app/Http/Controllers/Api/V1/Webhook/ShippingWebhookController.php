@@ -11,9 +11,9 @@ use App\Services\Webhook\WebhookIngressException;
 use App\Support\Api\ApiResponse;
 use App\Support\Data\JsonPayload;
 use App\Support\Data\TypedValue;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ShippingWebhookController extends Controller
 {
@@ -25,12 +25,12 @@ class ShippingWebhookController extends Controller
     /**
      * Process shipping webhook payload.
      */
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request): Response
     {
         $signature = (string) $request->header('X-Signature', '');
 
         if ($signature === '') {
-            return ApiResponse::error('Missing X-Signature header.', Response::HTTP_BAD_REQUEST);
+            throw new BadRequestHttpException('Missing X-Signature header.');
         }
 
         try {

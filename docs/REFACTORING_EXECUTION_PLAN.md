@@ -6484,3 +6484,42 @@ Implemented:
     - full backend suite: `php artisan test` - 405 passed (3487 assertions);
     - full mandatory quality gate executed sequentially (see block above for the canonical command list).
 
+### `2026-07-04` - `R1` API error contract and stale-aggregate failure taxonomy
+
+Block scope: extract the API exception renderer into a dedicated boundary, add a stable additive `error.code` taxonomy alongside the preserved `error.type`, replace bare stale-order `DomainException` throws with an Orders-owned typed failure (HTTP 409 + queue fail), consolidate architecturally-significant Path B inline controller error responses through the renderer, and extend guardrails so error codes stay stable literals and rendering stays in one boundary. The public envelope (`message`/`request_id`/`validation`) and existing `error.type` literals stay byte-identical; only `error.code` is added.
+
+Implemented:
+  - renderer boundary:
+    - new `app/Support/Api/ApiExceptionRenderer.php` (final, invokable) owns the `/api/*` exception → envelope mapping that previously lived as an inline closure in `bootstrap/app.php`; `bootstrap/app.php` now registers it via `$exceptions->render(ApiExceptionRenderer::class)`. Behavior is preserved byte-for-byte except the explicit `OrderStaleAggregateException` 422 → 409 promotion and the additive `error.code` field.
+  - additive error-code taxonomy:
+    - new `app/Support/Api/ApiErrorCode.php` backed string enum exposes the closed literal set: `validation_failed`, `unauthenticated`, `forbidden`, `not_found`, `state_transition_not_allowed`, `stale_aggregate`, `webhook_ingress_rejected`, `domain_failure`, `internal_error`. Docblock records the migration intent: `error.type` is deprecated-but-stable in this block; removal is a separate future breaking change.
+    - `ApiExceptionRenderer::__invoke` now emits `{ message, request_id?, type, code, validation? }` where `type` stays `class_basename($exception)` and `code` is the resolved `ApiErrorCode` value.
+  - stale-aggregate typed failure:
+    - new `app/Domain/Exceptions/OrderStaleAggregateException.php` (final, extends `DomainException`, named constructors `forPaymentInitiation()` / `forShipmentDispatch()`) replaces the bare `throw new DomainException('Order not found.')` sites in `PaymentService::initiate` and `ShippingService::createShipment`.
+    - HTTP rendering: HTTP **409 Conflict** with `error.code = stale_aggregate` (was 422; 409 is the semantically correct status for stale state under concurrent update).
+    - Queue rendering: in queued jobs the exception propagates to the worker and fails the job — no HTTP envelope is produced.
+  - Path B consolidation:
+    - 2 lookup-404 sites (`CatalogController::show`, `AccountOrdersController::show`) now throw `Symfony\Component\HttpKernel\Exception\NotFoundHttpException` instead of inline `ApiResponse::error(... 404)`; both flow through the renderer and now emit `error.type = NotFoundHttpException` + `error.code = not_found`.
+    - 3 missing-header-400 sites (`PaymentWebhookController::__invoke`, `ShippingWebhookController::__invoke`, `EnsureIdempotencyKeyMiddleware::handle`) now throw `BadRequestHttpException` instead of inline `ApiResponse::error(... 400)`; flow through the renderer and emit `error.code = domain_failure`.
+    - Auth controllers (`AuthController`, `PasswordController`, `VerificationController`) and the `WebhookIngressException` catches in the webhook controllers are intentionally untouched to preserve the auth anti-enumeration contract and the declared webhook ingress status code; both are documented in the new guardrail allowlist.
+  - guardrails:
+    - new `tests/Unit/Architecture/ApiErrorCodeStabilityGuardrailTest` forbids inline `error.code` literals anywhere in `app/` outside the enum definition and locks the closed literal set against accidental drift.
+    - new `tests/Unit/Architecture/ApiExceptionRendererBoundaryTest` locks: exactly one Throwable-aware invokable renderer under `app/Support/Api/`, `bootstrap/app.php` delegates to it, no `class_basename()` calls for `error.type` anywhere else in `app/`.
+    - `tests/Unit/Architecture/ApiControllerDomainExceptionBoundaryTest` extended with a second assertion: API V1 controllers may not call `ApiResponse::error()` directly (allowlist: 3 auth controllers + 2 webhook controllers, with the rationale documented in the test docblock).
+  - tests:
+    - `tests/Unit/Support/Api/ApiExceptionRendererTest` — full mapping matrix in isolation: validation/auth/authorization/not-found/bad-request/other-http/stale-aggregate/order-transition/webhook-ingress/bare-domain/default-500 paths, 5xx masking, empty-message fallback, correlation-id mirroring, byte-identical known/unknown login parity both emitting `validation_failed`.
+    - `tests/Feature/ApiErrorContractTest` — one assertion per category on the real HTTP envelope (validation, unauthenticated, not_found, missing-header 400, masked 500, correlation mirroring).
+    - Existing status-only tests on the consolidated Path B sites (`PhaseOneHardeningTest`, `PaymentWebhookTest`, `ShippingWebhookTest`, `CartCheckoutTest`, `AccountOrdersApiTest`) now also assert `error.type` and `error.code`.
+
+    The end-to-end `OrderStaleAggregateException` → 409 Conflict mapping is covered by `ApiExceptionRendererTest::order_stale_aggregate_exception_maps_to_409_conflict_with_stale_aggregate_code`. A separate HTTP-layer feature test was not retained because the production emitters (`PaymentService`, `ShippingService`, `InitiateCheckoutPaymentHandler`) are declared `final`, which forbids Mockery substitution, and the real concurrency window (order deleted between route-model-binding and `lockForUpdate` inside the DB transaction) cannot be reproduced deterministically on the SQLite test database.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md` records the new additive API error contract (`error.code` closed set, `error.type` deprecated-but-stable with migration note) and the stale-aggregate reliability contract (HTTP 409 + queue fail).
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `R1` closed, advances `R2` to active.
+    - `docs/REFACTORING_EXECUTION_PLAN.md` (this entry).
+  - verification (executed strictly sequentially, one command at a time):
+    - `composer run lint`;
+    - `composer run analyse`;
+    - `php artisan test`;
+    - `npm run lint`, `npm run lint:ox`, `npm run format:ox:check`, `npm run type-check`, `npm run test`, `npm run build`;
+    - route/controller smoke after the controller changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/promotions`.
+

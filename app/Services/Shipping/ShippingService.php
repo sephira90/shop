@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Shipping;
 
 use App\Contracts\ShippingGatewayInterface;
+use App\Domain\Exceptions\OrderStaleAggregateException;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Webhook\WebhookProcessingPipeline;
 use App\Support\Data\JsonPayload;
 use App\Support\Data\TypedValue;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 
 final readonly class ShippingService
@@ -36,7 +36,7 @@ final readonly class ShippingService
                 ->first();
 
             if (! $lockedOrder instanceof Order) {
-                throw new DomainException('Order not found for shipment dispatch.');
+                throw OrderStaleAggregateException::forShipmentDispatch();
             }
 
             $existingShipment = Shipment::query()

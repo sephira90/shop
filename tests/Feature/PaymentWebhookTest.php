@@ -31,7 +31,9 @@ class PaymentWebhookTest extends TestCase
             'status' => 'paid',
         ])
             ->assertBadRequest()
-            ->assertJsonPath('error.message', 'Missing X-Signature header.');
+            ->assertJsonPath('error.message', 'Missing X-Signature header.')
+            ->assertJsonPath('error.type', 'BadRequestHttpException')
+            ->assertJsonPath('error.code', 'domain_failure');
     }
 
     /**
@@ -433,7 +435,9 @@ class PaymentWebhookTest extends TestCase
 
         $this->postJson('/api/v1/checkout/orders/'.$orderId.'/pay', [])
             ->assertBadRequest()
-            ->assertJsonPath('error.message', 'Idempotency-Key header is required.');
+            ->assertJsonPath('error.message', 'Idempotency-Key header is required.')
+            ->assertJsonPath('error.type', 'BadRequestHttpException')
+            ->assertJsonPath('error.code', 'domain_failure');
 
         $this->assertSame(
             1,

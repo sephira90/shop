@@ -128,7 +128,9 @@ class AccountOrdersApiTest extends TestCase
             ->assertJsonPath('data.shipments.0.provider', 'fake');
 
         $this->getJson('/api/v1/account/orders/'.$otherOrder->id)
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertJsonPath('error.type', 'NotFoundHttpException')
+            ->assertJsonPath('error.code', 'not_found');
     }
 
     /**

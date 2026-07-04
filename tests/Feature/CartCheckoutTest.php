@@ -244,7 +244,9 @@ class CartCheckoutTest extends TestCase
                 'postcode' => '10001',
             ],
         ])->assertStatus(400)
-            ->assertJsonPath('error.message', 'Idempotency-Key header is required.');
+            ->assertJsonPath('error.message', 'Idempotency-Key header is required.')
+            ->assertJsonPath('error.type', 'BadRequestHttpException')
+            ->assertJsonPath('error.code', 'domain_failure');
 
         $this->assertSame(0, Order::query()->count());
     }

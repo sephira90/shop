@@ -13,7 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\CatalogIndexRequest;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CatalogController extends Controller
 {
@@ -50,7 +50,7 @@ class CatalogController extends Controller
         );
 
         if ($product === null) {
-            return ApiResponse::error('Product not found.', Response::HTTP_NOT_FOUND);
+            throw new NotFoundHttpException('Product not found.');
         }
 
         return ApiResponse::data($product->toArray());

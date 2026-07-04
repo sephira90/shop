@@ -30,7 +30,9 @@ class PhaseOneHardeningTest extends TestCase
 
         $this->getJson('/api/v1/catalog/products/'.$product->slug)
             ->assertNotFound()
-            ->assertJsonPath('error.message', 'Product not found.');
+            ->assertJsonPath('error.message', 'Product not found.')
+            ->assertJsonPath('error.type', 'NotFoundHttpException')
+            ->assertJsonPath('error.code', 'not_found');
     }
 
     /**

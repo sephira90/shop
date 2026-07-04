@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\Api\ApiResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 final class EnsureIdempotencyKeyMiddleware
 {
@@ -21,13 +21,11 @@ final class EnsureIdempotencyKeyMiddleware
         $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
 
         if ($idempotencyKey === '') {
-            return ApiResponse::error('Idempotency-Key header is required.', Response::HTTP_BAD_REQUEST);
+            throw new BadRequestHttpException('Idempotency-Key header is required.');
         }
 
         $request->headers->set('Idempotency-Key', $idempotencyKey);
 
-        $response = $next($request);
-
-        return $response;
+        return $next($request);
     }
 }

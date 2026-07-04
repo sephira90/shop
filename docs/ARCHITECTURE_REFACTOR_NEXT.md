@@ -107,8 +107,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 2 | `Q1` Strict Eloquent runtime guardrails and immutable dates | P1 | **Closed** |
 | 3 | `Q2` Supply-chain audit gate (CI + dependabot) | P1 | **Closed** |
 | 4 | `A2` Correlation propagation across the queue boundary | P1 | **Closed** |
-| 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | **Active — next up** |
-| 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | Defined, waiting |
+| 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | **Closed** (`2026-07-04`) |
+| 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | Active — next up |
 | 7 | `R3` Alert delivery outcome observability | P2 | Defined, waiting (eligible any time after R1) |
 | 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | Defined, waiting |
 | 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | Candidate — requires promotion |
@@ -242,9 +242,20 @@ Convergence impact: a machine-readable API freeze protects `/api/v1/*` compatibi
 
 ## Promoted Review Blocks (`2026-06-27`)
 
-### Review Block R1 (3-5 days) - API Error Contract And Stale-Aggregate Failure Taxonomy
+### Review Block R1 — Closed (`2026-07-04`) - API Error Contract And Stale-Aggregate Failure Taxonomy
 
 Priority: `P1`. Sequence: after `Backlog F3`, before broader Backlog G domain expansion.
+
+**Status: closed on `2026-07-04`.** Delivered:
+
+- Extracted renderer into `app/Support/Api/ApiExceptionRenderer.php` and registered through `bootstrap/app.php` `$exceptions->render(...)`.
+- Introduced additive `App\Support\Api\ApiErrorCode` closed enum and `error.code` field alongside the preserved `error.type` literal.
+- Replaced bare `DomainException` throws in `PaymentService::initiate` and `ShippingService::createShipment` with `App\Domain\Exceptions\OrderStaleAggregateException`, rendered as HTTP **409 Conflict** with `stale_aggregate` code; queue context propagates to the worker and fails the job.
+- Consolidated architecturally-significant Path B inline controller error responses (2 lookup-404 sites, 3 missing-header-400 sites) to throw `Symfony\Component\HttpKernel\Exception\*HttpException` subclasses routed through the renderer.
+- Extended guardrails: `ApiErrorCodeStabilityGuardrailTest`, `ApiExceptionRendererBoundaryTest`, and the `ApiControllerDomainExceptionBoundaryTest` direct-`ApiResponse::error()` ban with a documented auth+webhook allowlist.
+- Tests added: `tests/Unit/Support/Api/ApiExceptionRendererTest.php`, `tests/Feature/ApiErrorContractTest.php`; existing status-only tests on consolidated sites now assert `error.type` and `error.code`.
+
+Original scope, kept for history:
 
 1. Extract the API exception-to-response mapping matrix from `bootstrap/app.php` into a dedicated renderer boundary.
 2. Introduce an explicit stable error-code taxonomy and add `error.code` to API error responses without removing or changing legacy `error.type`.
@@ -263,7 +274,7 @@ DoD:
 - payment and shipping stale-order failures are typed and tested at their actual HTTP/orchestration/queue call sites;
 - no PHP class name is introduced as a new machine-readable contract.
 
-### Review Refinement R2 (3-5 days) - Exact Promotion Arithmetic And Idempotency Retention
+### Review Refinement R2 (active) (3-5 days) - Exact Promotion Arithmetic And Idempotency Retention
 
 Priority: `P1/P2`. Execution ownership: existing Backlog G items `4/5`, Backlog I2 item `59`, and config-externalization scope.
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Domain\Exceptions\OrderStaleAggregateException;
 use App\Domain\ValueObjects\Money;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
@@ -12,7 +13,6 @@ use App\Models\Payment;
 use App\Services\Webhook\WebhookProcessingPipeline;
 use App\Support\Data\JsonPayload;
 use App\Support\Data\TypedValue;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 
 final readonly class PaymentService
@@ -40,7 +40,7 @@ final readonly class PaymentService
                 ->first();
 
             if (! $lockedOrder instanceof Order) {
-                throw new DomainException('Order not found.');
+                throw OrderStaleAggregateException::forPaymentInitiation();
             }
 
             $existingActivePayment = Payment::query()

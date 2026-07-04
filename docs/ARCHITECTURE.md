@@ -76,6 +76,25 @@ Migration policy:
 - No business rules, no persistence orchestration.
 - API envelope stays backward-compatible for `/api/v1/*`.
 
+### API error contract (`/api/v1/*`)
+
+- All API exceptions render through a single boundary class, `App\Support\Api\ApiExceptionRenderer`, registered in `bootstrap/app.php` via `$exceptions->render(...)`. The renderer maps exception categories to HTTP status, masks 5xx messages to `Internal server error.`, and emits the shared error envelope through `ApiResponse::error()`.
+- Error envelope shape: `{ error: { message, request_id?, type, code, validation? } }`.
+  - `message`: human-readable text; masked for 5xx.
+  - `request_id`: mirrors the `X-Correlation-Id` request header when present.
+  - `type`: PHP class basename of the thrown exception (`AuthenticationException`, `ValidationException`, `OrderStaleAggregateException`, etc.). Preserved byte-identical for backward compatibility, but treated as **deprecated-but-stable**: clients should pin on `code` for machine handling. Removing `type` is a separate future breaking change with a migration plan.
+  - `code`: stable, additive machine-readable literal from the closed `App\Support\Api\ApiErrorCode` enum. Closed set: `validation_failed`, `unauthenticated`, `forbidden`, `not_found`, `state_transition_not_allowed`, `stale_aggregate`, `webhook_ingress_rejected`, `domain_failure`, `internal_error`. The set can only grow in additive fashion; existing literals never change spelling.
+  - `validation`: present only for `ValidationException`, carries Laravel's validator errors map.
+- Controllers must throw Symfony `HttpException` subclasses (or domain exceptions) so the renderer boundary stays the sole emit path. Inline `ApiResponse::error()` calls in controllers are forbidden by `ApiControllerDomainExceptionBoundaryTest`, with a documented allowlist for auth and webhook controllers that must catch their application-specific exception to surface a declared status code.
+- `error.code` literals may only originate from the `ApiErrorCode` enum; inline string literals in `app/` are forbidden by `ApiErrorCodeStabilityGuardrailTest`.
+
+### Stale-aggregate reliability contract
+
+- `App\Domain\Exceptions\OrderStaleAggregateException` is thrown when an Orders aggregate (typically `Order`) could not be acquired under a row lock because it became stale (concurrently deleted) between the request boundary and the lock acquisition inside the service transaction. This is a concurrency/conflict signal, not a validation failure.
+- HTTP rendering: HTTP **409 Conflict** with `error.code = stale_aggregate` and `error.type = OrderStaleAggregateException`.
+- Queue rendering: when the same exception propagates inside a queued job (e.g. webhook processing), the job **fails** — no HTTP envelope is produced. Retry semantics follow the standard queue worker contract.
+- This contract replaces the previous generic `DomainException` 422 path in `PaymentService::initiate` and `ShippingService::createShipment`. The 422 → 409 promotion is intentional: 409 Conflict is the semantically correct status for stale state under concurrent update.
+
 ### Application layer (`app/Application/*`)
 
 - Command/query handlers orchestrate use-cases.

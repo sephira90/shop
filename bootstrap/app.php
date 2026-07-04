@@ -7,16 +7,10 @@ use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureActiveApiUser;
 use App\Http\Middleware\EnsureIdempotencyKeyMiddleware;
 use App\Http\Middleware\EnsureRoleMiddleware;
-use App\Support\Api\ApiResponse;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Auth\AuthenticationException;
+use App\Support\Api\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -36,33 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(static function (\Throwable $exception, Request $request): ?Response {
-            if (! $request->is('api/*')) {
-                return null;
-            }
-
-            $status = match (true) {
-                $exception instanceof ValidationException => 422,
-                $exception instanceof AuthenticationException => 401,
-                $exception instanceof AuthorizationException => 403,
-                $exception instanceof \DomainException => 422,
-                $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
-                default => 500,
-            };
-
-            $message = $status >= 500 ? 'Internal server error.' : trim($exception->getMessage());
-            if ($message === '') {
-                $message = Response::$statusTexts[$status] ?? 'Request failed.';
-            }
-
-            $error = [
-                'type' => class_basename($exception),
-            ];
-
-            if ($exception instanceof ValidationException) {
-                $error['validation'] = $exception->errors();
-            }
-
-            return ApiResponse::error($message, $status, $error);
+        $exceptions->render(static function (\Throwable $exception, \Illuminate\Http\Request $request): ?\Symfony\Component\HttpFoundation\Response {
+            return app(ApiExceptionRenderer::class)($exception, $request);
         });
     })->create();
