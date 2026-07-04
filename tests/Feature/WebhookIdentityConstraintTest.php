@@ -64,7 +64,7 @@ final class WebhookIdentityConstraintTest extends TestCase
 
     private function createOrder(string $suffix): Order
     {
-        return Order::query()->create([
+        return Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-'.$suffix.'-'.Str::upper(Str::random(6)),
             'email' => $suffix.'@example.test',
             'status' => 'pending',
@@ -89,12 +89,12 @@ final class WebhookIdentityConstraintTest extends TestCase
             ],
             'cart_snapshot' => [],
             'placed_at' => now(),
-        ]);
+        ]));
     }
 
     private function createPayment(Order $order, string $idempotencyKey, string $gateway, string $transactionId): Payment
     {
-        return Payment::query()->create([
+        return Payment::unguarded(fn (): Payment => Payment::query()->create([
             'order_id' => $order->id,
             'idempotency_key' => $idempotencyKey,
             'gateway' => $gateway,
@@ -103,18 +103,18 @@ final class WebhookIdentityConstraintTest extends TestCase
             'currency' => 'USD',
             'status' => 'pending',
             'payload' => [],
-        ]);
+        ]));
     }
 
     private function createShipment(Order $order, string $provider, string $trackingNumber): Shipment
     {
-        return Shipment::query()->create([
+        return Shipment::unguarded(fn (): Shipment => Shipment::query()->create([
             'order_id' => $order->id,
             'provider' => $provider,
             'tracking_number' => $trackingNumber,
             'status' => 'pending',
             'cost' => 0,
             'payload' => [],
-        ]);
+        ]));
     }
 }

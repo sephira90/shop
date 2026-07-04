@@ -30,7 +30,7 @@ class AdminListFilteringTest extends TestCase
         $manager->assignRole('manager');
         Sanctum::actingAs($manager);
 
-        Order::query()->create([
+        Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-100',
             'email' => 'john@example.com',
             'status' => 'pending',
@@ -44,9 +44,9 @@ class AdminListFilteringTest extends TestCase
             'billing_address' => ['line1' => 'Street 1'],
             'shipping_address' => ['line1' => 'Street 1'],
             'cart_snapshot' => [],
-        ]);
+        ]));
 
-        Order::query()->create([
+        Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-200',
             'email' => 'jane@example.com',
             'status' => 'completed',
@@ -60,7 +60,7 @@ class AdminListFilteringTest extends TestCase
             'billing_address' => ['line1' => 'Street 2'],
             'shipping_address' => ['line1' => 'Street 2'],
             'cart_snapshot' => [],
-        ]);
+        ]));
 
         $this->getJson('/api/v1/admin/orders?q=jane&status=completed&payment_status=captured&shipment_status=delivered&per_page=5')
             ->assertOk()

@@ -17,7 +17,6 @@ class Shipment extends Model
         'order_id',
         'provider',
         'tracking_number',
-        'status',
         'cost',
         'payload',
         'shipped_at',

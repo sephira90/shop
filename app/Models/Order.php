@@ -17,6 +17,7 @@ class Order extends Model
 {
     /** @use HasFactory<\Database\Factories\OrderFactory> */
     use HasFactory;
+
     use HasUuids;
 
     /**
@@ -26,9 +27,6 @@ class Order extends Model
         'order_number',
         'user_id',
         'email',
-        'status',
-        'payment_status',
-        'shipment_status',
         'currency',
         'subtotal',
         'discount_total',

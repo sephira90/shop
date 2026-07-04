@@ -72,9 +72,9 @@ class AdminOrderServiceStatusEventTest extends TestCase
         Event::fake();
 
         $order = $this->createPendingOrder();
-        $order->update([
+        $order->forceFill([
             'status' => OrderStatus::CANCELLED->value,
-        ]);
+        ])->save();
 
         $this->expectException(OrderTransitionException::class);
         $this->expectExceptionMessage('Order status transition is not allowed.');
@@ -168,7 +168,7 @@ class AdminOrderServiceStatusEventTest extends TestCase
 
     private function createPendingOrder(): Order
     {
-        return Order::query()->create([
+        return Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-ADMIN-EVENT-TEST-001',
             'email' => 'admin-status@example.com',
             'status' => OrderStatus::PENDING->value,
@@ -183,6 +183,6 @@ class AdminOrderServiceStatusEventTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street'],
             'cart_snapshot' => ['items' => []],
             'placed_at' => now(),
-        ]);
+        ]));
     }
 }

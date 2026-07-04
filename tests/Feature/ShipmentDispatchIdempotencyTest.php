@@ -46,7 +46,7 @@ final class ShipmentDispatchIdempotencyTest extends TestCase
 
     private function createCapturedOrder(string $suffix): Order
     {
-        return Order::query()->create([
+        return Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-shipment-'.$suffix.'-'.Str::upper(Str::random(6)),
             'email' => $suffix.'@example.test',
             'status' => 'paid',
@@ -71,6 +71,6 @@ final class ShipmentDispatchIdempotencyTest extends TestCase
             ],
             'cart_snapshot' => [],
             'placed_at' => now(),
-        ]);
+        ]));
     }
 }

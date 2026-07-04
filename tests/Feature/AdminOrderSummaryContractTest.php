@@ -26,7 +26,7 @@ class AdminOrderSummaryContractTest extends TestCase
         $manager->assignRole('manager');
         Sanctum::actingAs($manager);
 
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-SUMMARY-1001',
             'email' => 'summary@example.com',
             'status' => 'pending',
@@ -41,7 +41,7 @@ class AdminOrderSummaryContractTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
             'cart_snapshot' => [],
             'placed_at' => now(),
-        ]);
+        ]));
 
         $this->getJson('/api/v1/admin/orders')
             ->assertOk()

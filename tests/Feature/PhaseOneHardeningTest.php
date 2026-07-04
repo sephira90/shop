@@ -135,7 +135,7 @@ class PhaseOneHardeningTest extends TestCase
 
         $cancelledAt = now()->subDay()->startOfSecond();
 
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-PHASE1-KEEP-CANCELLED',
             'email' => 'customer@example.com',
             'status' => 'cancelled',
@@ -151,7 +151,7 @@ class PhaseOneHardeningTest extends TestCase
             'cart_snapshot' => [],
             'placed_at' => now(),
             'cancelled_at' => $cancelledAt,
-        ]);
+        ]));
 
         $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
             'status' => 'processing',
@@ -175,7 +175,7 @@ class PhaseOneHardeningTest extends TestCase
         $manager->assignRole('manager');
         Sanctum::actingAs($manager);
 
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-PHASE1-DERIVE-STATUS',
             'email' => 'customer@example.com',
             'status' => 'pending',
@@ -190,7 +190,7 @@ class PhaseOneHardeningTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
             'cart_snapshot' => [],
             'placed_at' => now(),
-        ]);
+        ]));
 
         $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
             'payment_status' => 'captured',
@@ -219,7 +219,7 @@ class PhaseOneHardeningTest extends TestCase
         $variant = $this->createActiveVariantWithInventory(5);
         $inventory = $variant->inventory()->firstOrFail();
 
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-PHASE1-CANCEL-RESTORE',
             'email' => 'customer@example.com',
             'status' => 'pending',
@@ -234,7 +234,7 @@ class PhaseOneHardeningTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
             'cart_snapshot' => [],
             'placed_at' => now(),
-        ]);
+        ]));
 
         OrderItem::query()->create([
             'order_id' => $order->id,
@@ -279,7 +279,7 @@ class PhaseOneHardeningTest extends TestCase
         $manager->assignRole('manager');
         Sanctum::actingAs($manager);
 
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-PHASE1-INVALID-PAYMENT-TRANSITION',
             'email' => 'customer@example.com',
             'status' => 'paid',
@@ -294,7 +294,7 @@ class PhaseOneHardeningTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street', 'city' => 'New York', 'country' => 'US', 'postcode' => '10001'],
             'cart_snapshot' => [],
             'placed_at' => now(),
-        ]);
+        ]));
 
         $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
             'payment_status' => 'authorized',
@@ -317,7 +317,7 @@ class PhaseOneHardeningTest extends TestCase
         $manager->assignRole('manager');
         Sanctum::actingAs($manager);
 
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-PHASE1-INVALID-ORDER-TRANSITION',
             'email' => 'customer@example.com',
             'status' => 'cancelled',
@@ -333,7 +333,7 @@ class PhaseOneHardeningTest extends TestCase
             'cart_snapshot' => [],
             'placed_at' => now(),
             'cancelled_at' => now()->subHour(),
-        ]);
+        ]));
 
         $this->patchJson('/api/v1/admin/orders/'.$order->id.'/status', [
             'status' => 'paid',

@@ -92,7 +92,7 @@ class AuthAuditTrailFeatureTest extends TestCase
     {
         $user = User::factory()->create();
         $token = $user->createToken('browser')->plainTextToken;
-        $user->update(['is_active' => false]);
+        $user->forceFill(['is_active' => false])->save();
 
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/auth/me')

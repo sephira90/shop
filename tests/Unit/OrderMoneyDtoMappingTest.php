@@ -17,7 +17,7 @@ class OrderMoneyDtoMappingTest extends TestCase
 
     public function test_order_detail_dtos_map_money_fields_consistently_on_float_boundary(): void
     {
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-MONEY-MAP-001',
             'email' => 'money-map@example.com',
             'status' => 'paid',
@@ -32,7 +32,7 @@ class OrderMoneyDtoMappingTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street'],
             'cart_snapshot' => ['items' => []],
             'placed_at' => now(),
-        ]);
+        ]));
 
         $checkout = CheckoutOrderResultDto::fromOrder($order)->toArray();
         $admin = AdminOrderDetailResultDto::fromOrder($order)->toArray();

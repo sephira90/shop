@@ -118,7 +118,7 @@ class AuthFlowTest extends TestCase
         $browserToken = $user->createToken('browser')->plainTextToken;
         $mobileToken = $user->createToken('mobile')->plainTextToken;
 
-        $user->update(['is_active' => false]);
+        $user->forceFill(['is_active' => false])->save();
 
         $this->withHeader('Authorization', 'Bearer '.$browserToken)
             ->getJson('/api/v1/auth/me')
@@ -135,7 +135,7 @@ class AuthFlowTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('browser')->plainTextToken;
 
-        $user->update(['is_active' => false]);
+        $user->forceFill(['is_active' => false])->save();
 
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/cart')

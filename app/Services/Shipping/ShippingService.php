@@ -52,14 +52,19 @@ final readonly class ShippingService
             $shippingDriver = $this->shippingDriver();
             $result = $this->gateway->createShipment($lockedOrder);
 
-            return Shipment::query()->create([
+            $shipment = Shipment::query()->create([
                 'order_id' => $lockedOrder->id,
                 'provider' => $shippingDriver,
                 'tracking_number' => $result->trackingNumber,
-                'status' => $result->status->value,
                 'cost' => $result->cost,
                 'payload' => $result->payload->toArray(),
             ]);
+
+            $shipment->forceFill([
+                'status' => $result->status->value,
+            ])->save();
+
+            return $shipment;
         });
     }
 

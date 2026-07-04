@@ -71,16 +71,21 @@ final readonly class PaymentService
             $orderTotal = $this->resolveOrderTotal($lockedOrder);
             $result = $this->gateway->createPayment($lockedOrder, $orderTotal, $idempotencyKey);
 
-            return Payment::query()->create([
+            $payment = Payment::query()->create([
                 'order_id' => $lockedOrder->id,
                 'idempotency_key' => $idempotencyKey,
                 'gateway' => $gatewayDriver,
                 'transaction_id' => $result->transactionId,
                 'amount' => $orderTotal->toFloat(),
                 'currency' => $lockedOrder->currency,
-                'status' => $result->status->value,
                 'payload' => $result->payload->toArray(),
             ]);
+
+            $payment->forceFill([
+                'status' => $result->status->value,
+            ])->save();
+
+            return $payment;
         });
     }
 

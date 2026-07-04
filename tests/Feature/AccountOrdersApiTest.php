@@ -229,7 +229,7 @@ class AccountOrdersApiTest extends TestCase
             'placed_at' => now(),
         ];
 
-        return Order::query()->create(array_merge($payload, $overrides));
+        return Order::unguarded(fn (): Order => Order::query()->create(array_merge($payload, $overrides)));
     }
 
     /**
@@ -248,7 +248,7 @@ class AccountOrdersApiTest extends TestCase
             'meta' => [],
         ]);
 
-        Payment::query()->create([
+        Payment::unguarded(fn (): Payment => Payment::query()->create([
             'order_id' => $order->id,
             'idempotency_key' => 'pay-'.$order->id,
             'gateway' => 'fake',
@@ -257,15 +257,15 @@ class AccountOrdersApiTest extends TestCase
             'currency' => 'USD',
             'status' => 'captured',
             'payload' => [],
-        ]);
+        ]));
 
-        Shipment::query()->create([
+        Shipment::unguarded(fn (): Shipment => Shipment::query()->create([
             'order_id' => $order->id,
             'provider' => 'fake',
             'tracking_number' => 'trk-'.$order->id,
             'status' => 'shipped',
             'cost' => 0,
             'payload' => [],
-        ]);
+        ]));
     }
 }

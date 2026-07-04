@@ -166,14 +166,14 @@ final class WebhookFlowScenario
         $user = User::query()->where('email', $email)->first();
 
         if (! ($user instanceof User)) {
-            $user = User::query()->create([
+            $user = User::unguarded(fn (): User => User::query()->create([
                 'first_name' => 'Smoke',
                 'last_name' => 'User',
                 'name' => 'Smoke User',
                 'email' => $email,
                 'password' => Hash::make(Str::random(24)),
                 'is_active' => true,
-            ]);
+            ]));
             $user->forceFill(['email_verified_at' => now()])->save();
         } else {
             $user->forceFill([

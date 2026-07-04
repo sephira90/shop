@@ -168,7 +168,7 @@ final class PerformanceSmokeSetupFactory
         $seedPrefix = 'PERF-'.Str::upper(Str::random(6));
 
         foreach (range(1, 25) as $index) {
-            Order::query()->create([
+            Order::unguarded(fn (): Order => Order::query()->create([
                 'order_number' => sprintf('ORD-%s-%04d', $seedPrefix, $index),
                 'email' => "perf{$index}@example.com",
                 'status' => 'pending',
@@ -183,7 +183,7 @@ final class PerformanceSmokeSetupFactory
                 'shipping_address' => ['line1' => 'Smoke Street'],
                 'cart_snapshot' => [],
                 'placed_at' => now(),
-            ]);
+            ]));
         }
     }
 }

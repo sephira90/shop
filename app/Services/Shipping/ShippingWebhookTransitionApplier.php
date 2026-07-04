@@ -48,14 +48,14 @@ final readonly class ShippingWebhookTransitionApplier
         /** @var array<string, mixed> $existingPayload */
         $existingPayload = (array) $shipment->getAttribute('payload');
 
-        $shipment->update([
+        $shipment->forceFill([
             'status' => $status->value,
             'payload' => array_merge($existingPayload, ['webhook' => $webhookPayload->rawPayload->toArray()]),
             'shipped_at' => in_array($status, [ShipmentStatus::SHIPPED, ShipmentStatus::DELIVERED, ShipmentStatus::RETURNED], true)
                 ? ($shipment->shipped_at ?? now())
                 : $shipment->shipped_at,
             'delivered_at' => $status === ShipmentStatus::DELIVERED ? now() : $shipment->delivered_at,
-        ]);
+        ])->save();
 
         $order = Order::query()
             ->whereKey($shipment->order_id)
@@ -69,10 +69,10 @@ final readonly class ShippingWebhookTransitionApplier
         $currentOrderStatus = OrderStatus::from(TypedValue::string($order->getRawOriginal('status')));
         $newStatus = $this->orderStatusTransitionPolicy->resolveByShipmentStatus($currentOrderStatus, $status);
 
-        $order->update([
+        $order->forceFill([
             'shipment_status' => $status->value,
             'status' => $newStatus->value,
-        ]);
+        ])->save();
 
         if ($newStatus !== $currentOrderStatus) {
             event(new OrderStatusChanged(

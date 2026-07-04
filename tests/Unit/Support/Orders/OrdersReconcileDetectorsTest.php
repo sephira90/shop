@@ -43,12 +43,12 @@ class OrdersReconcileDetectorsTest extends TestCase
 
             // Paid order with a SHIPPED shipment: not reported.
             $shippedOrder = Order::factory()->paid()->create(['placed_at' => $now->copy()->subMinutes(120)]);
-            Shipment::query()->create([
+            Shipment::unguarded(fn (): Shipment => Shipment::query()->create([
                 'order_id' => $shippedOrder->id,
                 'provider' => 'ups',
                 'status' => ShipmentStatus::SHIPPED->value,
                 'cost' => 5.00,
-            ]);
+            ]));
 
             // Pending order without shipment: not reported (payment not captured).
             Order::factory()->create(['placed_at' => $now->copy()->subMinutes(120)]);

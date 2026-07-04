@@ -25,9 +25,6 @@ final class CheckoutOrderWriter
             'order_number' => 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
             'user_id' => $input->user?->id,
             'email' => $input->checkoutInput->email,
-            'status' => OrderStatus::PENDING->value,
-            'payment_status' => PaymentStatus::PENDING->value,
-            'shipment_status' => ShipmentStatus::PENDING->value,
             'currency' => $input->checkoutInput->currency,
             'subtotal' => $subtotal->toFloat(),
             'discount_total' => $input->discountTotal->toFloat(),
@@ -38,6 +35,12 @@ final class CheckoutOrderWriter
             'cart_snapshot' => $input->cartPreparation->toCartSnapshot(),
             'placed_at' => now(),
         ]);
+
+        $order->forceFill([
+            'status' => OrderStatus::PENDING->value,
+            'payment_status' => PaymentStatus::PENDING->value,
+            'shipment_status' => ShipmentStatus::PENDING->value,
+        ])->save();
 
         $timestamp = now()->toDateTimeString();
         $orderItems = $input->cartPreparation->toOrderItemInsertRows(

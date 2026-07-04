@@ -58,7 +58,7 @@ class CheckoutOrderFinalizerTest extends TestCase
                 'status' => CartStatus::ACTIVE->value,
             ]);
 
-            $order = Order::query()->create([
+            $order = Order::unguarded(fn (): Order => Order::query()->create([
                 'order_number' => 'ORD-TEST-000001',
                 'email' => 'guest@example.com',
                 'status' => OrderStatus::PENDING->value,
@@ -73,7 +73,7 @@ class CheckoutOrderFinalizerTest extends TestCase
                 'shipping_address' => ['line1' => '1 Main Street'],
                 'cart_snapshot' => ['items' => []],
                 'placed_at' => $now,
-            ]);
+            ]));
 
             $idempotency = CheckoutIdempotency::query()->create([
                 'scope_key' => 'guest:checkout-finalizer-token',

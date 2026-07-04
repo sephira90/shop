@@ -51,11 +51,11 @@ final readonly class PaymentWebhookTransitionApplier
         /** @var array<string, mixed> $existingPayload */
         $existingPayload = (array) $payment->getAttribute('payload');
 
-        $payment->update([
+        $payment->forceFill([
             'status' => $paymentStatus->value,
             'payload' => array_merge($existingPayload, ['webhook' => $webhookPayload->rawPayload->toArray()]),
             'processed_at' => now(),
-        ]);
+        ])->save();
 
         $order = Order::query()
             ->whereKey($payment->order_id)
@@ -73,10 +73,10 @@ final readonly class PaymentWebhookTransitionApplier
             $this->orderInventoryReleaseService->release($order);
         }
 
-        $order->update([
+        $order->forceFill([
             'payment_status' => $paymentStatus->value,
             'status' => $orderStatus->value,
-        ]);
+        ])->save();
 
         if ($orderStatus !== $previousOrderStatus) {
             event(new OrderStatusChanged(

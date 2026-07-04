@@ -101,12 +101,12 @@ class AppOrdersReconcileCommandTest extends TestCase
                 'placed_at' => $now->copy()->subMinutes(120),
                 'shipment_status' => ShipmentStatus::SHIPPED->value,
             ]);
-            Shipment::query()->create([
+            Shipment::unguarded(fn (): Shipment => Shipment::query()->create([
                 'order_id' => $shipped->id,
                 'provider' => 'ups',
                 'status' => ShipmentStatus::SHIPPED->value,
                 'cost' => 5.00,
-            ]);
+            ]));
 
             $this->artisanCommand('app:orders-reconcile')
                 ->expectsOutputToContain('No order lifecycle stuck-state findings.')

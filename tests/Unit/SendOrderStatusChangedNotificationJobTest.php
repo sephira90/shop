@@ -65,7 +65,7 @@ class SendOrderStatusChangedNotificationJobTest extends TestCase
 
     private function createOrder(string $email): Order
     {
-        return Order::query()->create([
+        return Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-STATUS-NOTIFY-TEST-001',
             'email' => $email,
             'status' => 'processing',
@@ -80,6 +80,6 @@ class SendOrderStatusChangedNotificationJobTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street'],
             'cart_snapshot' => ['items' => []],
             'placed_at' => now(),
-        ]);
+        ]));
     }
 }

@@ -98,12 +98,12 @@ final class AdminOrderService
                 $cancelledAt = now();
             }
 
-            $lockedOrder->update([
+            $lockedOrder->forceFill([
                 'status' => $nextStatus->value,
                 'payment_status' => $nextPaymentStatus->value,
                 'shipment_status' => $nextShipmentStatus->value,
                 'cancelled_at' => $cancelledAt,
-            ]);
+            ])->save();
 
             if ($nextStatus !== $currentStatus) {
                 event(new OrderStatusChanged(

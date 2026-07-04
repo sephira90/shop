@@ -119,7 +119,7 @@ class PerformanceSmokeTest extends TestCase
         Sanctum::actingAs($manager);
 
         foreach (range(1, 25) as $index) {
-            Order::query()->create([
+            Order::unguarded(fn (): Order => Order::query()->create([
                 'order_number' => sprintf('ORD-PERF-%04d', $index),
                 'email' => "perf{$index}@example.com",
                 'status' => 'pending',
@@ -134,7 +134,7 @@ class PerformanceSmokeTest extends TestCase
                 'shipping_address' => ['line1' => 'Smoke Street'],
                 'cart_snapshot' => [],
                 'placed_at' => now(),
-            ]);
+            ]));
         }
 
         $queryCount = $this->measureQueryCount(function (): void {

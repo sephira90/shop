@@ -162,7 +162,7 @@ class ShippingWebhookTransitionApplierTest extends TestCase
         ?Carbon $shippedAt = null,
         ?Carbon $deliveredAt = null,
     ): array {
-        $order = Order::query()->create([
+        $order = Order::unguarded(fn (): Order => Order::query()->create([
             'order_number' => 'ORD-SHIPPING-WEBHOOK-TEST',
             'email' => 'guest@example.com',
             'status' => $orderStatus->value,
@@ -177,9 +177,9 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             'shipping_address' => ['line1' => '1 Main Street'],
             'cart_snapshot' => ['items' => []],
             'placed_at' => now(),
-        ]);
+        ]));
 
-        $shipment = Shipment::query()->create([
+        $shipment = Shipment::unguarded(fn (): Shipment => Shipment::query()->create([
             'order_id' => $order->id,
             'provider' => TypedValue::string(config('shipping.driver', 'fake-shipping')),
             'tracking_number' => 'trk-shipping-webhook-test-'.$shipmentStatus->value,
@@ -188,7 +188,7 @@ class ShippingWebhookTransitionApplierTest extends TestCase
             'payload' => ['provider' => 'fake-shipping'],
             'shipped_at' => $shippedAt,
             'delivered_at' => $deliveredAt,
-        ]);
+        ]));
 
         return [$order, $shipment];
     }

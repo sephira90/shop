@@ -20,7 +20,6 @@ class Payment extends Model
         'transaction_id',
         'amount',
         'currency',
-        'status',
         'payload',
         'processed_at',
     ];
