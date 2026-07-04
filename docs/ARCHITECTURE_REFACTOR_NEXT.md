@@ -111,8 +111,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | **Closed** (`2026-07-04`) |
 | 7 | `R3` Alert delivery outcome observability | P2 | **Closed** (`2026-07-04`) |
 | 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | **Closed** (`2026-07-04`) |
-| 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | Active — next up |
-| 10 | Security intake items `82/83` (data-at-rest minimization, security guardrails) | P2 | Candidate — requires promotion |
+| 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | **Closed** (`2026-07-04`) |
+| 10 | Security intake items `82/83` (data-at-rest minimization, security guardrails) | P2 | Active — next up |
 | 11 | `Q3` Psalm ladder and scope parity | P2 | Defined, waiting |
 | 12 | `Q4` Frontend type/test hardening | P2 | Defined, waiting |
 | 13 | `S1` OpenAPI contract source of truth | P1 | Defined, waiting (requires `R1` closed) |
@@ -123,6 +123,26 @@ Sequencing rationale: `Q1`/`Q2`/`A2` are small guardrail-first blocks placed aft
 Remaining audit v1/v2 backlog not listed here stays candidate-only per the Backlog Intake Rule.
 
 ## Active Block Definitions
+
+### 80/81 (1-2 days) - Mass-Assignment Surface And Transport Security Baseline
+
+Problem: privilege/state fields (`User.is_active`, `Order.status/payment_status/shipment_status`, `Payment.status`, `Shipment.status`) were mass-assignable, allowing a future mapping/controller/service mistake to escalate into privilege/state corruption; and transport security (CORS allowlist, secure-cookie default, proxy-aware HTTPS enforcement) was enforced only by deployment convention, with no versioned source of truth.
+
+Closed (`2026-07-04`):
+
+1. Removed privilege/state fields from `$fillable` on `User`, `Order`, `Payment`, `Shipment`. Legitimate transition paths (`AdminOrderService::updateStatus`, `PaymentWebhookTransitionApplier`, `ShippingWebhookTransitionApplier`, `CheckoutOrderWriter`, `PaymentService`, `ShippingService`) migrated to explicit `forceFill([...])->save()`. Factories continue to work through Laravel's internal `Model::unguarded()`.
+2. Added `config/cors.php` (env-driven allowlist via `CORS_ALLOWED_ORIGINS`, scoped to `api/*`, credentials disabled) and `config/security.php` (`force_https`, `trusted_proxies`, `trusted_hosts` resolved from env).
+3. Added `app/Http/Middleware/ForceHttpsMiddleware.php`: redirects HTTP→HTTPS with status 301 when `APP_ENV != local` and `APP_FORCE_HTTPS=true`; respects `X-Forwarded-Proto: https` to prevent redirect loops behind proxies.
+4. Registered `ForceHttpsMiddleware` globally in `bootstrap/app.php`.
+5. `config/session.php` secure-cookie default changed from bare `env('SESSION_SECURE_COOKIE')` to `env('SESSION_SECURE_COOKIE', env('APP_ENV', 'production') !== 'local')` — defaults secure cookies in non-local without requiring explicit deployment config.
+6. Five env keys documented across `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`: `SESSION_SECURE_COOKIE`, `CORS_ALLOWED_ORIGINS`, `APP_FORCE_HTTPS`, `APP_TRUSTED_PROXIES`, `APP_TRUSTED_HOSTS`.
+
+Tests:
+
+- unit/architecture: `SensitiveStateFillableGuardrailTest` (six privilege/state fields locked out of `$fillable`), `SensitiveFieldsRejectMassAssignmentTest` (`MassAssignmentException` on direct `fill()`), `TransportSecurityBaselineGuardrailTest` (file-based invariants for CORS, security config, session secure default, middleware class, bootstrap registration).
+- feature: `HttpsEnforcementTest` (301 redirect in non-local + force_https; no-op in local; forwarded-proto honored); existing webhook/admin transition suites (`PaymentWebhookTest`, `ShippingWebhookTest`, `PhaseOneHardeningTest`) verify `forceFill+save` migrations preserve behavior.
+
+Convergence impact: the mass-assignment invariant becomes structural, so `Domains/Users` and `Domains/Orders` extraction (`C2`) carries the boundary without revisiting `$fillable` policy. Transport security baseline is versioned, so any future deployment inherits sane CORS/HTTPS/secure-cookie defaults and module extraction does not need to revisit transport policy per module.
 
 ### F3-79 (2-3 days) - Auth Security Audit Trail
 
@@ -482,9 +502,10 @@ Pending, owned by queued blocks:
 2. ~~`R2`: exact decimal/rate promotion boundary; separate validated pending/completed idempotency retention config.~~ — closed `2026-07-04`.
 3. ~~`R3`: typed alert-channel delivery outcomes (`disabled`/`delivered`/`failed`).~~ — closed `2026-07-04`.
 4. ~~`A2`: queued job payloads gain a scalar `correlation_id` key restored into log context.~~ — closed.
-5. `A1`: new `app:orders-reconcile` command with validated `reconciliation.*` config windows and scheduler registration.
-6. `S1`: `docs/api/openapi.yaml` becomes the machine-readable `/api/v1` contract, validated in CI and feature tests.
-7. `C0-C7`: module public-API convention under `app/Domains/*` with cross-module imports restricted to `Contracts` namespaces.
+5. ~~`A1`: new `app:orders-reconcile` command with validated `reconciliation.*` config windows and scheduler registration.~~ — closed `2026-07-04`.
+6. ~~`80/81`: privilege/state fields removed from `$fillable`; `config/cors.php`, `config/security.php`, `ForceHttpsMiddleware`, `session.secure` non-null default; five new env keys documented across environments.~~ — closed `2026-07-04`.
+7. `S1`: `docs/api/openapi.yaml` becomes the machine-readable `/api/v1` contract, validated in CI and feature tests.
+8. `C0-C7`: module public-API convention under `app/Domains/*` with cross-module imports restricted to `Contracts` namespaces.
 
 ## Risk Register
 
@@ -497,6 +518,8 @@ Pending, owned by queued blocks:
 | Module relocation conflicts with parallel feature work | C1-C7 | One module per block; atomic move with tests; no dual namespaces; entry criteria gate the start |
 | Guardrail erosion during moves (allowlist growth) | C0-C7 | `AGENTS.md` shrink-only allowlist rule; module-boundary guardrail lands before first move (C0) |
 | Reconciliation false positives page on-call | A1 | Config-driven detection windows; alerts flow through the existing cooldown router |
+| Mass-assignment regression reintroduces privilege/state into `$fillable` | 80/81 | `SensitiveStateFillableGuardrailTest` + `SensitiveFieldsRejectMassAssignmentTest` lock the contract; allowlist-only-shrinks rule applies |
+| Transport-security drift breaks cookies/CORS/HTTPS in deployment | 80/81 | `TransportSecurityBaselineGuardrailTest` enforces file invariants; env defaults ship secure-cookie `true`, force-https `true` in non-local; local-env exemption prevents dev breakage |
 | `noUncheckedIndexedAccess` churn explodes frontend diff | Q4 | Measure first; enable only with a bounded fix surface, otherwise document blockers |
 | Spec becomes decorative and drifts from runtime | S1 | Spec is CI-executable: schema lint plus response validation in feature tests |
 
@@ -525,11 +548,12 @@ Remaining (each verified by its owning block's DoD):
 16. Exact promotion arithmetic to the JSON boundary; independently configurable idempotency windows — `R2` (closed).
 17. Alert routing distinguishes disabled channels from attempted-delivery failures with aggregate all-failed signal — `R3` (closed).
 18. One correlation id joins HTTP ingress, queued processing, and side-effect logs — `A2` (closed).
-19. Every silent side-effect-loss window has a bounded, alerting detection time; `failed_jobs` is monitored — `A1`.
-20. Psalm level `4` or stricter clean on extended scope — `Q3`.
-21. Frontend hardening flags enabled; per-run coverage signal visible in CI — `Q4`.
-22. Covered `/api/v1` routes are validated against a machine-readable spec in CI — `S1`.
-23. Module-boundary guardrail active and first module slices (Catalog, Users) serving production traffic from `app/Domains/*` — `C0-C2`.
+19. ~~Every silent side-effect-loss window has a bounded, alerting detection time; `failed_jobs` is monitored — `A1`.~~ — closed `2026-07-04`.
+20. ~~Privilege/state fields structurally excluded from mass assignment; transport security baseline versioned (CORS allowlist, secure-cookie default, proxy-aware HTTPS enforcement) — `80/81`.~~ — closed `2026-07-04`.
+21. Psalm level `4` or stricter clean on extended scope — `Q3`.
+22. Frontend hardening flags enabled; per-run coverage signal visible in CI — `Q4`.
+23. Covered `/api/v1` routes are validated against a machine-readable spec in CI — `S1`.
+24. Module-boundary guardrail active and first module slices (Catalog, Users) serving production traffic from `app/Domains/*` — `C0-C2`.
 
 ## Backlog Intake Rule
 
@@ -547,13 +571,13 @@ Remaining (each verified by its owning block's DoD):
 
 1. Architecture guardrails (enforced now):
    - full API V1 controller boundary coverage; no ORM/paginator returns from handlers; no inline `$request->validate()`; repository business-decision and status-interpretation bans; jobs/listeners afterCommit discipline; policy completeness matrix; token lifecycle and credential-hardening contracts; no repository-level audit logging (`F3-79`); strict-mode and immutable-date wiring (`Q1`); supply-chain audit gate (CI audit steps + dependabot + README exception policy) (`Q2`); documentation authority and map governance.
-   - added by queued blocks: correlation payload key on queued jobs (`A2`); dedicated renderer ownership with literal error-code taxonomy (`R1`); reconciliation scheduler wiring (`A1`); module cross-import restriction to `Contracts` (`C0`).
+   - added by queued blocks: correlation payload key on queued jobs (`A2`); dedicated renderer ownership with literal error-code taxonomy (`R1`); reconciliation scheduler wiring (`A1`); module cross-import restriction to `Contracts` (`C0`); sensitive-state fillable exclusion (`SensitiveStateFillableGuardrailTest` + `SensitiveFieldsRejectMassAssignmentTest`) and transport-security baseline invariants (`TransportSecurityBaselineGuardrailTest`) (`80/81`).
 2. Feature tests:
    - webhook parity and idempotency; admin status transition validation; account order contract parity; payload hash mismatch and signature failures; finite/expired token behavior, inactive-user revalidation, current-token logout, password-reset global revoke; weak-password matrix, email+IP lockout, and known/unknown-email envelope parity.
-   - added by queued blocks: audit-record presence per auth flow (`F3-79`); correlation propagation through queued flows (`A2`); `error.code` + legacy `error.type` compatibility matrix, stale-order transport behavior (`R1`); config-driven retention override semantics (`R2`); reconciliation detection matrices (`A1`); spec-validation of covered routes (`S1`).
+   - added by queued blocks: audit-record presence per auth flow (`F3-79`); correlation propagation through queued flows (`A2`); `error.code` + legacy `error.type` compatibility matrix, stale-order transport behavior (`R1`); config-driven retention override semantics (`R2`); reconciliation detection matrices (`A1`); HTTPS enforcement redirect/loop-guard/local-exempt behavior (`80/81`); spec-validation of covered routes (`S1`).
 3. Unit tests:
    - transition policies; checkout/cart collaborators; observability modules; cleanup strategy; summary projection; shared format utility; password-policy composition, limiter-key derivation, and dummy-hash verification.
-   - added by queued blocks: audit context whitelist (`F3-79`); renderer status/code/type matrix and typed stale failures (`R1`); exact-rate rounding and retention config (`R2`); channel outcome and aggregate-failure matrices (`R3`).
+   - added by queued blocks: audit context whitelist (`F3-79`); renderer status/code/type matrix and typed stale failures (`R1`); exact-rate rounding and retention config (`R2`); channel outcome and aggregate-failure matrices (`R3`); mass-assignment rejection on privilege/state fields (`80/81`).
 4. Frontend tests: route-query schema helpers; composable race/cancellation guarantees; API contract assertions; account lazy detail loading; shared category options; catalog/checkout/auth composable coverage.
 5. Smoke: `app:api-contract-smoke` includes shipping webhook contract; `app:webhook-flow-smoke` stays green with idempotent replay.
 
@@ -588,3 +612,4 @@ This file changes only when a block is promoted, closed, or re-scoped; every rev
 | `2026-07-04` | `A2` closed: `CorrelationContext` accessor (singleton bound in `ObservabilityServiceProvider`) resolves the inbound `X-Correlation-Id` or generates a stable UUID in non-HTTP contexts; all five queued jobs (`DispatchShipmentJob`, `SendOrderConfirmationJob`, `SendOrderStatusChangedNotificationJob`, `ProcessPaymentWebhookJob`, `ProcessShippingWebhookJob`) capture a scalar `correlationId` in their payload and restore it into `Log::withContext()` at the start of `handle()`; side-effect listeners and webhook enqueue handlers resolve the correlation id via `CorrelationContext::currentOrNew()`; `WebhookProcessingPipeline` forwards the true ingress correlation into the `webhook.processing_failed` log context (event-id fallback retained only for direct pipeline calls without an inbound correlation); `QueuedJobSafetyGuardrailTest` extended with correlation-payload and `Log::withContext()` assertions; `CorrelationContextTest` (unit) and `WebhookCorrelationPropagationTest` (feature) added; scalar-only payload discipline preserved; `R1` is active next |
 | `2026-07-04` | `R2` closed: `Money::percentage()` accepts an exact-decimal string rate (up to four decimal places) with integer per-million arithmetic and `PHP_ROUND_HALF_UP`; deprecated `percentageFloat()` alias preserves backward compatibility; `CheckoutDiscountResolver::calculateDiscountTotal()` is now statically typed (`PromotionType`, `string`, `Money`) and the `(float) $promotion->value` cast and `PromotionType\|string` union are removed; PERCENT branch defends its own `[0, 100]` boundary with `CheckoutException::promotionTypeInvalid`; both idempotency retention windows are independently configurable through `config/checkout.php` (`checkout.idempotency.pending_minutes` default 30 / max 10080, `checkout.idempotency.completed_hours` default 24 / max 720) with bounded positive-integer resolution matching `AUTH_LOGIN_THROTTLE_*`; the hardcoded `addMinutes(30)` (×2) and `addHours(24)` (×1) sites are replaced by config reads; four environment examples declare both `CHECKOUT_IDEMPOTENCY_*` keys; `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` forbids the float cast, the union signature, and the hardcoded literals, and locks both config keys + documented defaults; `PromotionValueRateTest`, `CheckoutDiscountResolverTest`, and `CheckoutIdempotencyRetentionConfigTest` cover string-rate arithmetic, percent/fixed/capped/defensive discount behavior, and bounded-resolver semantics; `R3` is active next |
 | `2026-07-04` | `R3` closed: alert channel delivery contract moves from `bool` to an explicit `AlertDeliveryOutcome` enum (`disabled`/`delivered`/`failed`); the `ObservabilityAlertChannel::send()` return type, all three concrete channels (email/Slack/PagerDuty), and the in-test channel stub resolve against the enum; `ObservabilityAlertRoutingResultDto` is enriched with `deliveredChannels`/`disabledChannels`/`failedChannels` plus `hasAttemptedDeliveries()` and `everyAttemptedDeliveryFailed()` helpers; the historical `sentChannels` field is removed in favor of `deliveredChannels` and the console command consumer and feature assertion are updated; the router emits the aggregate operational signal `observability.alert_routing_aggregate_failure` (owned by `ObservabilityAlertRoutingLogger::aggregateFailure()`) only when at least one enabled channel attempted delivery and every attempt failed, so disabled channels never trigger false delivery-failure alerts; cooldown activation stays gated on at least one successful delivery; `AlertDeliveryOutcomeContractGuardrailTest` requires the enum return type on the channel contract, forbids `bool` returns in concrete channels, and locks the router outcome-classification + aggregate-failure emission and the enriched DTO shape; `AlertDeliveryOutcomeTest`, `tests/Unit/Support/Observability/Channels/{Email,Slack,PagerDuty}ObservabilityAlertChannelTest`, and the rewritten `ObservabilityAlertRouterTest` cover the disabled/delivered/failed matrix per channel and the all-disabled/all-failed/partial-success/full-success/cooldown matrices on the router; `A1` is active next |
+| `2026-07-04` | `80/81` closed: privilege/state fields removed from `$fillable` on `User` (`is_active`), `Order` (`status`/`payment_status`/`shipment_status`), `Payment` (`status`), `Shipment` (`status`); legitimate transition paths migrated to explicit `forceFill([...])->save()` (`AdminOrderService::updateStatus`, `PaymentWebhookTransitionApplier`, `ShippingWebhookTransitionApplier`, `CheckoutOrderWriter`, `PaymentService`, `ShippingService`); factories continue to work through Laravel's internal `Model::unguarded()`, direct `$user->update(['is_active' => ...])` in auth tests migrated to `forceFill+save`; `config/cors.php` (env-driven allowlist via `CORS_ALLOWED_ORIGINS`, scoped to `api/*`, credentials disabled) and `config/security.php` (`APP_FORCE_HTTPS` default `true`, `APP_TRUSTED_PROXIES` default `*`, `APP_TRUSTED_HOSTS` default null) added; `app/Http/Middleware/ForceHttpsMiddleware.php` redirects HTTP→HTTPS (301) when `APP_ENV != local` and force-https enabled, with `X-Forwarded-Proto` honoring to prevent proxy redirect loops, registered globally in `bootstrap/app.php` after `ApiRequestTelemetryMiddleware`; `config/session.php` secure-cookie default changed from bare `env('SESSION_SECURE_COOKIE')` to `env('SESSION_SECURE_COOKIE', env('APP_ENV', 'production') !== 'local')`; five env keys documented across `.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing` with prod/stage CORS allowlists pre-populated; `SensitiveStateFillableGuardrailTest`, `SensitiveFieldsRejectMassAssignmentTest`, `TransportSecurityBaselineGuardrailTest`, and `HttpsEnforcementTest` enforce the invariants; `82/83` is active next |

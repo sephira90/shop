@@ -7,6 +7,7 @@ use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureActiveApiUser;
 use App\Http\Middleware\EnsureIdempotencyKeyMiddleware;
 use App\Http\Middleware\EnsureRoleMiddleware;
+use App\Http\Middleware\ForceHttpsMiddleware;
 use App\Support\Api\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(CorrelationIdMiddleware::class);
         $middleware->append(ApiRequestTelemetryMiddleware::class);
+        $middleware->append(ForceHttpsMiddleware::class);
 
         $middleware->alias([
             'active.api.user' => EnsureActiveApiUser::class,

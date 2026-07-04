@@ -111,6 +111,13 @@ Checkout idempotency retention:
 - `CHECKOUT_IDEMPOTENCY_PENDING_MINUTES` (default: `30`, max: `10080`) - unresolved idempotency record lifetime before a fresh attempt can replace it.
 - `CHECKOUT_IDEMPOTENCY_COMPLETED_HOURS` (default: `24`, max: `720`) - finalized idempotency record lifetime for replaying the original order.
 
+Transport security baseline:
+- `SESSION_SECURE_COOKIE` (default: `true` when `APP_ENV != local`) - marks the session cookie as HTTPS-only. Defaults secure in non-local without requiring explicit env override.
+- `CORS_ALLOWED_ORIGINS` (default: `*`; production `.env.prod.example` ships a concrete allowlist) - comma-separated list of allowed origins for the `api/*` path scope. Credentials stay disabled.
+- `APP_FORCE_HTTPS` (default: `true`) - enables `ForceHttpsMiddleware` HTTP→HTTPS redirect. Skipped automatically when `APP_ENV=local`.
+- `APP_TRUSTED_PROXIES` (default: `*`) - proxies trusted for `X-Forwarded-Proto` honoring so HTTPS enforcement does not loop behind a TLS-terminating proxy.
+- `APP_TRUSTED_HOSTS` (default: empty) - comma-separated allowlist of trusted host headers.
+
 ## Deployment
 
 Use script:

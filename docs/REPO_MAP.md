@@ -63,11 +63,19 @@ The migration is incremental and must keep public API and DB contracts stable.
 
 - `app/Http/Controllers/*` transport only
 - `app/Http/Requests/*` validation boundary
+- `app/Http/Middleware/*` global + alias middleware (correlation id, API telemetry, Force HTTPS, idempotency key, role, active API user)
 - `app/Application/*` command/query handlers + DTO boundaries
 - `app/Services/*` domain/business orchestration
 - `app/Repositories/*` persistence/query boundaries
-- `app/Models/*` ORM entities
+- `app/Models/*` ORM entities (privilege/state fields excluded from `$fillable`; transitions use `forceFill([...])->save()`)
 - `app/Jobs/*`, `app/Events/*`, `app/Listeners/*` async and side effects
+
+## Transport security baseline
+
+- `config/cors.php` — env-driven allowlist (`CORS_ALLOWED_ORIGINS`), scoped to `api/*`, credentials disabled.
+- `config/security.php` — `force_https` (env `APP_FORCE_HTTPS`, default `true`), `trusted_proxies`, `trusted_hosts`.
+- `app/Http/Middleware/ForceHttpsMiddleware.php` — redirect-to-HTTPS in non-local env when force-https enabled; honors `X-Forwarded-Proto: https` to prevent proxy redirect loops; registered globally in `bootstrap/app.php`.
+- `config/session.php` — secure-cookie default `env('SESSION_SECURE_COOKIE', env('APP_ENV', 'production') !== 'local')` (defaults secure in non-local without explicit env override).
 
 ## API
 
