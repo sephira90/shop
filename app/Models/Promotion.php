@@ -8,6 +8,11 @@ use App\Enums\PromotionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property PromotionType $type
+ * @property numeric-string $value Exact decimal promotion value as returned by the Eloquent decimal:2 cast.
+ * @property bool $is_active
+ */
 class Promotion extends Model
 {
     /**

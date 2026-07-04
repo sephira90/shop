@@ -19,6 +19,7 @@ final class CheckoutIdempotencyGuard
         string $idempotencyKey,
         string $requestHash,
     ): CheckoutIdempotencyResolutionDto {
+        $pendingMinutes = TypedValue::int(config('checkout.idempotency.pending_minutes'));
         $idempotency = CheckoutIdempotency::query()
             ->where('scope_key', $scopeKey)
             ->where('idempotency_key', $idempotencyKey)
@@ -32,7 +33,7 @@ final class CheckoutIdempotencyGuard
                     'idempotency_key' => $idempotencyKey,
                     'cart_id' => $lockedCart->id,
                     'request_hash' => $requestHash,
-                    'expires_at' => now()->addMinutes(30),
+                    'expires_at' => now()->addMinutes($pendingMinutes),
                 ]),
                 existingOrder: null,
             );
@@ -45,7 +46,7 @@ final class CheckoutIdempotencyGuard
                 'cart_id' => $lockedCart->id,
                 'order_id' => null,
                 'request_hash' => $requestHash,
-                'expires_at' => now()->addMinutes(30),
+                'expires_at' => now()->addMinutes($pendingMinutes),
             ]);
 
             return new CheckoutIdempotencyResolutionDto(

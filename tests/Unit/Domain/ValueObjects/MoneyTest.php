@@ -44,7 +44,7 @@ class MoneyTest extends TestCase
     public function test_percentage_uses_half_up_rounding(): void
     {
         $subtotal = Money::fromDecimal(99.99, 'USD');
-        $tenPercent = $subtotal->percentage(10);
+        $tenPercent = $subtotal->percentage('10');
 
         $this->assertSame(1000, $tenPercent->amountCents());
         $this->assertSame(10.0, $tenPercent->toFloat());

@@ -72,7 +72,7 @@ final class ApiExceptionRendererTest extends TestCase
     #[Test]
     public function authorization_exception_maps_to_403_forbidden(): void
     {
-        $response = $this->renderForApi(new AuthorizationException());
+        $response = $this->renderForApi(new AuthorizationException);
         $payload = $this->decodedErrorEnvelope($response);
 
         $this->assertSame(403, $response->status());
@@ -184,7 +184,7 @@ final class ApiExceptionRendererTest extends TestCase
         $request->headers->set('X-Correlation-Id', 'r1-renderer-parity-cid');
         $this->app->instance('request', $request);
 
-        $payload = $this->decodedErrorEnvelope($this->renderForApi(new AuthenticationException(), $request));
+        $payload = $this->decodedErrorEnvelope($this->renderForApi(new AuthenticationException, $request));
 
         $this->assertSame('r1-renderer-parity-cid', $payload['request_id']);
     }

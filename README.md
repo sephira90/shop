@@ -107,6 +107,10 @@ Auth configuration:
 - `AUTH_LOGIN_THROTTLE_MAX_ATTEMPTS` (default: `6`)
 - `AUTH_LOGIN_THROTTLE_DECAY_SECONDS` (default: `60`)
 
+Checkout idempotency retention:
+- `CHECKOUT_IDEMPOTENCY_PENDING_MINUTES` (default: `30`, max: `10080`) - unresolved idempotency record lifetime before a fresh attempt can replace it.
+- `CHECKOUT_IDEMPOTENCY_COMPLETED_HOURS` (default: `24`, max: `720`) - finalized idempotency record lifetime for replaying the original order.
+
 ## Deployment
 
 Use script:

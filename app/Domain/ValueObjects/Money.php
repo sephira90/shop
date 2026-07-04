@@ -91,22 +91,48 @@ final readonly class Money
         return $this->amountCents <= $other->amountCents ? $this : $other;
     }
 
-    public function percentage(float $rate): self
+    public function percentage(string $rate): self
     {
-        if (! is_finite($rate)) {
-            throw new DomainException('Money percentage rate is invalid.');
+        if (preg_match('/^\d+(?:\.\d{1,4})?$/', $rate) !== 1) {
+            throw new DomainException('Money percentage rate format is invalid.');
         }
 
-        $amountCents = (int) round(
-            num: $this->amountCents * ($rate / 100),
-            precision: 0,
-            mode: PHP_ROUND_HALF_UP,
-        );
+        $ratePerMillion = $this->rateToPerMillion($rate);
+        // Integer half-up rounding of amount_cents * rate / 100, where the
+        // rate is expressed as per-million (rate * 10000) to preserve up to
+        // four decimal places without an intermediate float.
+        $scaledAmount = $this->amountCents * $ratePerMillion;
+        $amountCents = intdiv($scaledAmount + 500000, 1000000);
 
         return new self(
             amountCents: $amountCents,
             currency: $this->currency,
         );
+    }
+
+    /**
+     * Legacy float-rate alias retained for backward compatibility with callers
+     * that do not have an exact decimal source. New code must pass an exact
+     * decimal string to {@see percentage()} to avoid float-precision loss.
+     */
+    public function percentageFloat(float $rate): self
+    {
+        return $this->percentage(sprintf('%.4F', $rate));
+    }
+
+    /**
+     * Convert a validated rate string into per-million units (rate * 10000).
+     *
+     * Accepts up to four decimal places (e.g. `12.995` -> 129950) so the
+     * caller can keep the full precision without an intermediate float.
+     */
+    private function rateToPerMillion(string $rate): int
+    {
+        $parts = explode('.', $rate);
+        $whole = (int) $parts[0];
+        $fraction = $parts[1] ?? '';
+
+        return $whole * 10000 + (int) substr(str_pad($fraction, 4, '0'), 0, 4);
     }
 
     public function toFloat(): float

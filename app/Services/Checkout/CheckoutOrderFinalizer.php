@@ -9,6 +9,7 @@ use App\Enums\CartStatus;
 use App\Events\OrderPlaced;
 use App\Models\Order;
 use App\Services\Checkout\Dto\CheckoutOrderFinalizationInputDto;
+use App\Support\Data\TypedValue;
 
 final class CheckoutOrderFinalizer
 {
@@ -28,7 +29,7 @@ final class CheckoutOrderFinalizer
             'cart_id' => $input->lockedCart->id,
             'request_hash' => $input->requestHash,
             'order_id' => $input->order->id,
-            'expires_at' => now()->addHours(24),
+            'expires_at' => now()->addHours(TypedValue::int(config('checkout.idempotency.completed_hours'))),
         ]);
 
         event(new OrderPlaced($input->order));

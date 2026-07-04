@@ -73,7 +73,7 @@ final class CheckoutDiscountResolver
         }
 
         return new CheckoutDiscountContextDto(
-            discountTotal: $this->calculateDiscountTotal($promotion->type, (float) $promotion->value, $subtotal),
+            discountTotal: $this->calculateDiscountTotal($promotion->type, $promotion->value, $subtotal),
             coupon: $coupon,
             promotion: $promotion,
         );
@@ -81,24 +81,36 @@ final class CheckoutDiscountResolver
 
     /**
      * Calculate discount amount by promotion type.
+     *
+     * The promotion value crosses the domain boundary as an exact decimal
+     * string (Eloquent `decimal:2` cast) and never as float, so percentage
+     * rates and fixed amounts keep full precision through Money arithmetic.
      */
-    private function calculateDiscountTotal(PromotionType|string $type, float $promotionValue, Money $subtotal): Money
+    private function calculateDiscountTotal(PromotionType $type, string $promotionValue, Money $subtotal): Money
     {
-        try {
-            $promotionType = $type instanceof PromotionType ? $type : PromotionType::from($type);
-        } catch (\ValueError $exception) {
-            throw CheckoutException::promotionTypeInvalid($exception);
-        }
-
-        $discount = match ($promotionType) {
-            PromotionType::PERCENT => $subtotal->percentage($promotionValue)->min($subtotal),
-            PromotionType::FIXED => Money::fromDecimal($promotionValue, $subtotal->currency())->min($subtotal),
+        $discount = match ($type) {
+            PromotionType::PERCENT => $this->resolvePercentDiscount($promotionValue, $subtotal),
+            PromotionType::FIXED => Money::fromDecimal($promotionValue, $subtotal->currency()),
         };
 
-        if ($discount->amountCents() <= 0) {
-            return Money::zero($subtotal->currency());
+        return $discount->min($subtotal);
+    }
+
+    /**
+     * Resolve percent discount with domain-level rate validation.
+     *
+     * The HTTP layer already rejects values above 100, but a domain call
+     * without that guard would produce a discount larger than the subtotal;
+     * defend the boundary explicitly and surface a typed failure instead.
+     */
+    private function resolvePercentDiscount(string $rate, Money $subtotal): Money
+    {
+        if (! is_numeric($rate) || (float) $rate < 0 || (float) $rate > 100) {
+            throw CheckoutException::promotionTypeInvalid(
+                new \DomainException(sprintf('Percent value must be between 0 and 100, got "%s".', $rate)),
+            );
         }
 
-        return $discount;
+        return $subtotal->percentage($rate);
     }
 }

@@ -1,7 +1,7 @@
 # Architecture Refactor Next (Architecture-First)
 
 Program start: `2026-03-05`
-Last revised: `2026-07-04` (A2 closure)
+Last revised: `2026-07-04` (R2 closure)
 Last review intake: `2026-06-27`
 Status: `Active`
 Priority mode: `Architecture-first`
@@ -21,8 +21,8 @@ Current position:
 
 - Waves `0-24` are complete (transport purity, webhook hardening, DTO discipline, service decomposition, application/frontend boundary hardening, observability/smoke/operations modularization, governance and release guardrails, PHPStan level 10 with no baseline).
 - All promoted audit blocks through safety-concurrency block `55` are closed; `Backlog F3` items `77` (token lifecycle), `78` (credential hardening), and `79` (auth security audit trail), plus breaking-change `A1` (auth anti-enumeration contract), are closed.
-- Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), and `A2` (correlation propagation across the queue boundary) are closed.
-- The active block is `R1` (API error contract and stale-aggregate taxonomy); the full order is fixed in the Execution Queue below.
+- Verified-intake blocks `Q1` (strict Eloquent runtime guardrails + immutable dates), `Q2` (supply-chain audit gate), `A2` (correlation propagation across the queue boundary), and `R2` (exact promotion arithmetic and idempotency retention) are closed; `R1` (API error contract and stale-aggregate taxonomy) is closed.
+- The active block is `R3` (alert delivery outcome observability); the full order is fixed in the Execution Queue below.
 - A verified code-review intake (`2026-07-03`) promoted seven quality/reliability blocks: strict runtime guardrails (`Q1`), supply-chain audit gate (`Q2`), queue correlation propagation (`A2`), order-lifecycle reconciliation (`A1`), Psalm ladder (`Q3`), frontend hardening (`Q4`), and an OpenAPI contract source (`S1`).
 - The end-state direction is physical convergence to `app/Domains/*`, defined by Convergence Waves `C0-C7` (pending promotion, after `S1`).
 
@@ -108,8 +108,8 @@ Locked order. A block starts only when the previous one is closed in the executi
 | 3 | `Q2` Supply-chain audit gate (CI + dependabot) | P1 | **Closed** |
 | 4 | `A2` Correlation propagation across the queue boundary | P1 | **Closed** |
 | 5 | `R1` API error contract and stale-aggregate taxonomy | P1 | **Closed** (`2026-07-04`) |
-| 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | Active — next up |
-| 7 | `R3` Alert delivery outcome observability | P2 | Defined, waiting (eligible any time after R1) |
+| 6 | `R2` Exact promotion arithmetic and idempotency retention (with Backlog G items `4/5`, I2 item `59`) | P1/P2 | **Closed** (`2026-07-04`) |
+| 7 | `R3` Alert delivery outcome observability | P2 | Active — next up |
 | 8 | `A1` Order lifecycle reconciliation and stuck-state detection | P1 | Defined, waiting |
 | 9 | Security intake items `80/81` (mass-assignment surface, transport security baseline) | P1 | Candidate — requires promotion |
 | 10 | Security intake items `82/83` (data-at-rest minimization, security guardrails) | P2 | Candidate — requires promotion |
@@ -274,7 +274,19 @@ DoD:
 - payment and shipping stale-order failures are typed and tested at their actual HTTP/orchestration/queue call sites;
 - no PHP class name is introduced as a new machine-readable contract.
 
-### Review Refinement R2 (active) (3-5 days) - Exact Promotion Arithmetic And Idempotency Retention
+### Review Refinement R2 (closed) (`2026-07-04`) - Exact Promotion Arithmetic And Idempotency Retention
+
+**Status: closed on `2026-07-04`.** Delivered:
+
+- `Money::percentage()` accepts an exact-decimal string rate (up to four decimal places) and computes the discount through integer per-million arithmetic with `PHP_ROUND_HALF_UP`, removing the float-rate entry point from the domain boundary. A deprecated `percentageFloat()` alias preserves backward compatibility for callers without an exact source.
+- `CheckoutDiscountResolver::calculateDiscountTotal()` is now statically typed (`PromotionType $type, string $promotionValue, Money $subtotal`); the `(float) $promotion->value` cast and the `PromotionType|string` union are removed. The promotion value flows from the Eloquent `decimal:2` cast as an exact string and never crosses a float boundary.
+- PERCENT branch defends its own boundary: rates outside `[0, 100]` throw `CheckoutException::promotionTypeInvalid` so a domain call without the HTTP validator cannot produce a discount larger than the subtotal.
+- Both idempotency retention windows are now independently configurable through `config/checkout.php` (`checkout.idempotency.pending_minutes`, `checkout.idempotency.completed_hours`) with bounded positive-integer resolution (pending 1..10080 minutes default 30; completed 1..720 hours default 24), matching the `AUTH_LOGIN_THROTTLE_*` pattern. The hardcoded `addMinutes(30)` (×2) and `addHours(24)` (×1) sites are replaced by config reads.
+- All four environment examples (`.env.example`, `.env.stage.example`, `.env.prod.example`, `.env.testing`) declare `CHECKOUT_IDEMPOTENCY_PENDING_MINUTES=30` and `CHECKOUT_IDEMPOTENCY_COMPLETED_HOURS=24`.
+- Extended guardrails: `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` forbids the float cast, the union signature, the hardcoded retention literals, and locks both config keys + documented defaults.
+- Tests added: `tests/Unit/Domain/ValueObjects/PromotionValueRateTest.php` (string-rate arithmetic, cent-edge half-up, format validation), `tests/Unit/Checkout/CheckoutDiscountResolverTest.php` (percent/fixed/capped/defensive), `tests/Unit/Checkout/CheckoutIdempotencyRetentionConfigTest.php` (defaults, overrides, bounded-resolver isolated-process validation).
+
+Original scope, kept for history:
 
 Priority: `P1/P2`. Execution ownership: existing Backlog G items `4/5`, Backlog I2 item `59`, and config-externalization scope.
 
@@ -453,10 +465,10 @@ Completed (see registry and execution log): typed webhook payload boundaries; `*
 
 Pending, owned by queued blocks:
 
-1. `R1`: additive stable `error.code` through a dedicated renderer; Orders-owned stale-aggregate failure with context-specific handling; `error.type` preserved until an approved deprecation migration.
-2. `R2`: exact decimal/rate promotion boundary; separate validated pending/completed idempotency retention config.
+1. ~~`R1`: additive stable `error.code` through a dedicated renderer; Orders-owned stale-aggregate failure with context-specific handling; `error.type` preserved until an approved deprecation migration.~~ — closed `2026-07-04`.
+2. ~~`R2`: exact decimal/rate promotion boundary; separate validated pending/completed idempotency retention config.~~ — closed `2026-07-04`.
 3. `R3`: typed alert-channel delivery outcomes (`disabled`/`delivered`/`failed`).
-4. `A2`: queued job payloads gain a scalar `correlation_id` key restored into log context.
+4. ~~`A2`: queued job payloads gain a scalar `correlation_id` key restored into log context.~~ — closed.
 5. `A1`: new `app:orders-reconcile` command with validated `reconciliation.*` config windows and scheduler registration.
 6. `S1`: `docs/api/openapi.yaml` becomes the machine-readable `/api/v1` contract, validated in CI and feature tests.
 7. `C0-C7`: module public-API convention under `app/Domains/*` with cross-module imports restricted to `Contracts` namespaces.
@@ -467,8 +479,8 @@ Pending, owned by queued blocks:
 | --- | --- | --- |
 | Audit trail leaks PII/secrets into logs | F3-79 | Context-key whitelist with a dedicated leak test; email hashed on failure paths |
 | New `error.code` taxonomy churns into a second unstable contract | R1 | Codes are literal constants from one taxonomy; additive-only; feature matrix locks values |
-| Exact-decimal migration changes computed totals | R2 | Half-up rounding fixed by tests on cent edges; JSON output asserted byte-compatible for existing fixtures |
-| Idempotency window misconfiguration breaks replay semantics | R2 | Bounded positive-int validation; override tests prove replay/mismatch behavior per window |
+| Exact-decimal migration changes computed totals | R2 | Half-up rounding fixed by tests on cent edges; existing fixtures asserted byte-compatible (closed `2026-07-04`) |
+| Idempotency window misconfiguration breaks replay semantics | R2 | Bounded positive-int validation; override tests prove replay/mismatch behavior per window (closed `2026-07-04`) |
 | Module relocation conflicts with parallel feature work | C1-C7 | One module per block; atomic move with tests; no dual namespaces; entry criteria gate the start |
 | Guardrail erosion during moves (allowlist growth) | C0-C7 | `AGENTS.md` shrink-only allowlist rule; module-boundary guardrail lands before first move (C0) |
 | Reconciliation false positives page on-call | A1 | Config-driven detection windows; alerts flow through the existing cooldown router |
@@ -497,7 +509,7 @@ Achieved (mechanically verified):
 Remaining (each verified by its owning block's DoD):
 
 15. Stable additive `error.code` through a dedicated renderer; typed stale-aggregate failures across HTTP/orchestration/queue call sites — `R1`.
-16. Exact promotion arithmetic to the JSON boundary; independently configurable idempotency windows — `R2`.
+16. Exact promotion arithmetic to the JSON boundary; independently configurable idempotency windows — `R2` (closed).
 17. Alert routing distinguishes disabled channels from attempted-delivery failures with aggregate all-failed signal — `R3`.
 18. One correlation id joins HTTP ingress, queued processing, and side-effect logs — `A2` (closed).
 19. Every silent side-effect-loss window has a bounded, alerting detection time; `failed_jobs` is monitored — `A1`.
@@ -561,3 +573,4 @@ This file changes only when a block is promoted, closed, or re-scoped; every rev
 | `2026-07-03` | `Q1` closed: `Model::shouldBeStrict(! production)` wired in `AppServiceProvider::boot()`; strict-mode mass-assignment violations fixed at source (no allowlist) across webhook receipt update and smoke user factories; `Date::use(CarbonImmutable::class)` and all 16 model date casts migrated to `immutable_datetime`; `StrictEloquentAndImmutableDatesGuardrailTest` enforces wiring and forbids mutable casts; `Q2` is active next |
 | `2026-07-04` | `Q2` closed: blocking `composer audit` and `npm audit --omit=dev --audit-level=high` steps added to the CI quality gate; `.github/dependabot.yml` schedules weekly update PRs for composer/npm/github-actions; README documents the audit gate and the dated advisory exception policy (no audit allowlist); `SupplyChainAuditGateGuardrailTest` enforces the contract; `A2` is active next |
 | `2026-07-04` | `A2` closed: `CorrelationContext` accessor (singleton bound in `ObservabilityServiceProvider`) resolves the inbound `X-Correlation-Id` or generates a stable UUID in non-HTTP contexts; all five queued jobs (`DispatchShipmentJob`, `SendOrderConfirmationJob`, `SendOrderStatusChangedNotificationJob`, `ProcessPaymentWebhookJob`, `ProcessShippingWebhookJob`) capture a scalar `correlationId` in their payload and restore it into `Log::withContext()` at the start of `handle()`; side-effect listeners and webhook enqueue handlers resolve the correlation id via `CorrelationContext::currentOrNew()`; `WebhookProcessingPipeline` forwards the true ingress correlation into the `webhook.processing_failed` log context (event-id fallback retained only for direct pipeline calls without an inbound correlation); `QueuedJobSafetyGuardrailTest` extended with correlation-payload and `Log::withContext()` assertions; `CorrelationContextTest` (unit) and `WebhookCorrelationPropagationTest` (feature) added; scalar-only payload discipline preserved; `R1` is active next |
+| `2026-07-04` | `R2` closed: `Money::percentage()` accepts an exact-decimal string rate (up to four decimal places) with integer per-million arithmetic and `PHP_ROUND_HALF_UP`; deprecated `percentageFloat()` alias preserves backward compatibility; `CheckoutDiscountResolver::calculateDiscountTotal()` is now statically typed (`PromotionType`, `string`, `Money`) and the `(float) $promotion->value` cast and `PromotionType\|string` union are removed; PERCENT branch defends its own `[0, 100]` boundary with `CheckoutException::promotionTypeInvalid`; both idempotency retention windows are independently configurable through `config/checkout.php` (`checkout.idempotency.pending_minutes` default 30 / max 10080, `checkout.idempotency.completed_hours` default 24 / max 720) with bounded positive-integer resolution matching `AUTH_LOGIN_THROTTLE_*`; the hardcoded `addMinutes(30)` (×2) and `addHours(24)` (×1) sites are replaced by config reads; four environment examples declare both `CHECKOUT_IDEMPOTENCY_*` keys; `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` forbids the float cast, the union signature, and the hardcoded literals, and locks both config keys + documented defaults; `PromotionValueRateTest`, `CheckoutDiscountResolverTest`, and `CheckoutIdempotencyRetentionConfigTest` cover string-rate arithmetic, percent/fixed/capped/defensive discount behavior, and bounded-resolver semantics; `R3` is active next |

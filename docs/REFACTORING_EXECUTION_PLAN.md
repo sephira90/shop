@@ -6523,3 +6523,48 @@ Implemented:
     - `npm run lint`, `npm run lint:ox`, `npm run format:ox:check`, `npm run type-check`, `npm run test`, `npm run build`;
     - route/controller smoke after the controller changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/promotions`.
 
+### `2026-07-04` - `R2` Exact promotion arithmetic and idempotency retention
+
+Block scope: replace float-conversion in promotion discount calculation with exact-decimal string-rate arithmetic, type the promotion cast boundary statically, and externalize the two hardcoded idempotency retention windows into independently configurable bounded config keys.
+
+Verified baseline (`2026-07-04`):
+  - `CheckoutDiscountResolver::calculateDiscountTotal()` declared `PromotionType|string $type, float $promotionValue`, and the public `$promotion->value` (Eloquent `decimal:2` cast, already an exact string) was cast back to `float` before domain arithmetic (`(float) $promotion->value`).
+  - `Money::percentage(float $rate)` accepted a float rate, so fractional percentages accumulated float-precision drift before the final rounding step.
+  - `CheckoutIdempotencyGuard` hardcoded `now()->addMinutes(30)` at two sites (new record creation and expired-reset path); `CheckoutOrderFinalizer` hardcoded `now()->addHours(24)` at the completion site. Both literals represented distinct retention concepts (pending reservation window vs completed replay window) but were not independently tunable.
+  - No `config/checkout.php` existed; no env keys existed for idempotency retention.
+
+Implemented:
+  - exact-decimal promotion arithmetic:
+    - `App\Domain\ValueObjects\Money::percentage()` now accepts a decimal-string rate (up to four decimal places, validated via `preg_match('/^\d+(?:\.\d{1,4})?$/')`) and computes the discount through integer per-million arithmetic (`amount_cents * rate_per_million / 1_000_000`) with `PHP_ROUND_HALF_UP`, eliminating the float-rate entry point from the domain boundary;
+    - a deprecated `App\Domain\ValueObjects\Money::percentageFloat(float $rate): self` alias preserves backward compatibility for callers without an exact decimal source, converting via `sprintf('%.4F', $rate)` and delegating to the string-rate method.
+  - statically typed promotion cast boundary:
+    - `App\Services\Checkout\CheckoutDiscountResolver::calculateDiscountTotal()` signature narrowed to `PromotionType $type, string $promotionValue, Money $subtotal`; the `PromotionType|string` union and the `float $promotionValue` parameter are removed;
+    - the resolver now passes `$promotion->value` (the exact decimal string returned by the Eloquent `decimal:2` cast) directly into the discount calculation without any `(float)` cast;
+    - the PERCENT branch defends its own boundary: a rate outside `[0, 100]` throws `CheckoutException::promotionTypeInvalid` so a domain call that bypasses the HTTP `PromotionStoreRequest` validator cannot produce a discount larger than the subtotal.
+  - configurable idempotency retention windows:
+    - new `config/checkout.php` declares a `resolvePositiveInt()` closure matching the `AUTH_LOGIN_THROTTLE_*` pattern from `config/auth.php` and resolves two keys through bounded positive-integer `FILTER_VALIDATE_INT` validation: `checkout.idempotency.pending_minutes` (env `CHECKOUT_IDEMPOTENCY_PENDING_MINUTES`, default `30`, maximum `10080` = 7 days) and `checkout.idempotency.completed_hours` (env `CHECKOUT_IDEMPOTENCY_COMPLETED_HOURS`, default `24`, maximum `720` = 30 days); a misconfiguration throws `InvalidArgumentException` at config resolution time;
+    - `App\Services\Checkout\CheckoutIdempotencyGuard::resolve()` reads the pending window once at the top of the method and uses it for both the new-record and expired-reset `expires_at` calculations, replacing the two hardcoded `addMinutes(30)` sites;
+    - `App\Services\Checkout\CheckoutOrderFinalizer::finalize()` reads `now()->addHours((int) config('checkout.idempotency.completed_hours'))`, replacing the hardcoded `addHours(24)` site.
+  - environment examples synchronized:
+    - `.env.example`, `.env.stage.example`, `.env.prod.example`, and `.env.testing` each declare `CHECKOUT_IDEMPOTENCY_PENDING_MINUTES=30` and `CHECKOUT_IDEMPOTENCY_COMPLETED_HOURS=24`.
+  - guardrail extended:
+    - `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` (new) asserts six invariants: the resolver source contains no `(float) $promotion->value` cast, no `PromotionType|string $type` union, no `float $promotionValue` parameter, and contains the statically typed `calculateDiscountTotal(PromotionType $type, string $promotionValue` signature plus a `->percentage($` call; the idempotency guard and finalizer sources contain no `addMinutes(30)` / `addHours(24)` literals and read from the documented config keys; `config/checkout.php` declares both env keys, both documented defaults (`30` and `24`), both upper bounds (`10080` and `720`), the `FILTER_VALIDATE_INT` resolver, and a `throw new InvalidArgumentException` failure path; the resolved config values match the documented defaults.
+  - architecture/docs synchronized:
+    - `docs/ARCHITECTURE.md` records the exact-decimal promotion boundary and the split idempotency-retention contract in the reliability section.
+    - `README.md` documents both `CHECKOUT_IDEMPOTENCY_*` keys in the configuration block.
+    - `docs/ARCHITECTURE_REFACTOR_NEXT.md` marks `R2` closed, advances `R3` to active, removes `R2` risks from the register (marking them closed), moves `R2` exit target `16` into achieved status, strikes through `R2` from pending interface/contract changes, and appends a change-control entry.
+
+Deterministic coverage:
+  - `tests/Unit/Domain/ValueObjects/PromotionValueRateTest` (new): string-rate arithmetic for fractional rates (`12.5`, `12.995`, `0.01`), cent-edge half-up rounding (`99.99 * 10% -> 10.00`, `0.05 * 10% -> 0.01`, `1.00 * 0.01% -> 0.00`), full-rate (`100`) and zero-rate (`0`) handling, legacy `percentageFloat()` alias preservation, and rejection of invalid formats (`-5`, `abc`, `''`, `12.12345`) with `DomainException('Money percentage rate format is invalid.')`.
+  - `tests/Unit/Domain/ValueObjects/MoneyTest::test_percentage_uses_half_up_rounding` updated to use the string-rate signature (`'10'`); all other existing Money assertions preserved.
+  - `tests/Unit/Checkout/CheckoutDiscountResolverTest` (new): percent promotion (SAVE10 on 99.99 -> 10.00 discount), fixed promotion (5.50 on 42.25 -> 5.50 discount), fixed cap at subtotal (100.00 on 20.00 -> 20.00 discount), percent-rate rejection above 100 (defensive `promotionTypeInvalid`), zero discount when no coupon code provided.
+  - `tests/Unit/Checkout/CheckoutIdempotencyRetentionConfigTest` (new): both documented defaults resolve through `config()`; in-memory overrides take effect; `config/checkout.php` declares the bounded resolver, both env keys, both defaults, both upper bounds, and the `InvalidArgumentException` failure path; the resolver itself is exercised in an isolated PHP process to validate rejection of `0`, `10081`, and a non-numeric value, plus acceptance of the documented default when env is unset.
+  - `tests/Unit/Architecture/CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` (new): six file-content + config-value invariants (see guardrail section above).
+  - existing `tests/Unit/CheckoutOrderFinalizerTest` and `tests/Feature/CouponCheckoutTest` remain green, confirming backward-compatible discount totals and retention behavior under the documented defaults.
+
+Verification (executed strictly sequentially, one command at a time):
+  - targeted regressions: `php artisan test --filter="MoneyTest|PromotionValueRateTest|CheckoutDiscountResolverTest|CheckoutIdempotencyRetentionConfigTest|CheckoutIdempotencyAndPromotionArithmeticGuardrailTest|CheckoutOrderFinalizerTest|CouponCheckoutTest"` — 24 passed (96 assertions);
+  - full backend suite: `php artisan test` — 465 passed (3694 assertions);
+  - full mandatory quality gate executed sequentially (see block above for the canonical command list);
+  - route/cache verification after config/controller changes: `php artisan optimize:clear` and `php artisan route:list --path=api/v1/admin/promotions`.
+
