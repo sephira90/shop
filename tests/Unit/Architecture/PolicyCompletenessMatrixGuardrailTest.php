@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
+use App\Domains\Cart\Policies\CartPolicy;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Promotion;
-use App\Policies\CartPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\CouponPolicy;
 use App\Policies\OrderPolicy;

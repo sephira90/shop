@@ -52,7 +52,7 @@ class ApplicationCheckoutCommandBoundaryTest extends TestCase
      */
     private function discoverCheckoutCommandHandlerClasses(): array
     {
-        $handlersDirectory = app_path('Application/Checkout/Commands');
+        $handlersDirectory = app_path('Domains/Checkout/Application/Commands');
         $handlerClasses = [];
 
         /** @var SplFileInfo $file */
@@ -67,7 +67,7 @@ class ApplicationCheckoutCommandBoundaryTest extends TestCase
                 $file->getPathname()
             );
 
-            $handlerClass = 'App\\Application\\Checkout\\Commands\\'.$relativePath;
+            $handlerClass = 'App\\Domains\\Checkout\\Application\\Commands\\'.$relativePath;
             if (! class_exists($handlerClass)) {
                 $this->fail("Checkout command handler class {$handlerClass} could not be autoloaded.");
             }

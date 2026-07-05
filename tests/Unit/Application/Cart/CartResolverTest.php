@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Tests\Unit\Application\Cart;
 
 use App\Domain\Exceptions\CartException;
+use App\Domains\Cart\Services\CartResolver;
 use App\Models\User;
-use App\Services\Cart\CartResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

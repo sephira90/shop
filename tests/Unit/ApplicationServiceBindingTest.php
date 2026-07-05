@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Contracts\CartMutationServiceInterface;
-use App\Contracts\CartServiceInterface;
-use App\Contracts\CheckoutServiceInterface;
-use App\Services\Cart\CartMutationService;
-use App\Services\Cart\CartService;
-use App\Services\Checkout\CheckoutService;
+use App\Domains\Cart\Contracts\CartMutationServiceInterface;
+use App\Domains\Cart\Contracts\CartServiceInterface;
+use App\Domains\Cart\Services\CartMutationService;
+use App\Domains\Cart\Services\CartService;
+use App\Domains\Checkout\Contracts\CheckoutServiceInterface;
+use App\Domains\Checkout\Services\CheckoutService;
 use Tests\TestCase;
 
 final class ApplicationServiceBindingTest extends TestCase

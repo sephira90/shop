@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Users;
 
-use App\Contracts\CartServiceInterface;
+use App\Domains\Cart\Contracts\CartServiceInterface;
 use App\Domains\Users\Application\AuthApplicationException;
 use App\Domains\Users\Application\Commands\LoginAuthUserCommand;
 use App\Domains\Users\Application\Commands\LoginAuthUserHandler;

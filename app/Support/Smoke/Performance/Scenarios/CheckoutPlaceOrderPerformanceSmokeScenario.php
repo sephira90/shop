@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\Performance\Scenarios;
 
-use App\Contracts\CartServiceInterface;
-use App\Contracts\CheckoutServiceInterface;
+use App\Domains\Cart\Contracts\CartServiceInterface;
+use App\Domains\Checkout\Contracts\CheckoutServiceInterface;
 use App\Support\Smoke\Performance\Contracts\PerformanceSmokeScenario;
 use App\Support\Smoke\Performance\Dto\PerformanceSmokeContextDto;
 use Illuminate\Support\Str;

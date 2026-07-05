@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Cart;
+namespace App\Domains\Cart\Services;
 
-use App\Application\Cart\Dto\CartItemResultDto;
-use App\Application\Cart\Dto\CartResultDto;
-use App\Application\Cart\Dto\CartSummaryResultDto;
 use App\Domain\ValueObjects\Money;
+use App\Domains\Cart\Application\Dto\CartItemResultDto;
+use App\Domains\Cart\Application\Dto\CartResultDto;
+use App\Domains\Cart\Application\Dto\CartSummaryResultDto;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\ProductVariant;

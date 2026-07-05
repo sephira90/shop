@@ -11,6 +11,6 @@ final class LegacyPayloadArtifactGuardrailTest extends TestCase
     public function test_legacy_payload_artifact_classes_are_not_available(): void
     {
         $this->assertFalse(class_exists('App\\Application\\Auth\\Support\\AuthUserPayloadBuilder'));
-        $this->assertFalse(class_exists('App\\Application\\Checkout\\Commands\\PlaceCheckoutOrderResult'));
+        $this->assertFalse(class_exists('App\\Domains\\Checkout\\Application\\Commands\\PlaceCheckoutOrderResult'));
     }
 }

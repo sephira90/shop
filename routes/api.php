@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Domains\Cart\Controllers\CartController;
 use App\Domains\Catalog\Controllers\CatalogController;
+use App\Domains\Checkout\Controllers\CheckoutController;
 use App\Domains\Users\Controllers\AccountOrdersController;
 use App\Domains\Users\Controllers\AuthController;
 use App\Domains\Users\Controllers\PasswordController;
@@ -12,8 +14,6 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryControl
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\PromotionController as AdminPromotionController;
-use App\Http\Controllers\Api\V1\CartController;
-use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\Webhook\PaymentWebhookController;
 use App\Http\Controllers\Api\V1\Webhook\ShippingWebhookController;
 use Illuminate\Support\Facades\Route;

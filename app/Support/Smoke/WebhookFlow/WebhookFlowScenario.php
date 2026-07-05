@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Smoke\WebhookFlow;
 
-use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
-use App\Contracts\CartServiceInterface;
-use App\Contracts\CheckoutServiceInterface;
+use App\Domains\Cart\Contracts\CartServiceInterface;
+use App\Domains\Checkout\Application\Dto\CheckoutPlaceOrderInputDto;
+use App\Domains\Checkout\Contracts\CheckoutServiceInterface;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;

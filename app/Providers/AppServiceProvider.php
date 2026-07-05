@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Promotion;
-use App\Policies\CartPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\CouponPolicy;
 use App\Policies\OrderPolicy;
@@ -35,19 +33,11 @@ class AppServiceProvider extends ServiceProvider
         Model::shouldBeStrict(! $this->app->environment('production'));
         Date::use(CarbonImmutable::class);
 
-        Gate::policy(Cart::class, CartPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Coupon::class, CouponPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Promotion::class, PromotionPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
-
-        RateLimiter::for('checkout', static function (Request $request): Limit {
-            $user = $request->user();
-
-            return Limit::perMinute(6)
-                ->by($user === null ? $request->ip() : (string) $user->id);
-        });
 
         RateLimiter::for('webhook', static fn (Request $request): Limit => Limit::perMinute(120)
             ->by($request->ip()));

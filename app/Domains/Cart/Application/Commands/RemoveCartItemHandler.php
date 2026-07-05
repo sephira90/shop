@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Cart\Commands;
+namespace App\Domains\Cart\Application\Commands;
 
-use App\Application\Cart\Dto\CartResultDto;
-use App\Contracts\CartServiceInterface;
+use App\Domains\Cart\Application\Dto\CartResultDto;
+use App\Domains\Cart\Contracts\CartServiceInterface;
 
 final class RemoveCartItemHandler
 {

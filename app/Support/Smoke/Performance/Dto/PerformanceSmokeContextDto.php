@@ -6,8 +6,8 @@ namespace App\Support\Smoke\Performance\Dto;
 
 use App\Application\Admin\Orders\Dto\AdminOrderListFilterDto;
 use App\Application\Admin\Products\Dto\AdminProductListFilterDto;
-use App\Application\Checkout\Dto\CheckoutPlaceOrderInputDto;
 use App\Domains\Catalog\Contracts\Dto\CatalogProductListFilterDto;
+use App\Domains\Checkout\Application\Dto\CheckoutPlaceOrderInputDto;
 
 final readonly class PerformanceSmokeContextDto
 {

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Policies;
+namespace App\Domains\Cart\Policies;
 
 use App\Models\User;
 
-class CartPolicy
+final class CartPolicy
 {
     /**
      * Allow reading current cart for authenticated and guest flows.

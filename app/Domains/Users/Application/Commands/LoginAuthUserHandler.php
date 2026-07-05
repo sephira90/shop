@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Users\Application\Commands;
 
-use App\Contracts\CartServiceInterface;
+use App\Domains\Cart\Contracts\CartServiceInterface;
 use App\Domains\Users\Application\AuthAccessTokenIssuer;
 use App\Domains\Users\Application\AuthApplicationException;
 use App\Domains\Users\Application\Dto\AuthTokenResultDto;

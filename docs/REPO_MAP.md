@@ -53,8 +53,8 @@ The migration is incremental and must keep public API and DB contracts stable. T
 | --- | --- | --- | --- |
 | `Catalog` | `CatalogProductReadRepository`, `CatalogCacheVersion`, `CatalogReadService`, `Dto/CatalogProductListFilterDto` | `C1` | complete (`2026-07-05`) |
 | `Users` | `AuthUserRepository`, `AuthPasswordBrokerRepository`, `AuthAuditLogger`, `AccountOrderReadRepository` | `C2` | complete (`2026-07-05`) |
-| `Cart` | cart resolver/mutation contracts, `CartPolicy` | `C3` | pending |
-| `Checkout` | checkout place-order contract, idempotency guard | `C4` | pending |
+| `Cart` | `CartServiceInterface`, `CartMutationServiceInterface` | `C3` | complete (`2026-07-05`) |
+| `Checkout` | `CheckoutServiceInterface`, `CheckoutShippingCostResolver` | `C4` | complete (`2026-07-05`) |
 | `Orders` | order transition policies, `OrderInventoryReleaseService`, stale-aggregate failure contract | `C5` | pending |
 | `Payments` | gateway contracts (`PaymentGatewayInterface`), payment transition policy | `C6` | pending |
 | `Webhooks` | `WebhookProcessorAdapterInterface`, ingress resolvers/appliers, `Process*WebhookJob` | `C7` | pending |
@@ -94,7 +94,7 @@ Legacy bridge namespaces importable from any module during the migration are lis
 ## Data classification and payload boundaries
 
 - `docs/SECURITY_DATA_CLASSIFICATION.md` — inventory of PII-bearing columns (`users.email/phone/password`, `orders.email/billing_address/shipping_address`, `payments.payload`, `shipments.payload`), allowed key sets per JSON column, plaintext-at-rest threat model, and field-level-encryption follow-up prerequisites. Enforced by `tests/Unit/Architecture/SecurityDataClassificationDocGuardrailTest.php`.
-- `app/Application/Checkout/Dto/CheckoutAddressInputDto.php` — emits the closed address shape `{line1, city, country, postcode}`; the only sanctioned address constructor for persistence. Locked by `tests/Unit/Architecture/AddressPayloadBoundaryGuardrailTest.php` (scans all `billing_address`/`shipping_address` blob construction sites under `app/`).
+- `app/Domains/Checkout/Application/Dto/CheckoutAddressInputDto.php` — emits the closed address shape `{line1, city, country, postcode}`; the only sanctioned address constructor for persistence. Locked by `tests/Unit/Architecture/AddressPayloadBoundaryGuardrailTest.php` (scans all `billing_address`/`shipping_address` blob construction sites under `app/`).
 - `app/Contracts/PaymentGatewayInterface.php` + `app/Contracts/ShippingGatewayInterface.php` — gateway contracts; concrete adapters (`app/Infrastructure/Payments/FakePaymentGateway.php`, `app/Infrastructure/Shipping/FakeShippingGateway.php`) build payloads through `App\Support\Data\JsonPayload::fromArray()` using provider-operational key sets only. Locked by `tests/Unit/Architecture/GatewayPayloadBoundaryGuardrailTest.php` (bans `card`/`card_number`/`pan`/`cvv`/`cvc`/`ssn`/`password`/`recipient_name` literals).
 
 ## API
@@ -123,9 +123,9 @@ Endpoint groups:
 
 ### Checkout flow
 
-- `app/Services/Checkout/CheckoutService.php`
-- `app/Services/Checkout/CheckoutPlaceOrderOrchestrator.php`
-- `app/Services/Checkout/*`
+- `app/Domains/Checkout/Services/CheckoutService.php`
+- `app/Domains/Checkout/Services/CheckoutPlaceOrderOrchestrator.php`
+- `app/Domains/Checkout/Services/*`
 - `app/Services/Payment/*`
 - `app/Services/Order/OrderStatusTransitionPolicy.php`
 

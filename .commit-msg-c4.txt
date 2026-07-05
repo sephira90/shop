@@ -1,0 +1,89 @@
+refactor(checkout): relocate Checkout slice into Domains/Checkout (C4)
+
+Move checkout transport, application layer, services, contracts, and
+idempotency middleware into app/Domains/Checkout/* with namespace moves
+and zero dual-namespace shims. Fourth runtime module move; biggest single
+slice so far (place-order + pay-for-order HTTP surface, money arithmetic,
+inventory deduction, idempotent cart-to-order conversion).
+
+Relocated surface (36 files via git mv):
+- Controllers: CheckoutController (made final), PlaceOrderRequest (made
+  final), InitiatePaymentRequest (already final)
+- Application: 2 command handlers + 2 readonly payloads (Commands),
+  12 DTOs (Dto)
+- Services: 9 implementations - CheckoutService (implements
+  CheckoutServiceInterface), CheckoutPlaceOrderOrchestrator,
+  CheckoutOrderWriter, CheckoutOrderFinalizer, CheckoutIdempotencyGuard,
+  CheckoutDiscountResolver, FreeCheckoutShippingCostResolver,
+  CheckoutInventoryAllocator, CheckoutCartPreparer,
+  CheckoutRequestIdentityResolver; 4 service DTOs (Services/Dto)
+- Contracts: CheckoutServiceInterface (cross-module, 1 method placeOrder),
+  CheckoutShippingCostResolver (promoted from interface-in-services pattern;
+  module-internal extension point; default FreeCheckoutShippingCostResolver)
+- Middleware: EnsureIdempotencyKeyMiddleware (alias idempotency.key
+  preserved; FQCN updated in bootstrap/app.php)
+
+Wiring:
+- New CheckoutServiceProvider registered in bootstrap/providers.php (after
+  CartServiceProvider, before GatewayServiceProvider); binds the 2 contracts
+  and owns RateLimiter::for('checkout', ...) in boot() (relocated from
+  AppServiceProvider::boot())
+- ApplicationBindingsServiceProvider: 2 checkout bindings + 3 imports removed
+- AppServiceProvider: checkout rate limiter removed
+- routes/api.php: controller import switched to module namespace
+- psalm.xml: per-directory suppressions extended for module services + DTO
+
+Cross-module caller rewiring (App\Contracts\* / App\Application\Checkout\* ->
+App\Domains\Checkout\Contracts\* / Application\Dto\*):
+- CheckoutPlaceOrderPerformanceSmokeScenario (CheckoutServiceInterface)
+- WebhookFlowScenario (CheckoutServiceInterface)
+- PerformanceSmokeSetupFactory (CheckoutPlaceOrderInputDto)
+- PerformanceSmokeContextDto (CheckoutPlaceOrderInputDto)
+- CheckoutPlaceOrderOrchestrator (intra-module checkout contract rewired)
+- 1 test file (ApplicationServiceBindingTest)
+
+Tests:
+- 5 unit tests relocated to tests/Unit/Application/Checkout/
+- New CheckoutModuleRelocationTest (4 tests): 2 contract bindings,
+  controller namespace via route resolution for both endpoints,
+  idempotency.key middleware alias FQCN, throttle:checkout rate limiter
+- ApplicationCheckoutCommandBoundaryTest (discovery path + namespace literal),
+  CheckoutIdempotencyAndPromotionArithmeticGuardrailTest (4 literal paths),
+  AddressPayloadBoundaryGuardrailTest (DTO import + 3 construction-site
+  paths), LegacyPayloadArtifactGuardrailTest (namespace literal),
+  InfrastructureProviderBoundaryTest (provider list) updated
+
+Operational contracts preserved byte-identical:
+- HTTP wire (2 endpoints: POST /checkout/place-order returns 201 with
+  order+payment envelope; POST /checkout/orders/{order}/pay returns
+  order+payment envelope) - paths, verbs, schemas, status codes, middleware
+- Idempotency semantics (header validation, 5-branch guard, scope_key
+  construction, retention windows pending_minutes=30 / completed_hours=24)
+- Rate limiting (throttle:checkout = 6/min by user-id or IP)
+- Money semantics (decimal:2; R2 promotion arithmetic locked by guardrail)
+- Address payload boundary ({line1, city, country, postcode} closed shape)
+- Initial state tuple (Order{pending, pending, pending} via forceFill - NOT
+  mass assignment; locked by SensitiveStateFillableGuardrailTest)
+- Locking semantics (Cart/CheckoutIdempotency/Inventory/Coupon/Promotion
+  lockForUpdate within DB::transaction in CheckoutService::placeOrder)
+- Event dispatch (OrderPlaced via event() in finalize(), implements
+  ShouldDispatchAfterCommit; listeners dispatch via ->afterCommit())
+- Cart transition (CartStatus::CHECKED_OUT via $cart->update - Cart status
+  is fillable, unlike Order/Payment/Shipment)
+
+Shared concerns stay under C0 legacy-bridge allowance: ResolvesAuthenticatedUser
+trait (used cross-module by Users, Cart, Checkout controllers), Eloquent models
+(Order, OrderItem, Payment, Shipment, CheckoutIdempotency), enums (OrderStatus,
+PaymentStatus, ShipmentStatus - heavy cross-module usage), events (OrderPlaced +
+status-changed events), CheckoutException (shared kernel), OrderPaymentStatusResolver
+(shared kernel), OrderPolicy (C5 territory - authorizes Order model), PaymentService
++ ShippingService (consumed via legacy bridge until C6/C7). InitiateCheckoutPaymentHandler
+keeps direct import of App\Services\Payment\PaymentService (C6 territory).
+
+Out of scope (subsequent waves): Webhooks (C7), Order lifecycle/transition
+policies (C5), Payment slice (C6), Shipping slice (C6/C7).
+
+Quality gate (sequential): composer lint (754 files), composer analyse
+(no errors), php artisan test (619 passed / 3956 assertions), npm lint,
+npm lint:ox, npm format:ox:check, npm type-check, npm test (306 passed),
+npm build. Route-smoke: 2 checkout routes resolve to module namespace.

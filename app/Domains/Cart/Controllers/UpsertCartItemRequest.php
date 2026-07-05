@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\Cart;
+namespace App\Domains\Cart\Controllers;
 
-use App\Application\Cart\Dto\CartUpsertItemInputDto;
+use App\Domains\Cart\Application\Dto\CartUpsertItemInputDto;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpsertCartItemRequest extends FormRequest
+final class UpsertCartItemRequest extends FormRequest
 {
     /**
      * Determine if user can perform this request.

@@ -50,6 +50,10 @@
                 <directory name="app/Domains/Catalog/Application/Dto" />
                 <directory name="app/Domains/Users/Repositories" />
                 <directory name="app/Domains/Users/Application/Dto" />
+                <directory name="app/Domains/Cart/Services" />
+                <directory name="app/Domains/Cart/Application/Dto" />
+                <directory name="app/Domains/Checkout/Services" />
+                <directory name="app/Domains/Checkout/Application/Dto" />
                 <file name="app/Domains/Catalog/Contracts/CatalogProductReadRepository.php" />
                 <file name="app/Domains/Catalog/Contracts/CatalogReadService.php" />
                 <file name="app/Domains/Catalog/Services/CatalogService.php" />
@@ -80,6 +84,8 @@
                 <directory name="app/Repositories" />
                 <directory name="app/Domains/Catalog/Repositories" />
                 <directory name="app/Domains/Users/Repositories" />
+                <directory name="app/Domains/Cart/Services" />
+                <directory name="app/Domains/Checkout/Services" />
             </errorLevel>
         </InvalidDocblock>
     </issueHandlers>

@@ -70,18 +70,21 @@ Operational integration around order lifecycle:
 ### Cart
 
 - Cart read/mutation orchestration and ownership guards.
-- Migration state: `[migration: pending C3]` → `app/Domains/Cart`.
+- Migration state: `[migration: complete C3]` → `app/Domains/Cart`. Module contracts: `CartServiceInterface` (cross-module — consumed by Users `LoginAuthUserHandler`, Checkout orchestrator, smoke scenarios), `CartMutationServiceInterface` (module-internal). First module to publish a contract surface with established cross-module consumers; Users → Cart import is the first non-trivial `Domains\<Other>\Contracts\` cross-module path exercised by `ModuleBoundaryGuardrailTest`. `CartPolicy` registered via `Gate::policy()` in `CartServiceProvider::boot()`. Eloquent models (`Cart`, `CartItem`), `CartStatus` enum, and `CartException` stay shared under legacy-bridge allowances pending the model-ownership wave.
 - Entry points:
-  - `app/Application/Cart/*`
-  - `app/Services/Cart/*`
+  - `app/Domains/Cart/Controllers/*`
+  - `app/Domains/Cart/Application/*`
+  - `app/Domains/Cart/Services/*`
 
 ### Checkout
 
 - Place-order orchestration: identity, idempotency, inventory, discount, finalization.
-- Migration state: `[migration: pending C4]` → `app/Domains/Checkout`.
+- Migration state: `[migration: complete C4]` → `app/Domains/Checkout`. Module contracts: `CheckoutServiceInterface` (cross-module — consumed by smoke scenarios + intra-module orchestrator), `CheckoutShippingCostResolver` (module-internal extension point; default `FreeCheckoutShippingCostResolver`). Second module in the convergence waves to publish a contract surface with established cross-module consumers. Cart → Checkout coupling is one-way (Checkout imports `CartServiceInterface` cross-module; Cart does not import from Checkout). `RateLimiter::for('checkout')` and `EnsureIdempotencyKeyMiddleware` (alias `idempotency.key`) moved with the module. Eloquent models (`Order`, `OrderItem`, `Payment`, `Shipment`, `CheckoutIdempotency`), enums (`OrderStatus`/`PaymentStatus`/`ShipmentStatus`), `OrderPlaced` event, and `CheckoutException` stay shared under legacy-bridge allowances pending the model-ownership wave.
 - Entry points:
-  - `app/Application/Checkout/*`
-  - `app/Services/Checkout/*`
+  - `app/Domains/Checkout/Controllers/*`
+  - `app/Domains/Checkout/Application/*`
+  - `app/Domains/Checkout/Services/*`
+  - `app/Domains/Checkout/Middleware/EnsureIdempotencyKeyMiddleware.php`
 
 ### Order lifecycle
 

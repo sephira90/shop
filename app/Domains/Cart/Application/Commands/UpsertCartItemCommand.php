@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Cart\Commands;
+namespace App\Domains\Cart\Application\Commands;
 
-use App\Application\Cart\Dto\CartUpsertItemInputDto;
+use App\Domains\Cart\Application\Dto\CartUpsertItemInputDto;
 use App\Models\User;
 
 final readonly class UpsertCartItemCommand

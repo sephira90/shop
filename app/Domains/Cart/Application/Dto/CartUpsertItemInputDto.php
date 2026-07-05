@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Cart\Dto;
+namespace App\Domains\Cart\Application\Dto;
 
 use App\Support\Data\TypedValue;
 

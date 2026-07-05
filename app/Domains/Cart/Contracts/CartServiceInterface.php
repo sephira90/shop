@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts;
+namespace App\Domains\Cart\Contracts;
 
-use App\Application\Cart\Dto\CartResultDto;
+use App\Domains\Cart\Application\Dto\CartResultDto;
 use App\Models\Cart;
 use App\Models\User;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Cart;
+namespace App\Domains\Cart\Services;
 
 use App\Domain\Exceptions\CartException;
 use App\Enums\CartStatus;

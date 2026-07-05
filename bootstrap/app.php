@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domains\Checkout\Middleware\EnsureIdempotencyKeyMiddleware;
 use App\Domains\Users\Middleware\EnsureActiveApiUser;
 use App\Http\Middleware\ApiRequestTelemetryMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
-use App\Http\Middleware\EnsureIdempotencyKeyMiddleware;
 use App\Http\Middleware\EnsureRoleMiddleware;
 use App\Http\Middleware\ForceHttpsMiddleware;
 use App\Support\Api\ApiExceptionRenderer;

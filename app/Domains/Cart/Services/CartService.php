@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Cart;
+namespace App\Domains\Cart\Services;
 
-use App\Application\Cart\Dto\CartResultDto;
-use App\Contracts\CartMutationServiceInterface;
-use App\Contracts\CartServiceInterface;
+use App\Domains\Cart\Application\Dto\CartResultDto;
+use App\Domains\Cart\Contracts\CartMutationServiceInterface;
+use App\Domains\Cart\Contracts\CartServiceInterface;
 use App\Models\Cart;
 use App\Models\User;
 

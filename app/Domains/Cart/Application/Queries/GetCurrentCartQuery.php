@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Cart\Queries;
+namespace App\Domains\Cart\Application\Queries;
 
 use App\Models\User;
 

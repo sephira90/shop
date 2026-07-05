@@ -2,24 +2,22 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Domains\Cart\Controllers;
 
-use App\Application\Cart\Commands\RemoveCartItemCommand;
-use App\Application\Cart\Commands\RemoveCartItemHandler;
-use App\Application\Cart\Commands\UpsertCartItemCommand;
-use App\Application\Cart\Commands\UpsertCartItemHandler;
-use App\Application\Cart\Queries\GetCurrentCartHandler;
-use App\Application\Cart\Queries\GetCurrentCartQuery;
+use App\Domains\Cart\Application\Commands\RemoveCartItemCommand;
+use App\Domains\Cart\Application\Commands\RemoveCartItemHandler;
+use App\Domains\Cart\Application\Commands\UpsertCartItemCommand;
+use App\Domains\Cart\Application\Commands\UpsertCartItemHandler;
+use App\Domains\Cart\Application\Queries\GetCurrentCartHandler;
+use App\Domains\Cart\Application\Queries\GetCurrentCartQuery;
 use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Cart\RemoveCartItemRequest;
-use App\Http\Requests\Cart\UpsertCartItemRequest;
 use App\Models\Cart;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class CartController extends Controller
+final class CartController extends Controller
 {
     use ResolvesAuthenticatedUser;
 

@@ -27,7 +27,7 @@ final class CheckoutIdempotencyAndPromotionArithmeticGuardrailTest extends TestC
 {
     public function test_checkout_discount_resolver_never_casts_promotion_value_to_float(): void
     {
-        $source = File::get(app_path('Services/Checkout/CheckoutDiscountResolver.php'));
+        $source = File::get(app_path('Domains/Checkout/Services/CheckoutDiscountResolver.php'));
 
         $this->assertStringNotContainsString(
             '(float) $promotion->value',
@@ -56,7 +56,7 @@ final class CheckoutIdempotencyAndPromotionArithmeticGuardrailTest extends TestC
 
     public function test_checkout_discount_resolver_applies_percent_discount_through_money_string_rate(): void
     {
-        $source = File::get(app_path('Services/Checkout/CheckoutDiscountResolver.php'));
+        $source = File::get(app_path('Domains/Checkout/Services/CheckoutDiscountResolver.php'));
 
         $this->assertStringContainsString(
             '->percentage($',
@@ -67,7 +67,7 @@ final class CheckoutIdempotencyAndPromotionArithmeticGuardrailTest extends TestC
 
     public function test_idempotency_guard_resolves_pending_window_through_config(): void
     {
-        $source = File::get(app_path('Services/Checkout/CheckoutIdempotencyGuard.php'));
+        $source = File::get(app_path('Domains/Checkout/Services/CheckoutIdempotencyGuard.php'));
 
         $this->assertStringNotContainsString(
             'addMinutes(30)',
@@ -84,7 +84,7 @@ final class CheckoutIdempotencyAndPromotionArithmeticGuardrailTest extends TestC
 
     public function test_checkout_order_finalizer_resolves_completed_window_through_config(): void
     {
-        $source = File::get(app_path('Services/Checkout/CheckoutOrderFinalizer.php'));
+        $source = File::get(app_path('Domains/Checkout/Services/CheckoutOrderFinalizer.php'));
 
         $this->assertStringNotContainsString(
             'addHours(24)',

@@ -7067,3 +7067,164 @@ Verification (executed strictly sequentially, one command at a time):
   - route-smoke (controllers/middleware changed): `php artisan optimize:clear` and `php artisan route:list --path=api/v1/auth`;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-05` - `C3` Cart Module
+
+Block scope: physically relocate the Cart bounded context into `app/Domains/Cart/*` with namespace moves and zero dual-namespace shims; relocate the 2 cross-module cart contracts (preserving interface names for minimal-diff) and the module-internal mutation contract; relocate `CartPolicy` with the `Gate::policy()` registration moving from `AppServiceProvider::boot()` to `CartServiceProvider::boot()`; rewire 6+ cross-module callers (Users `LoginAuthUserHandler` — first real cross-module `Domains\<Other>\Contracts\` import; Checkout orchestrator — stays in legacy bridge until C4; smoke scenarios) from `App\Contracts\*` to `App\Domains\Cart\Contracts\*`. Third runtime module move; first module to publish a contract surface with established cross-module consumers today.
+
+Verified baseline (`2026-07-05`, mapping by read-only explore pass):
+  - Migration surface: 1 controller (`CartController` — 3 methods `show`/`upsertItem`/`removeItem`, uses `ResolvesAuthenticatedUser` trait, calls `$this->authorize('viewAny'/'modify', Cart::class)`, not `final`); 2 FormRequests (`UpsertCartItemRequest`, `RemoveCartItemRequest` — both not `final`); 11 application files under `app/Application/Cart/` (2 command handlers + 2 readonly payloads + 1 query handler + 1 query payload + 5 DTOs); 4 services under `app/Services/Cart/` (`CartService` implements `CartServiceInterface`, `CartResolver`, `CartMutationService` implements `CartMutationServiceInterface`, `CartResultMapper`); 2 cross-module contracts at `app/Contracts/` root (`CartServiceInterface` 6 methods, `CartMutationServiceInterface` 3 methods); 1 policy at `app/Policies/CartPolicy.php` (registered in `AppServiceProvider::boot()`).
+  - No cart repositories exist (mutation service hits Eloquent directly via `Cart`, `CartItem`, `ProductVariant`, `Inventory` models).
+  - Cross-module contract consumers of `CartServiceInterface`: `LoginAuthUserHandler` (Users module — `mergeGuestCart`), `CheckoutPlaceOrderOrchestrator` (legacy `App\Services\Checkout\*` until C4 — `mergeGuestCart` + `resolveForCheckout`), `CartShowPerformanceSmokeScenario` (cart-consuming smoke), `CheckoutPlaceOrderPerformanceSmokeScenario`, `PerformanceSmokeSetupFactory`, `WebhookFlowScenario`. Plus 3 cart application handlers (internal).
+  - Cross-module contract consumers of `CartMutationServiceInterface`: `CartService` (internal) + tests only → module-internal contract.
+  - DI bindings in `ApplicationBindingsServiceProvider:37-38` (2 cart bindings); `Gate::policy(Cart::class, CartPolicy::class)` in `AppServiceProvider:38`.
+  - `CartStatus` enum heavily referenced cross-module (checkout, maintenance, admin, factories) → stays in `App\Enums\`.
+  - `CartException` is shared-kernel → stays in `App\Domain\Exceptions\`.
+  - Eloquent models `Cart`, `CartItem` stay in `App\Models\*` per C0/C1/C2 (model-ownership wave is post-C7).
+  - Shared `ResolvesAuthenticatedUser` trait used cross-module by Users + Checkout controllers → stays at `app/Http/Controllers/Concerns/` per C0 legacy-bridge allowance.
+  - 3 cart HTTP endpoints (`GET /cart`, `POST /cart/items`, `DELETE /cart/items/{variantId}`) locked by `docs/api/openapi.yaml` (S1).
+  - Locking semantics (`lockForUpdate` on `Cart`/`CartItem`/`User` rows within `DB::transaction`) locked by `tests/Feature/CartMutationSafetyTest.php`.
+  - Ownership assertions (`CartMutationService::assertOwnership()`) locked by `tests/Feature/CartMutationSafetyTest.php`.
+  - Frontend: zero coupling to PHP namespaces (URL-only).
+
+Implemented (atomic relocation in one block):
+  - Contract surface under `app/Domains/Cart/Contracts/` (2 interfaces moved verbatim; preserved existing interface names — no rename to `CartService`):
+    - `CartServiceInterface.php` (cross-module; 6 methods — `resolve`, `resolveForCheckout`, `upsertItem`, `removeItem`, `mergeGuestCart`, `toResultDto`; returns `CartResultDto` at boundary as documented shared-kernel allowance pending the model-ownership wave).
+    - `CartMutationServiceInterface.php` (module-internal; 3 mutation methods).
+  - Implementation under `app/Domains/Cart/` (all moved via `git mv` to preserve history):
+    - `Controllers/CartController.php` (made `final` on move) + `Controllers/{UpsertCartItemRequest,RemoveCartItemRequest}.php` (both made `final` on move); namespace `App\Domains\Cart\Controllers`.
+    - `Application/Commands/{UpsertCartItemHandler,UpsertCartItemCommand,RemoveCartItemHandler,RemoveCartItemCommand}.php`; namespace `App\Domains\Cart\Application\Commands`.
+    - `Application/Queries/{GetCurrentCartHandler,GetCurrentCartQuery}.php`; namespace `App\Domains\Cart\Application\Queries`.
+    - `Application/Dto/{CartResultDto,CartItemResultDto,CartUpsertItemInputDto,RemoveCartItemInputDto,CartSummaryResultDto}.php`; namespace `App\Domains\Cart\Application\Dto`.
+    - `Services/{CartService,CartResolver,CartMutationService,CartResultMapper}.php`; namespace `App\Domains\Cart\Services`.
+    - `Policies/CartPolicy.php` (made `final` on move); namespace `App\Domains\Cart\Policies`.
+    - `CartServiceProvider.php` (new) — binds the 2 contracts; registers `Gate::policy(Cart::class, CartPolicy::class)` in `boot()`; registered in `bootstrap/providers.php`.
+  - Wiring:
+    - `routes/api.php` — controller import switched to `App\Domains\Cart\Controllers\CartController` (removed duplicate legacy import).
+    - `bootstrap/providers.php` — `CartServiceProvider` added.
+    - `ApplicationBindingsServiceProvider` — 2 cart bindings + 4 imports removed.
+    - `AppServiceProvider` — cart model + policy imports + `Gate::policy` line removed.
+    - `psalm.xml` — `app/Domains/Cart/Services` added to `TooManyTemplateParams` + `InvalidDocblock` suppressions; `app/Domains/Cart/Application/Dto` added to `TooManyTemplateParams`.
+  - Cross-module caller rewiring (`App\Contracts\CartServiceInterface` / `CartMutationServiceInterface` → `App\Domains\Cart\Contracts\*`):
+    - `app/Domains/Users/Application/Commands/LoginAuthUserHandler.php` — first real cross-module `Domains\<Other>\Contracts\` import path (Users → Cart) exercised by `ModuleBoundaryGuardrailTest`.
+    - `app/Services/Checkout/CheckoutPlaceOrderOrchestrator.php` — stays in legacy bridge until C4; only the import path updates.
+    - 4 smoke scenarios / infra files: `CartShowPerformanceSmokeScenario`, `CheckoutPlaceOrderPerformanceSmokeScenario`, `PerformanceSmokeSetupFactory`, `WebhookFlowScenario`.
+    - 3 test files: `ApplicationServiceBindingTest`, `LoginAuthUserHandlerTest`, `CartMutationSafetyTest`.
+  - Old files removed: `app/Application/Cart/` (entire directory), `app/Services/Cart/` (entire directory), `app/Http/Requests/Cart/` (entire directory), `app/Http/Controllers/Api/V1/CartController.php`, `app/Contracts/CartServiceInterface.php`, `app/Contracts/CartMutationServiceInterface.php`, `app/Policies/CartPolicy.php`, `tests/Unit/CartResultMapperTest.php` + `tests/Unit/CartResolverTest.php` (relocated to `tests/Unit/Application/Cart/`).
+  - Module README replaced with the active module documentation (subfolders, contract surface with cross-module consumers, operational contracts — HTTP wire, `CartStatus` literals, guest token resolution, `CartException` messages, locking semantics, ownership guard, maintenance cleanup contracts — migration state).
+  - Tests:
+    - `tests/Feature/CartModuleRelocationTest.php` (new, 4 tests) — locks the 2 contract bindings (`CartServiceInterface` → `CartService`, `CartMutationServiceInterface` → `CartMutationService`), the controller namespace via route resolution, the `Gate::policy(Cart::class, ...)` registration resolving to the module `CartPolicy`, and the cross-module resolution path (first real `Domains\<Other>\Contracts\` import path validated end-to-end).
+    - 2 unit tests relocated to `tests/Unit/Application/Cart/` (`CartResultMapperTest`, `CartResolverTest`); namespaces `Tests\Unit\Application\Cart`.
+    - `tests/Unit/ApplicationServiceBindingTest.php`, `tests/Unit/Application/Users/LoginAuthUserHandlerTest.php`, `tests/Feature/CartMutationSafetyTest.php` — namespace literals updated.
+    - `tests/Unit/Architecture/PolicyCompletenessMatrixGuardrailTest.php` — `CartPolicy` FQCN updated.
+    - `tests/Unit/Architecture/InfrastructureProviderBoundaryTest.php` — provider list updated (`CartServiceProvider` added to both the bootstrap list and the specialized-modules-own-register test).
+
+Invariants preserved:
+  - `/api/v1/cart`, `/api/v1/cart/items`, `/api/v1/cart/items/{variantId}` wire contract byte-identical (verified by `OpenApiConformanceFeatureTest`): paths, verbs, request schemas, response schemas, status codes, middleware (`active.api.user`).
+  - `CartStatus` enum literal values (`active`, `checked_out`, `abandoned`) unchanged — wire + DB + cross-module.
+  - Guest cart token resolution channels (`?guest_token=` query OR `X-Cart-Token` header) unchanged.
+  - `CartException` literal messages unchanged; `ApiExceptionRenderer` mapping unchanged.
+  - Locking semantics unchanged (`lockForUpdate` on `Cart`/`CartItem`/`User` rows within `DB::transaction`).
+  - Ownership assertions unchanged (`CartMutationService::assertOwnership()`).
+  - Cross-module contract method signatures unchanged (only the namespace moves).
+  - Eloquent models stay shared under the `App\Models\` legacy-bridge allowance.
+  - `ModuleBoundaryGuardrailTest` continues to pass with the first real cross-module `Domains\<Other>\Contracts\` import (Users → Cart).
+
+Deterministic coverage:
+  - `tests/Feature/CartModuleRelocationTest.php` (new): 4 tests — 2 contract bindings, controller namespace via route resolution, `Gate::policy()` registration, cross-module resolution path.
+  - 2 unit tests relocated under `tests/Unit/Application/Cart/` — `CartResultMapperTest` (3 tests: items + summary, empty collection, money-precision aggregation), `CartResolverTest` (2 tests: checkout guest-token requirement, authenticated-user-no-longer-exists).
+  - `tests/Feature/CartMutationSafetyTest.php` (4 tests — upsert reloads locked cart state, remove rejects unknown variant, guest mutation requires guest token, ownership mismatch for auth user + guest token).
+  - `tests/Feature/CartCheckoutTest.php`, `tests/Feature/CheckoutAuthenticatedTokenTest.php`, `tests/Feature/GuestCheckoutTest.php`, `tests/Feature/PerformanceSmokeTest.php`, `tests/Feature/PhaseOneHardeningTest.php`, `tests/Feature/AppMaintenanceCleanupCommandTest.php` — HTTP-only, no FQCN coupling.
+  - `OpenApiConformanceFeatureTest` — 3 cart endpoints covered by happy-path + canonical error shapes.
+
+Verification (executed strictly sequentially, one command at a time):
+  - route registration: `php artisan route:list --path=api/v1/cart` → 3 routes resolve to `App\Domains\Cart\Controllers\CartController`;
+  - targeted regression: `php artisan test --filter="Architecture"` — 171 tests / 2053 assertions green;
+  - cart tests + cross-module tests: `php artisan test --filter="Cart|ApplicationServiceBinding|LoginAuthUserHandlerTest"` — green after policy-instance assertion fix;
+  - relocation smoke: `php artisan test --filter="CartModuleRelocationTest"` — 4 tests / 5 assertions green;
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - route-smoke (controllers changed): `php artisan optimize:clear` and `php artisan route:list --path=api/v1/cart`;
+  - full mandatory quality gate executed sequentially.
+
+### `2026-07-05` - `C4` Checkout Module
+
+Block scope: physically relocate the Checkout bounded context (place-order + pay-for-order HTTP surface, application layer, services, contracts, idempotency middleware) into `app/Domains/Checkout/*` with namespace moves and zero dual-namespace shims; relocate the cross-module `CheckoutServiceInterface` contract and the module-internal `CheckoutShippingCostResolver` extension point (promoted from interface-in-services pattern to `Contracts/`); relocate `EnsureIdempotencyKeyMiddleware` (alias `idempotency.key` preserved); relocate the `RateLimiter::for('checkout', ...)` registration from `AppServiceProvider::boot()` to `CheckoutServiceProvider::boot()`. Fourth runtime module move; biggest single slice so far — owns the money + idempotency + inventory + cart-to-order conversion semantics.
+
+Verified baseline (`2026-07-05`, mapping by read-only explore pass):
+  - Migration surface: 1 controller (`CheckoutController` — 2 methods `placeOrder`/`pay`; constructor-depends on `PlaceCheckoutOrderHandler` + `InitiateCheckoutPaymentHandler`; uses `ResolvesAuthenticatedUser` trait; calls `$this->authorize('view', $order)`; not `final`); 2 FormRequests (`PlaceOrderRequest` not `final`, `InitiatePaymentRequest` already `final`); 16 application files under `app/Application/Checkout/` (2 command handlers + 2 readonly payloads + 12 DTOs); 9 services under `app/Services/Checkout/` + 4 service DTOs under `app/Services/Checkout/Dto/`.
+  - 1 contract at `app/Contracts/CheckoutServiceInterface.php` (1 method `placeOrder`); 1 interface-in-services at `app/Services/Checkout/CheckoutShippingCostResolver.php` (extension point; default implementation `FreeCheckoutShippingCostResolver`).
+  - 1 idempotency middleware at `app/Http/Middleware/EnsureIdempotencyKeyMiddleware.php` (alias `idempotency.key`).
+  - No policies move (OrderPolicy stays for C5 — authorizes `Order` model). No repositories exist for checkout (`RepositoryReadBoundaryTest` explicitly forbids `OrderRepository`).
+  - Cross-module consumers of `CheckoutServiceInterface`: `CheckoutPlaceOrderPerformanceSmokeScenario`, `WebhookFlowScenario` (both smoke). Intra-module: `CheckoutPlaceOrderOrchestrator`.
+  - Cross-module consumers of `CheckoutPlaceOrderInputDto`: `PerformanceSmokeSetupFactory`, `PerformanceSmokeContextDto`.
+  - DI bindings in `ApplicationBindingsServiceProvider:32-33` (2 checkout bindings); `RateLimiter::for('checkout', ...)` in `AppServiceProvider:42-47`.
+  - Models `Order`/`OrderItem`/`Payment`/`Shipment`/`CheckoutIdempotency` stay in `App\Models\` per C0/C1/C2/C3.
+  - Enums `OrderStatus`/`PaymentStatus`/`ShipmentStatus` stay in `App\Enums\` (heavy cross-module usage).
+  - Events stay at `App\Events\` (`OrderPlaced` emitted by checkout; the other 3 emitted by admin/webhook appliers).
+  - `CheckoutException` stays in `App\Domain\Exceptions\` (shared kernel).
+  - `OrderPaymentStatusResolver` stays at `App\Domain\Order\` (shared kernel; used cross-module by listeners + `DispatchShipmentJob`).
+  - `InitiateCheckoutPaymentHandler` keeps direct import of `App\Services\Payment\PaymentService` (legacy bridge allowance until C6).
+  - `CheckoutPlaceOrderOrchestrator` already imports `App\Domains\Cart\Contracts\CartServiceInterface` (cross-module Cart dependency rewired in C3 — the canonical pattern for C4).
+  - Watch-item verified: `CheckoutOrderFinalizer::finalize()` calls `$cart->update(['status' => CartStatus::CHECKED_OUT->value])` — `Cart::status` IS in `$fillable` (verified in source), so direct update works correctly. No change needed in C4.
+  - Frontend: zero coupling to PHP namespaces (URL-only — `POST /checkout/place-order`).
+
+Implemented (atomic relocation in one block):
+  - Contract surface under `app/Domains/Checkout/Contracts/` (2 interfaces moved):
+    - `CheckoutServiceInterface.php` (cross-module; 1 method `placeOrder`; returns `Order` at boundary as documented shared-kernel allowance pending the model-ownership wave).
+    - `CheckoutShippingCostResolver.php` (promoted from interface-in-services pattern; module-internal extension point; preserved existing interface name).
+  - Implementation under `app/Domains/Checkout/` (all moved via `git mv` to preserve history):
+    - `Controllers/CheckoutController.php` (made `final` on move) + `Controllers/{PlaceOrderRequest,InitiatePaymentRequest}.php` (`PlaceOrderRequest` made `final` on move; `InitiatePaymentRequest` already final); namespace `App\Domains\Checkout\Controllers`.
+    - `Application/Commands/{PlaceCheckoutOrderHandler,PlaceCheckoutOrderCommand,InitiateCheckoutPaymentHandler,InitiateCheckoutPaymentCommand}.php`; namespace `App\Domains\Checkout\Application\Commands`.
+    - `Application/Dto/` (12 DTOs — `CheckoutAddressInputDto` is the closed-shape address boundary locked by `AddressPayloadBoundaryGuardrailTest`); namespace `App\Domains\Checkout\Application\Dto`.
+    - `Services/` (9 implementations — `CheckoutService`, `CheckoutPlaceOrderOrchestrator`, `CheckoutOrderWriter`, `CheckoutOrderFinalizer`, `CheckoutIdempotencyGuard`, `CheckoutDiscountResolver`, `FreeCheckoutShippingCostResolver`, `CheckoutInventoryAllocator`, `CheckoutCartPreparer`, `CheckoutRequestIdentityResolver`); namespace `App\Domains\Checkout\Services`.
+    - `Services/Dto/` (4 internal DTOs — `CheckoutRequestIdentityDto`, `CheckoutDiscountContextDto`, `CheckoutOrderFinalizationInputDto`, `CheckoutIdempotencyResolutionDto`); namespace `App\Domains\Checkout\Services\Dto`.
+    - `Middleware/EnsureIdempotencyKeyMiddleware.php`; namespace `App\Domains\Checkout\Middleware`.
+    - `CheckoutServiceProvider.php` (new) — binds the 2 contracts; owns `RateLimiter::for('checkout', ...)` in `boot()`; registered in `bootstrap/providers.php`.
+  - Wiring:
+    - `routes/api.php` — controller import switched to `App\Domains\Checkout\Controllers\CheckoutController`.
+    - `bootstrap/app.php` — middleware FQCN switched to `App\Domains\Checkout\Middleware\EnsureIdempotencyKeyMiddleware` (alias `idempotency.key` preserved).
+    - `bootstrap/providers.php` — `CheckoutServiceProvider` added (after `CartServiceProvider`, before `GatewayServiceProvider`).
+    - `ApplicationBindingsServiceProvider` — 2 checkout bindings + 3 imports removed.
+    - `AppServiceProvider` — `RateLimiter::for('checkout', ...)` removed (8 lines).
+    - `psalm.xml` — `app/Domains/Checkout/Services` added to `TooManyTemplateParams` + `InvalidDocblock` suppressions; `app/Domains/Checkout/Application/Dto` added to `TooManyTemplateParams`.
+  - Internal wiring fixes:
+    - `FreeCheckoutShippingCostResolver` + `CheckoutService` — added explicit `use App\Domains\Checkout\Contracts\CheckoutShippingCostResolver;` imports (the interface moved from `Services/` to `Contracts/`, so the previous implicit same-namespace resolution broke; both files needed the explicit import).
+  - Cross-module caller rewiring (`App\Contracts\CheckoutServiceInterface` / `App\Application\Checkout\Dto\*` → `App\Domains\Checkout\Contracts\*` / `App\Domains\Checkout\Application\Dto\*`):
+    - `app/Support/Smoke/Performance/Scenarios/CheckoutPlaceOrderPerformanceSmokeScenario.php`.
+    - `app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php`.
+    - `app/Support/Smoke/Performance/PerformanceSmokeSetupFactory.php`.
+    - `app/Support/Smoke/Performance/Dto/PerformanceSmokeContextDto.php`.
+  - Old files removed: `app/Application/Checkout/` (entire directory), `app/Services/Checkout/` (entire directory), `app/Http/Requests/Checkout/` (entire directory), `app/Http/Controllers/Api/V1/CheckoutController.php`, `app/Http/Middleware/EnsureIdempotencyKeyMiddleware.php`, `app/Contracts/CheckoutServiceInterface.php`, 5 unit tests relocated from `tests/Unit/Checkout/` and `tests/Unit/Checkout*Test.php` to `tests/Unit/Application/Checkout/`.
+  - Module README replaced with the active module documentation (subfolders, contract surface with cross-module consumers, operational contracts — wire + idempotency + rate limiting + money + address boundary + initial state + locking + event dispatch + cart transition — out-of-scope items for C5/C6/C7, migration state).
+  - Tests:
+    - `tests/Feature/CheckoutModuleRelocationTest.php` (new, 4 tests) — locks the 2 contract bindings (`CheckoutServiceInterface` → `CheckoutService`, `CheckoutShippingCostResolver` → `FreeCheckoutShippingCostResolver`), the controller namespace via route resolution for both endpoints (`placeOrder` + `pay`), the `idempotency.key` middleware alias FQCN, and the `throttle:checkout` rate limiter registration (relocated from `AppServiceProvider` to `CheckoutServiceProvider`).
+    - 5 unit tests relocated to `tests/Unit/Application/Checkout/` (`CheckoutDiscountResolverTest`, `CheckoutIdempotencyRetentionConfigTest`, `CheckoutOrderFinalizerTest`, `CheckoutRequestIdentityResolverTest`, `CheckoutShippingCostResolverBindingTest`); namespaces `Tests\Unit\Application\Checkout`.
+    - `tests/Unit/ApplicationServiceBindingTest.php` — namespace literals updated for checkout bindings.
+    - 5 architecture guardrail tests updated: `ApplicationCheckoutCommandBoundaryTest` (discovery path + namespace literal), `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest` (4 literal paths), `AddressPayloadBoundaryGuardrailTest` (DTO import + 3 construction-site paths), `LegacyPayloadArtifactGuardrailTest` (namespace literal), `InfrastructureProviderBoundaryTest` (provider list).
+
+Invariants preserved:
+  - `/api/v1/checkout/place-order` + `/api/v1/checkout/orders/{order}/pay` wire contract byte-identical (verified by `CartCheckoutTest`/`GuestCheckoutTest`/`CheckoutAuthenticatedTokenTest`/`CouponCheckoutTest`): paths, verbs, request schemas, response schemas (order+payment envelope), status codes (`201` on place, `200` on pay replay), middleware (`active.api.user`, `throttle:checkout`, `idempotency.key`).
+  - Idempotency semantics unchanged: header validation (presence + trim), 5-branch guard resolution (new/expired/payload-mismatch/existing-order/cart-mismatch/continue), scope_key construction (`user:<id>` or `guest:<token>`), retention windows (`pending_minutes=30`, `completed_hours=24` defaults, env-overridable).
+  - Rate limiting unchanged: `throttle:checkout` = 6/min by user-id or IP (relocated registration to `CheckoutServiceProvider::boot()`).
+  - Money semantics unchanged: `decimal:2` precision; R2 promotion arithmetic (percent/fixed/capped/defensive) locked by `CheckoutIdempotencyAndPromotionArithmeticGuardrailTest`.
+  - Address payload boundary unchanged: `{line1, city, country, postcode}` closed shape locked by `AddressPayloadBoundaryGuardrailTest`.
+  - Initial state tuple unchanged: `Order{status: pending, payment_status: pending, shipment_status: pending}` via `forceFill` in `CheckoutOrderWriter` (NOT mass assignment — `Order`/`Payment`/`Shipment` status fields excluded from `$fillable` per `SensitiveStateFillableGuardrailTest`).
+  - Locking semantics unchanged: `Cart::lockForUpdate()` + `CheckoutIdempotency::lockForUpdate()` + `Inventory::lockForUpdate()` + `Coupon::lockForUpdate()` + `Promotion::lockForUpdate()` all within `DB::transaction()` in `CheckoutService::placeOrder`.
+  - Event dispatch unchanged: `OrderPlaced` dispatched via `event()` inside `CheckoutOrderFinalizer::finalize()`, implements `ShouldDispatchAfterCommit`. Side-effect jobs dispatch via `->afterCommit()` from listeners in `EventServiceProvider`.
+  - Cart transition unchanged: `CartStatus::CHECKED_OUT` set by `CheckoutOrderFinalizer::finalize()` via `$cart->update(...)` (Cart `status` IS fillable, unlike Order/Payment/Shipment).
+  - Cross-module contract method signature unchanged (only the namespace moves): `CheckoutServiceInterface::placeOrder`.
+  - `ModuleBoundaryGuardrailTest` continues to pass.
+
+Deterministic coverage:
+  - `tests/Feature/CheckoutModuleRelocationTest.php` (new): 4 tests — 2 contract bindings, controller namespace via route resolution for both endpoints, `idempotency.key` middleware alias FQCN, `throttle:checkout` rate limiter registration.
+  - 5 unit tests relocated under `tests/Unit/Application/Checkout/`: `CheckoutDiscountResolverTest` (R2 promotion arithmetic), `CheckoutIdempotencyRetentionConfigTest` (defaults + overrides + bounded resolver), `CheckoutOrderFinalizerTest` (finalizer behavior), `CheckoutRequestIdentityResolverTest` (scopeKey + requestHash), `CheckoutShippingCostResolverBindingTest` (container binding + zero behavior).
+  - HTTP-contract feature tests: `CartCheckoutTest` (5 tests), `GuestCheckoutTest`, `CheckoutAuthenticatedTokenTest`, `CouponCheckoutTest` — URL-only coupling, no FQCN imports to update.
+
+Verification (executed strictly sequentially, one command at a time):
+  - route registration: `php artisan route:list --path=api/v1/checkout` → 2 routes resolve to `App\Domains\Checkout\Controllers\CheckoutController@{placeOrder,pay}`;
+  - targeted architecture regression: `php artisan test --filter="Architecture"` — 171 tests / 1970 assertions green after 5 guardrail test updates;
+  - targeted feature/unit regression: `php artisan test --filter="Checkout|ApplicationServiceBinding|WebhookFlow"` — 63 tests / 250 assertions green;
+  - relocation smoke: `php artisan test --filter="CheckoutModuleRelocationTest"` — 4 tests / 6 assertions green;
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - route-smoke (controllers/middleware changed): `php artisan optimize:clear` and `php artisan route:list --path=api/v1/checkout`;
+  - full mandatory quality gate executed sequentially.
+

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Tests\Unit\Application\Cart;
 
+use App\Domains\Cart\Services\CartResultMapper;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\ProductVariant;
-use App\Services\Cart\CartResultMapper;
 use App\Support\Data\TypedValue;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;

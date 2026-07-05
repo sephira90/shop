@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\Cart;
+namespace App\Domains\Cart\Controllers;
 
-use App\Application\Cart\Dto\RemoveCartItemInputDto;
+use App\Domains\Cart\Application\Dto\RemoveCartItemInputDto;
 use App\Support\Data\TypedValue;
 use Illuminate\Foundation\Http\FormRequest;
 
-class RemoveCartItemRequest extends FormRequest
+final class RemoveCartItemRequest extends FormRequest
 {
     /**
      * Determine if user can perform this request.

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
+use App\Domains\Cart\CartServiceProvider;
 use App\Domains\Catalog\CatalogServiceProvider;
+use App\Domains\Checkout\CheckoutServiceProvider;
 use App\Domains\Users\UsersServiceProvider;
 use App\Providers\ApplicationBindingsServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -29,6 +31,8 @@ final class InfrastructureProviderBoundaryTest extends TestCase
             ApplicationBindingsServiceProvider::class,
             CatalogServiceProvider::class,
             UsersServiceProvider::class,
+            CartServiceProvider::class,
+            CheckoutServiceProvider::class,
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
             ObservabilityServiceProvider::class,
@@ -62,6 +66,8 @@ final class InfrastructureProviderBoundaryTest extends TestCase
             ApplicationBindingsServiceProvider::class,
             CatalogServiceProvider::class,
             UsersServiceProvider::class,
+            CartServiceProvider::class,
+            CheckoutServiceProvider::class,
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
             ObservabilityServiceProvider::class,

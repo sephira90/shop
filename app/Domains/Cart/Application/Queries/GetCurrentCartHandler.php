@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Cart\Queries;
+namespace App\Domains\Cart\Application\Queries;
 
-use App\Application\Cart\Dto\CartResultDto;
-use App\Contracts\CartServiceInterface;
+use App\Domains\Cart\Application\Dto\CartResultDto;
+use App\Domains\Cart\Contracts\CartServiceInterface;
 
 final class GetCurrentCartHandler
 {

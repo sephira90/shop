@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Contracts\CartMutationServiceInterface;
 use App\Domain\Exceptions\CartException;
 use App\Domain\ValueObjects\Money;
+use App\Domains\Cart\Contracts\CartMutationServiceInterface;
 use App\Enums\CartStatus;
 use App\Models\Cart;
 use App\Models\CartItem;

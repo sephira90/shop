@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Application\Checkout\Dto\CheckoutAddressInputDto;
+use App\Domains\Checkout\Application\Dto\CheckoutAddressInputDto;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
@@ -175,9 +175,9 @@ final class AddressPayloadBoundaryGuardrailTest extends TestCase
     public static function addressConstructionSites(): array
     {
         $sites = [
-            'app/Application/Checkout/Dto/CheckoutAddressInputDto.php',
-            'app/Http/Requests/Checkout/PlaceOrderRequest.php',
-            'app/Services/Checkout/CheckoutOrderWriter.php',
+            'app/Domains/Checkout/Application/Dto/CheckoutAddressInputDto.php',
+            'app/Domains/Checkout/Controllers/PlaceOrderRequest.php',
+            'app/Domains/Checkout/Services/CheckoutOrderWriter.php',
             'app/Support/Smoke/Performance/PerformanceSmokeSetupFactory.php',
             'app/Support/Smoke/WebhookFlow/WebhookFlowScenario.php',
             'app/Support/Smoke/ApiContract/Scenarios/CheckoutApiContractScenario.php',
