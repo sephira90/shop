@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Application\Auth\Contracts\AuthAuditLogger;
+use App\Domains\Users\Contracts\AuthAuditLogger;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

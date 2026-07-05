@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Application\Account\Orders\Dto\AccountOrderDetailResultDto;
 use App\Application\Admin\Orders\Dto\AdminOrderDetailResultDto;
 use App\Application\Checkout\Dto\CheckoutOrderResultDto;
+use App\Domains\Users\Application\Dto\AccountOrderDetailResultDto;
 use App\Models\Order;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

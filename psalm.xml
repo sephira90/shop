@@ -48,9 +48,12 @@
                 <directory name="app/Repositories" />
                 <directory name="app/Domains/Catalog/Repositories" />
                 <directory name="app/Domains/Catalog/Application/Dto" />
+                <directory name="app/Domains/Users/Repositories" />
+                <directory name="app/Domains/Users/Application/Dto" />
                 <file name="app/Domains/Catalog/Contracts/CatalogProductReadRepository.php" />
                 <file name="app/Domains/Catalog/Contracts/CatalogReadService.php" />
                 <file name="app/Domains/Catalog/Services/CatalogService.php" />
+                <file name="app/Domains/Users/Contracts/AccountOrderReadRepository.php" />
                 <file name="app/Support/Api/ApiResponse.php" />
             </errorLevel>
         </TooManyTemplateParams>
@@ -76,6 +79,7 @@
                 <directory name="app/Models" />
                 <directory name="app/Repositories" />
                 <directory name="app/Domains/Catalog/Repositories" />
+                <directory name="app/Domains/Users/Repositories" />
             </errorLevel>
         </InvalidDocblock>
     </issueHandlers>

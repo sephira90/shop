@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use App\Domains\Catalog\Controllers\CatalogController;
-use App\Http\Controllers\Api\V1\Account\AccountOrdersController;
+use App\Domains\Users\Controllers\AccountOrdersController;
+use App\Domains\Users\Controllers\AuthController;
+use App\Domains\Users\Controllers\PasswordController;
+use App\Domains\Users\Controllers\VerificationController;
 use App\Http\Controllers\Api\V1\Admin\CacheController as AdminCacheController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\PromotionController as AdminPromotionController;
-use App\Http\Controllers\Api\V1\Auth\AuthController;
-use App\Http\Controllers\Api\V1\Auth\PasswordController;
-use App\Http\Controllers\Api\V1\Auth\VerificationController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\Webhook\PaymentWebhookController;

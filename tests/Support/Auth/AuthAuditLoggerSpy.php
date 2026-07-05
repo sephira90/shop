@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Support\Auth;
 
-use App\Application\Auth\Contracts\AuthAuditLogger;
-use App\Application\Auth\Support\AuthAuditContext;
-use App\Application\Auth\Support\AuthAuditEvent;
+use App\Domains\Users\Contracts\AuthAuditLogger;
+use App\Domains\Users\Support\AuthAuditContext;
+use App\Domains\Users\Support\AuthAuditEvent;
 
 /**
  * In-memory AuthAuditLogger spy used by feature tests to assert which audit

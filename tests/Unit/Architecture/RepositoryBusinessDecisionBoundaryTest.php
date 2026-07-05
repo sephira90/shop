@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Repositories\AccountOrderReadRepository;
+use App\Domains\Users\Repositories\AccountOrderReadRepository;
 use App\Repositories\AdminOrderReadRepository;
 use App\Repositories\AdminProductReadRepository;
 use App\Repositories\CategoryRepository;
@@ -20,7 +20,7 @@ class RepositoryBusinessDecisionBoundaryTest extends TestCase
     public function test_read_repositories_do_not_depend_on_authorization_or_transition_boundaries(): void
     {
         $repositoryPaths = [
-            app_path('Repositories/AccountOrderReadRepository.php'),
+            app_path('Domains/Users/Repositories/AccountOrderReadRepository.php'),
             app_path('Repositories/AdminOrderReadRepository.php'),
             app_path('Repositories/AdminProductReadRepository.php'),
             app_path('Repositories/CategoryRepository.php'),

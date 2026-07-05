@@ -144,7 +144,7 @@ final class SecurityConfigGuardrailTest extends TestCase
 
         $this->assertArrayHasKey('active.api.user', $aliases);
         $this->assertSame(
-            'App\Http\Middleware\EnsureActiveApiUser',
+            'App\Domains\Users\Middleware\EnsureActiveApiUser',
             $aliases['active.api.user'] ?? null,
         );
     }

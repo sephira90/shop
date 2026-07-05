@@ -26,7 +26,7 @@ class RepositoryReadBoundaryTest extends TestCase
     {
         $expectations = [
             [
-                'path' => app_path('Repositories/AccountOrderReadRepository.php'),
+                'path' => app_path('Domains/Users/Repositories/AccountOrderReadRepository.php'),
                 'forbidden' => [
                     'App\\Application\\Admin\\Orders\\Dto\\',
                 ],
@@ -34,7 +34,7 @@ class RepositoryReadBoundaryTest extends TestCase
             [
                 'path' => app_path('Repositories/AdminOrderReadRepository.php'),
                 'forbidden' => [
-                    'App\\Application\\Account\\Orders\\Dto\\',
+                    'App\\Domains\\Users\\Application\\Dto\\',
                 ],
             ],
             [

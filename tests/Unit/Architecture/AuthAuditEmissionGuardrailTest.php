@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Application\Auth\AuthAccessTokenIssuer;
-use App\Application\Auth\AuthActiveUserRevalidator;
-use App\Application\Auth\Commands\ForgotAuthPasswordHandler;
-use App\Application\Auth\Commands\LoginAuthUserHandler;
-use App\Application\Auth\Commands\LogoutAuthUserHandler;
-use App\Application\Auth\Commands\ResetAuthPasswordHandler;
-use App\Application\Auth\Commands\VerifyAuthEmailHandler;
-use App\Application\Auth\Contracts\AuthAuditLogger;
+use App\Domains\Users\Application\AuthAccessTokenIssuer;
+use App\Domains\Users\Application\AuthActiveUserRevalidator;
+use App\Domains\Users\Application\Commands\ForgotAuthPasswordHandler;
+use App\Domains\Users\Application\Commands\LoginAuthUserHandler;
+use App\Domains\Users\Application\Commands\LogoutAuthUserHandler;
+use App\Domains\Users\Application\Commands\ResetAuthPasswordHandler;
+use App\Domains\Users\Application\Commands\VerifyAuthEmailHandler;
+use App\Domains\Users\Contracts\AuthAuditLogger;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -91,7 +91,7 @@ final class AuthAuditEmissionGuardrailTest extends TestCase
         $resolved = $this->app->make(AuthAuditLogger::class);
 
         $this->assertInstanceOf(
-            \App\Infrastructure\Auth\ObservabilityAuthAuditLogger::class,
+            \App\Domains\Users\Infrastructure\ObservabilityAuthAuditLogger::class,
             $resolved,
         );
     }
@@ -103,9 +103,20 @@ final class AuthAuditEmissionGuardrailTest extends TestCase
     {
         $files = [];
 
-        foreach (File::allFiles(app_path('Repositories')) as $file) {
-            if (str_ends_with($file->getFilename(), '.php')) {
-                $files[] = $file;
+        $directories = [
+            app_path('Repositories'),
+            app_path('Domains/Users/Repositories'),
+        ];
+
+        foreach ($directories as $directory) {
+            if (! is_dir($directory)) {
+                continue;
+            }
+
+            foreach (File::allFiles($directory) as $file) {
+                if (str_ends_with($file->getFilename(), '.php')) {
+                    $files[] = $file;
+                }
             }
         }
 

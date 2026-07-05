@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Application\Account\Orders\Contracts\AccountOrderReadRepository as AccountOrderReadRepositoryContract;
 use App\Application\Admin\Categories\Contracts\AdminCategoryReadRepository as AdminCategoryReadRepositoryContract;
 use App\Application\Admin\Orders\Contracts\AdminOrderReadRepository as AdminOrderReadRepositoryContract;
 use App\Application\Admin\Products\Contracts\AdminProductReadRepository as AdminProductReadRepositoryContract;
@@ -12,7 +11,6 @@ use App\Application\Admin\Promotions\Contracts\AdminPromotionReadRepository as A
 use App\Contracts\CartMutationServiceInterface;
 use App\Contracts\CartServiceInterface;
 use App\Contracts\CheckoutServiceInterface;
-use App\Repositories\AccountOrderReadRepository;
 use App\Repositories\AdminOrderReadRepository;
 use App\Repositories\AdminProductReadRepository;
 use App\Repositories\CategoryRepository;
@@ -31,7 +29,6 @@ final class ApplicationBindingsServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AccountOrderReadRepositoryContract::class, AccountOrderReadRepository::class);
         $this->app->bind(AdminOrderReadRepositoryContract::class, AdminOrderReadRepository::class);
         $this->app->bind(AdminProductReadRepositoryContract::class, AdminProductReadRepository::class);
         $this->app->bind(AdminPromotionReadRepositoryContract::class, PromotionRepository::class);

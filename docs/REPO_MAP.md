@@ -52,7 +52,7 @@ The migration is incremental and must keep public API and DB contracts stable. T
 | Module | Public API (Contracts surface) | Owning wave | Migration state |
 | --- | --- | --- | --- |
 | `Catalog` | `CatalogProductReadRepository`, `CatalogCacheVersion`, `CatalogReadService`, `Dto/CatalogProductListFilterDto` | `C1` | complete (`2026-07-05`) |
-| `Users` | auth token issuer/revalidator, `AuthUserRepository`, `AuthPasswordBrokerRepository`, `AuthAuditLogger`, `EnsureActiveApiUser` wiring | `C2` | pending |
+| `Users` | `AuthUserRepository`, `AuthPasswordBrokerRepository`, `AuthAuditLogger`, `AccountOrderReadRepository` | `C2` | complete (`2026-07-05`) |
 | `Cart` | cart resolver/mutation contracts, `CartPolicy` | `C3` | pending |
 | `Checkout` | checkout place-order contract, idempotency guard | `C4` | pending |
 | `Orders` | order transition policies, `OrderInventoryReleaseService`, stale-aggregate failure contract | `C5` | pending |

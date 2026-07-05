@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Application\Auth\Contracts\AuthUserRepository;
-use App\Http\Middleware\EnsureActiveApiUser;
+use App\Domains\Users\Contracts\AuthUserRepository;
+use App\Domains\Users\Middleware\EnsureActiveApiUser;
 use DateTimeInterface;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;

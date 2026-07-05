@@ -107,15 +107,13 @@ Operational integration around order lifecycle:
 
 - Transport and use-case boundaries for authenticated and management APIs.
 - Migration state:
-  - Auth/Users: `[migration: pending C2]` → `app/Domains/Users`.
-  - Account order reads: `[migration: pending C5]` → `app/Domains/Orders` (read-model ownership follows the order lifecycle module).
+  - Auth/Users: `[migration: complete C2]` → `app/Domains/Users` — module owns the Auth + Account bounded context. Module contracts: `AuthUserRepository`, `AuthPasswordBrokerRepository`, `AuthAuditLogger`, `AccountOrderReadRepository` (all module-internal; no other module imports them today).
+  - Account order reads: `[migration: complete C2 (Users module)]` → `app/Domains/Users` (account reads landed in Users with the Auth surface; future Orders module wave will revisit read-model ownership alongside the order lifecycle module).
   - Admin contexts (catalog/categories/orders/products/promotions): split across `Catalog` (C1), `Orders` (C5), plus admin-specific contract surfaces defined per wave.
 - Entry points:
-  - `app/Http/Controllers/Api/V1/Account/*`
-  - `app/Http/Controllers/Api/V1/Auth/*`
+  - `app/Domains/Users/Controllers/*` (auth + account orders)
   - `app/Http/Controllers/Api/V1/Admin/*`
-  - `app/Application/Account/*`
-  - `app/Application/Auth/*`
+  - `app/Domains/Users/Application/*`
   - `app/Application/Admin/*`
 
 ### Payments

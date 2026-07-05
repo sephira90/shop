@@ -6984,3 +6984,86 @@ Verification (executed strictly sequentially, one command at a time):
   - route-smoke (controllers/routes changed): `php artisan optimize:clear` and `php artisan route:list --path=api/v1/catalog`;
   - full mandatory quality gate executed sequentially.
 
+### `2026-07-05` - `C2` Users Module
+
+Block scope: physically relocate the Auth + Account Orders bounded context into `app/Domains/Users/*` with namespace moves and zero dual-namespace shims; relocate the existing contract surface (4 module-internal contracts; no new contract files needed — strict subset of C1); rename `AuthBindingsServiceProvider` → `UsersServiceProvider` and absorb the `AccountOrderReadRepository` binding previously owned by `ApplicationBindingsServiceProvider`; relocate `EnsureActiveApiUser` middleware with the alias preserved; update every cross-reference atomically (routes, providers, middleware alias, psalm.xml, guardrail tests). Second runtime module move — exit target #26 fully achieved.
+
+Verified baseline (`2026-07-05`, mapping by read-only explore pass):
+  - Migration surface: 4 controllers (`AuthController`, `PasswordController`, `VerificationController`, `AccountOrdersController`) + 6 FormRequests; 9 Auth handlers (8 commands + 1 query) + 9 readonly payloads; 7 Auth DTOs + 11 Account Orders DTOs; 3 Auth Contracts (`AuthUserRepository`, `AuthPasswordBrokerRepository`, `AuthAuditLogger`) + 1 Account Contract (`AccountOrderReadRepository`); 5 Auth Support classes + 1 Account Orders projector; 3 Auth top-level Application classes (`AuthAccessTokenIssuer`, `AuthActiveUserRevalidator`, `AuthApplicationException`); 3 repositories (`AuthUserRepository` with `DUMMY_PASSWORD_HASH` timing-safety constant, `AuthPasswordBrokerRepository`, `AccountOrderReadRepository` using shared trait `AppliesOrderSearch`); 1 middleware (`EnsureActiveApiUser`); 1 infrastructure logger (`ObservabilityAuthAuditLogger`); 1 ServiceProvider (`AuthBindingsServiceProvider` owning 3 contract bindings + `auth.login` rate limiter + `Password::defaults()` boot).
+  - Cross-module contract surface needed post-move: NONE — verified by exhaustive grep. The 4 contracts are module-internal today; no other module imports them. Strict subset of C1's contract surface (C1 needed `CatalogReadService` + `Dto/CatalogProductListFilterDto` for smoke consumers).
+  - Smoke/admin coupling: zero direct class coupling; zero smoke DTO coupling (unlike C1).
+  - Shared trait `ResolvesAuthenticatedUser` used by 3 moving controllers AND by `CartController`/`CheckoutController` (C3/C4 waves) → stays at `app/Http/Controllers/Concerns/` per C0 legacy-bridge allowance.
+  - Shared trait `AppliesOrderSearch` used by `AccountOrderReadRepository` (moving) AND possibly other read repositories → stays at `app/Repositories/Concerns/` per C0 legacy-bridge allowance.
+  - `AuthBindingsServiceProvider` owns the `auth.login` rate limiter and `Password::defaults()` boot → moves wholesale (renamed to `UsersServiceProvider`).
+  - `ApplicationBindingsServiceProvider:34` owns the `AccountOrderReadRepository` binding → moves into `UsersServiceProvider`.
+  - Middleware alias `'active.api.user'` registered in `bootstrap/app.php:29` → updates to the new FQCN atomically; the alias string is the stable wire surface.
+  - Route names `verification.verify` and `verification.send` used by `URL::temporarySignedRoute()` in tests and notifications → must not change.
+  - `AuthAuditEvent` enum literal values (`login.succeeded`, `login.failed`, `logout`, `token.issued`, `token.revoked`, `password.reset.requested`, `password.reset.completed`, `email.verified`) → telemetry contract; must not change.
+  - Eloquent model imports: `User`, `Order`, `OrderItem`, `Payment`, `Shipment` — stay shared in `App\Models\*` per C0 (model-ownership wave is post-C7).
+  - 8 architecture guardrails reference moving classes by FQCN literal: `ApplicationAuthRepositoryBoundaryTest`, `AuthAuditEmissionGuardrailTest`, `AuthCredentialHardeningGuardrailTest`, `AuthTokenLifecycleGuardrailTest`, `SecurityConfigGuardrailTest`, `InfrastructureProviderBoundaryTest`, `RepositoryReadBoundaryTest`, `RepositoryBusinessDecisionBoundaryTest`.
+  - Frontend: zero coupling to PHP namespaces; the wire contract is locked by `docs/api/openapi.yaml` (S1).
+
+Implemented (atomic relocation in one block):
+  - Contract surface under `app/Domains/Users/Contracts/` (4 interfaces moved verbatim; no new contracts):
+    - `AuthUserRepository.php` (keeps `User` at boundary as a documented shared-kernel allowance pending the model-ownership wave);
+    - `AuthPasswordBrokerRepository.php`;
+    - `AuthAuditLogger.php`;
+    - `AccountOrderReadRepository.php` (keeps `Order` at boundary as the same shared-kernel allowance).
+  - Implementation under `app/Domains/Users/` (all moved via `git mv` to preserve history):
+    - `Controllers/` — 4 controllers + 6 FormRequests; `AuthController`, `PasswordController`, `VerificationController` made `final` on move; `LoginRequest`, `ForgotPasswordRequest`, `UpdateProfileRequest`, `AccountOrderIndexRequest` made `final` on move.
+    - `Application/Commands/` — 8 Auth command handlers + 8 readonly payloads; namespace `App\Domains\Users\Application\Commands`.
+    - `Application/Queries/` — 1 Auth query handler + payload + 4 Account Orders query handlers + 4 payloads; namespace `App\Domains\Users\Application\Queries`.
+    - `Application/Dto/` — 7 Auth DTOs + 11 Account Orders DTOs; namespace `App\Domains\Users\Application\Dto`.
+    - `Application/AuthAccessTokenIssuer.php`, `Application/AuthActiveUserRevalidator.php`, `Application/AuthApplicationException.php` — top-level Application classes.
+    - `Support/` — 5 Auth classes (`AuthAuditContext`, `AuthAuditContextResolver`, `AuthAuditEvent`, `AuthLoginRateLimitKey`, `AuthUserDtoMapper`) + `AccountOrderSummaryProjector`.
+    - `Repositories/` — 3 implementations; namespace `App\Domains\Users\Repositories`.
+    - `Middleware/EnsureActiveApiUser.php` — relocated; alias `active.api.user` registered to the new FQCN.
+    - `Infrastructure/ObservabilityAuthAuditLogger.php` — relocated; bound to `AuthAuditLogger` contract.
+    - `UsersServiceProvider.php` (renamed from `AuthBindingsServiceProvider`) — binds 4 contracts; owns `auth.login` rate limiter and `Password::defaults()` boot; registered in `bootstrap/providers.php`.
+  - Wiring:
+    - `routes/api.php` — 4 controller imports updated (covering 9 auth + 4 account/orders + 2 legacy `orders/me` alias routes).
+    - `bootstrap/app.php` — `EnsureActiveApiUser` import → `App\Domains\Users\Middleware\EnsureActiveApiUser`.
+    - `bootstrap/providers.php` — `AuthBindingsServiceProvider` replaced by `UsersServiceProvider`.
+    - `ApplicationBindingsServiceProvider` — `AccountOrderReadRepository` binding + imports removed.
+    - `psalm.xml` — `app/Domains/Users/Repositories` added to `TooManyTemplateParams` + `InvalidDocblock` suppressions; `app/Domains/Users/Application/Dto` added to `TooManyTemplateParams`; `app/Domains/Users/Contracts/AccountOrderReadRepository.php` added to `TooManyTemplateParams`.
+  - Old files removed: `app/Application/Auth/` (entire directory), `app/Application/Account/` (entire directory), `app/Http/Controllers/Api/V1/Auth/` (entire directory), `app/Http/Controllers/Api/V1/Account/` (entire directory), `app/Http/Requests/Auth/` (entire directory), `app/Http/Requests/Account/` (entire directory), `app/Http/Middleware/EnsureActiveApiUser.php`, `app/Repositories/{AuthUserRepository,AuthPasswordBrokerRepository,AccountOrderReadRepository}.php`, `app/Infrastructure/Auth/` (entire directory), `app/Providers/AuthBindingsServiceProvider.php`, `tests/Unit/Application/Auth/` (entire directory, files relocated to `tests/Unit/Application/Users/`), `tests/Unit/Account/` (entire directory, single file relocated to `tests/Unit/Application/Users/`).
+  - Module README replaced with the active module documentation (subfolders, contract surface, operational contracts — `AuthAuditEvent` literals, route names, sanctum throttle/password policy, `DUMMY_PASSWORD_HASH` timing-safety, `active.api.user` alias — migration state).
+  - Tests:
+    - `tests/Feature/UsersModuleRelocationTest.php` (new, 4 tests) — locks the 4 contract bindings (Auth + Account → module implementations), the auth controller namespace via route resolution, the `active.api.user` middleware alias FQCN, and the `verification.verify`/`verification.send` route names.
+    - 9 unit tests relocated to `tests/Unit/Application/Users/` (`AuthAccessTokenIssuerTest`, `AuthActiveUserRevalidatorTest`, `AuthAuditEventTest`, `AuthLoginRateLimitKeyTest`, `AuthPasswordPolicyTest`, `AuthUserRepositoryPasswordVerificationTest`, `LoginAuthUserHandlerTest`, `ObservabilityAuthAuditLoggerTest`, `AccountOrderSummaryProjectorTest`); namespaces `Tests\Unit\Application\Users`.
+    - 6 feature tests (`AuthFlowTest`, `ProfileUpdateTest`, `PasswordResetFlowTest`, `EmailVerificationTest`, `AuthAuditTrailFeatureTest`, `AccountOrdersApiTest`) — namespace literals updated to the new module namespaces.
+    - 2 test support files (`AuthUserRepositoryFake`, `AuthAuditLoggerSpy`) — namespace literals updated; `Tests\Support\Auth` namespace kept (these support classes stay in their existing location).
+    - `tests/Unit/OrderMoneyDtoMappingTest.php` — `AccountOrderDetailResultDto` import updated to the new module namespace.
+    - `tests/Unit/Architecture/ApplicationAuthRepositoryBoundaryTest.php` — handler FQCN literals (8 handlers) and discovery directories updated to `app/Domains/Users/Application/{Commands,Queries}`.
+    - `tests/Unit/Architecture/AuthAuditEmissionGuardrailTest.php` — repository scan extended to also cover `app/Domains/Users/Repositories` (post-move the module repositories would otherwise be uncovered).
+    - `tests/Unit/Architecture/SecurityConfigGuardrailTest.php:147` — hardcoded `'App\Domains\Users\Middleware\EnsureActiveApiUser'` literal updated.
+    - `tests/Unit/Architecture/AuthTokenLifecycleGuardrailTest.php`, `AuthCredentialHardeningGuardrailTest.php` — namespace literals updated.
+    - `tests/Unit/Architecture/InfrastructureProviderBoundaryTest.php` — provider-list assertion updated (`AuthBindingsServiceProvider` → `UsersServiceProvider` in both the bootstrap list and the specialized-modules-own-register test).
+    - `tests/Unit/Architecture/RepositoryReadBoundaryTest.php` — `AccountOrderReadRepository` path updated to `app/Domains/Users/Repositories/`; `AdminOrderReadRepository` forbidden namespace updated to `App\Domains\Users\Application\Dto\`.
+    - `tests/Unit/Architecture/RepositoryBusinessDecisionBoundaryTest.php` — `AccountOrderReadRepository` path updated.
+
+Invariants preserved:
+  - `/api/v1/auth/*` and `/api/v1/account/orders/*` wire contract byte-identical (verified by `OpenApiConformanceFeatureTest`): paths, verbs, request schemas, response schemas, status codes, throttle (`auth.login`, `6,1`), middleware (`auth:sanctum`, `active.api.user`, `signed`).
+  - Route names `verification.verify` and `verification.send` unchanged (verified by `UsersModuleRelocationTest`).
+  - `AuthAuditEvent` enum literal values unchanged — telemetry contract preserved.
+  - `DUMMY_PASSWORD_HASH` timing-attack mitigation unchanged — locked by `AuthUserRepositoryPasswordVerificationTest`.
+  - Sanctum token expiration, login throttle config, password policy unchanged — global config untouched.
+  - `active.api.user` middleware alias unchanged; the FQCN behind it lives in the module.
+  - Eloquent models stay shared under the `App\Models\` legacy-bridge allowance.
+  - `ModuleBoundaryGuardrailTest` continues to pass (Users has no outbound `Domains\*` imports today; legacy-bridge allowlist effectively shrinks further — Auth + Account namespaces no longer in legacy paths).
+
+Deterministic coverage:
+  - `tests/Feature/UsersModuleRelocationTest.php` (new): 4 tests — contract bindings (4 interfaces → module implementations), auth controller namespace via route resolution, `active.api.user` middleware alias FQCN, verification route names.
+  - 9 unit tests relocated under `tests/Unit/Application/Users/` — token issuer, active-user revalidator, audit event literal stability + whitelist leak, login rate-limit key, password policy, missing-user dummy-hash timing-safe verification, login handler (unknown-email exactly-one password verify + audit emission), observability logger, account order summary projector.
+  - 6 feature tests — auth flow (register/me/logout/login inactive 401 fold/login throttle), profile update, password reset flow, email verification, auth audit trail (all 8 audit events), account orders API (filters, summary, detail, ownership ACL, legacy alias).
+  - `OpenApiConformanceFeatureTest` — the 9 auth endpoints + account orders endpoints covered by happy-path + canonical error shapes; no PHP-import drift because the suite is HTTP-only.
+
+Verification (executed strictly sequentially, one command at a time):
+  - route registration: `php artisan route:list --path=api/v1/auth` → 9 routes resolve to `App\Domains\Users\Controllers\*`; `php artisan route:list --path=api/v1/account` → 3 routes; `php artisan route:list --path=api/v1/orders/me` → 2 routes; route names `verification.verify`/`verification.send` preserved;
+  - targeted regression: `php artisan test --filter="Architecture"` — 171 tests / 2113 assertions green;
+  - moved tests regression: `php artisan test --filter="AuthFlowTest|ProfileUpdateTest|PasswordResetFlowTest|EmailVerificationTest|AuthAuditTrailFeatureTest|AccountOrdersApiTest|Application\\Users"` — 53 tests / 210 assertions green;
+  - relocation smoke: `php artisan test --filter="ModularMonolithSkeletonGuardrailTest|ModuleBoundaryGuardrailTest|UsersModuleRelocationTest"` — 11 tests / 58 assertions green;
+  - full backend suite: `php artisan test` — see quality gate block below for the canonical command list;
+  - route-smoke (controllers/middleware changed): `php artisan optimize:clear` and `php artisan route:list --path=api/v1/auth`;
+  - full mandatory quality gate executed sequentially.
+

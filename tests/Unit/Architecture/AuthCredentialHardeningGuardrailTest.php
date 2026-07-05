@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Domains\Users\Controllers\RegisterRequest;
+use App\Domains\Users\Controllers\ResetPasswordRequest;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use ReflectionClass;

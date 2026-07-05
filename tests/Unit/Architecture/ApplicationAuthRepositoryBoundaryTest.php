@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
-use App\Application\Auth\Contracts\AuthPasswordBrokerRepository as AuthPasswordBrokerRepositoryContract;
-use App\Application\Auth\Contracts\AuthUserRepository as AuthUserRepositoryContract;
+use App\Domains\Users\Contracts\AuthPasswordBrokerRepository as AuthPasswordBrokerRepositoryContract;
+use App\Domains\Users\Contracts\AuthUserRepository as AuthUserRepositoryContract;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -48,14 +48,14 @@ class ApplicationAuthRepositoryBoundaryTest extends TestCase
     public function test_auth_handlers_depend_on_repository_contracts(): void
     {
         $expectedDependencies = [
-            'App\\Application\\Auth\\Commands\\RegisterAuthUserHandler' => AuthUserRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\LoginAuthUserHandler' => AuthUserRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\LogoutAuthUserHandler' => AuthUserRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\UpdateAuthProfileHandler' => AuthUserRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\ResendAuthVerificationHandler' => AuthUserRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\VerifyAuthEmailHandler' => AuthUserRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\ForgotAuthPasswordHandler' => AuthPasswordBrokerRepositoryContract::class,
-            'App\\Application\\Auth\\Commands\\ResetAuthPasswordHandler' => AuthPasswordBrokerRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\RegisterAuthUserHandler' => AuthUserRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\LoginAuthUserHandler' => AuthUserRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\LogoutAuthUserHandler' => AuthUserRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\UpdateAuthProfileHandler' => AuthUserRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\ResendAuthVerificationHandler' => AuthUserRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\VerifyAuthEmailHandler' => AuthUserRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\ForgotAuthPasswordHandler' => AuthPasswordBrokerRepositoryContract::class,
+            'App\\Domains\\Users\\Application\\Commands\\ResetAuthPasswordHandler' => AuthPasswordBrokerRepositoryContract::class,
         ];
 
         foreach ($expectedDependencies as $handlerClass => $expectedContract) {
@@ -91,8 +91,8 @@ class ApplicationAuthRepositoryBoundaryTest extends TestCase
     private function discoverAuthHandlerFiles(): array
     {
         $directories = [
-            app_path('Application/Auth/Commands'),
-            app_path('Application/Auth/Queries'),
+            app_path('Domains/Users/Application/Commands'),
+            app_path('Domains/Users/Application/Queries'),
         ];
 
         $files = [];

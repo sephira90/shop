@@ -1,0 +1,80 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\Users\Controllers;
+
+use App\Domains\Users\Application\Queries\GetAccountOrderDetailHandler;
+use App\Domains\Users\Application\Queries\GetAccountOrderDetailQuery;
+use App\Domains\Users\Application\Queries\GetAccountOrdersSummaryHandler;
+use App\Domains\Users\Application\Queries\GetAccountOrdersSummaryQuery;
+use App\Domains\Users\Application\Queries\PaginateAccountOrdersHandler;
+use App\Domains\Users\Application\Queries\PaginateAccountOrdersQuery;
+use App\Domains\Users\Application\Queries\PaginateLegacyAccountOrdersHandler;
+use App\Domains\Users\Application\Queries\PaginateLegacyAccountOrdersQuery;
+use App\Http\Controllers\Concerns\ResolvesAuthenticatedUser;
+use App\Http\Controllers\Controller;
+use App\Support\Api\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+final class AccountOrdersController extends Controller
+{
+    use ResolvesAuthenticatedUser;
+
+    public function __construct(
+        private readonly PaginateAccountOrdersHandler $paginateAccountOrdersHandler,
+        private readonly PaginateLegacyAccountOrdersHandler $paginateLegacyAccountOrdersHandler,
+        private readonly GetAccountOrderDetailHandler $getAccountOrderDetailHandler,
+        private readonly GetAccountOrdersSummaryHandler $getAccountOrdersSummaryHandler,
+    ) {}
+
+    public function index(AccountOrderIndexRequest $request): JsonResponse
+    {
+        $currentUser = $this->requireAuthenticatedUser($request);
+
+        $orders = $this->paginateAccountOrdersHandler->handle(
+            new PaginateAccountOrdersQuery($currentUser, $request->filter())
+        );
+
+        return ApiResponse::paginatedWithMeta($orders->itemsToArray(), $orders->metaToArray());
+    }
+
+    public function legacyIndex(AccountOrderIndexRequest $request): JsonResponse
+    {
+        $currentUser = $this->requireAuthenticatedUser($request);
+
+        $orders = $this->paginateLegacyAccountOrdersHandler->handle(
+            new PaginateLegacyAccountOrdersQuery($currentUser, $request->filter())
+        );
+
+        return ApiResponse::paginatedWithMeta($orders->itemsToArray(), $orders->metaToArray());
+    }
+
+    public function show(Request $request, string $order): JsonResponse
+    {
+        $currentUser = $this->requireAuthenticatedUser($request);
+
+        $detail = $this->getAccountOrderDetailHandler->handle(
+            new GetAccountOrderDetailQuery($currentUser, $order)
+        );
+
+        if ($detail === null) {
+            throw new NotFoundHttpException('Order not found.');
+        }
+
+        return ApiResponse::data($detail->toArray());
+    }
+
+    public function summary(Request $request): JsonResponse
+    {
+        $currentUser = $this->requireAuthenticatedUser($request);
+
+        $summary = $this->getAccountOrdersSummaryHandler->handle(
+            new GetAccountOrdersSummaryQuery($currentUser)
+        );
+
+        return ApiResponse::data($summary->toArray());
+    }
+}

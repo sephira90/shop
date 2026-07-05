@@ -1,0 +1,109 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\Users\Repositories;
+
+use App\Domains\Users\Application\Dto\RegisterAuthInputDto;
+use App\Domains\Users\Application\Dto\UpdateAuthProfileInputDto;
+use App\Domains\Users\Contracts\AuthUserRepository as AuthUserRepositoryContract;
+use App\Enums\RoleName;
+use App\Models\User;
+use DateTimeInterface;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
+
+final class AuthUserRepository implements AuthUserRepositoryContract
+{
+    private const string DUMMY_PASSWORD_HASH = '$2y$12$Wpl1Tw3Q4lZpztd3YFyEEue48mBk6FYLDXLOOENs3zjWhiQ4D413.';
+
+    public function createUser(RegisterAuthInputDto $input): User
+    {
+        return User::query()->create([
+            'first_name' => $input->firstName,
+            'last_name' => $input->lastName,
+            'name' => trim($input->firstName.' '.$input->lastName),
+            'email' => $input->email,
+            'phone' => $input->phone,
+            'password' => $input->password,
+        ]);
+    }
+
+    public function findByEmail(string $email): ?User
+    {
+        return User::query()->where('email', $email)->first();
+    }
+
+    public function findById(int $userId): ?User
+    {
+        return User::query()->find($userId);
+    }
+
+    public function isPasswordValid(?User $user, string $plainPassword): bool
+    {
+        $passwordHash = $user instanceof User ? (string) $user->password : self::DUMMY_PASSWORD_HASH;
+
+        return Hash::check($plainPassword, $passwordHash);
+    }
+
+    public function issueAccessToken(User $user, string $deviceName, DateTimeInterface $expiresAt): string
+    {
+        return $user->createToken($deviceName, ['*'], $expiresAt)->plainTextToken;
+    }
+
+    public function revokeCurrentAccessToken(User $user): void
+    {
+        /** @var PersonalAccessToken|TransientToken|null $currentAccessToken */
+        $currentAccessToken = $user->currentAccessToken();
+
+        if (! $currentAccessToken instanceof PersonalAccessToken) {
+            return;
+        }
+
+        $currentAccessToken->delete();
+    }
+
+    public function revokeAllAccessTokens(User $user): void
+    {
+        $user->tokens()->delete();
+    }
+
+    public function assignRole(User $user, RoleName|string $role): void
+    {
+        $user->assignRole($role);
+    }
+
+    public function sendEmailVerification(User $user): void
+    {
+        $user->sendEmailVerificationNotification();
+    }
+
+    public function markEmailAsVerified(User $user): bool
+    {
+        return $user->markEmailAsVerified();
+    }
+
+    public function updateProfile(User $user, UpdateAuthProfileInputDto $input): User
+    {
+        $user->update([
+            'first_name' => $input->firstName,
+            'last_name' => $input->lastName,
+            'name' => trim($input->firstName.' '.$input->lastName),
+            'phone' => $input->phone,
+        ]);
+
+        $fresh = $user->fresh();
+
+        return $fresh instanceof User ? $fresh : $user;
+    }
+
+    public function updatePassword(User $user, string $password): void
+    {
+        $user->forceFill([
+            'password' => Hash::make($password),
+            'remember_token' => Str::random(60),
+        ])->save();
+    }
+}

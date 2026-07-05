@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Architecture;
 
+use App\Domains\Catalog\CatalogServiceProvider;
+use App\Domains\Users\UsersServiceProvider;
 use App\Providers\ApplicationBindingsServiceProvider;
 use App\Providers\AppServiceProvider;
-use App\Providers\AuthBindingsServiceProvider;
 use App\Providers\EventServiceProvider;
 use App\Providers\GatewayServiceProvider;
 use App\Providers\MaintenanceServiceProvider;
 use App\Providers\ObservabilityServiceProvider;
 use App\Providers\OrdersServiceProvider;
-use App\Domains\Catalog\CatalogServiceProvider;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use ReflectionClass;
@@ -28,7 +28,7 @@ final class InfrastructureProviderBoundaryTest extends TestCase
         $this->assertSame([
             ApplicationBindingsServiceProvider::class,
             CatalogServiceProvider::class,
-            AuthBindingsServiceProvider::class,
+            UsersServiceProvider::class,
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
             ObservabilityServiceProvider::class,
@@ -61,7 +61,7 @@ final class InfrastructureProviderBoundaryTest extends TestCase
         $providers = [
             ApplicationBindingsServiceProvider::class,
             CatalogServiceProvider::class,
-            AuthBindingsServiceProvider::class,
+            UsersServiceProvider::class,
             GatewayServiceProvider::class,
             MaintenanceServiceProvider::class,
             ObservabilityServiceProvider::class,

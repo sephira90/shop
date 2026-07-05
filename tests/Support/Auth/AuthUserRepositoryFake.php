@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Support\Auth;
 
-use App\Application\Auth\Contracts\AuthUserRepository;
-use App\Application\Auth\Dto\RegisterAuthInputDto;
-use App\Application\Auth\Dto\UpdateAuthProfileInputDto;
+use App\Domains\Users\Application\Dto\RegisterAuthInputDto;
+use App\Domains\Users\Application\Dto\UpdateAuthProfileInputDto;
+use App\Domains\Users\Contracts\AuthUserRepository;
 use App\Enums\RoleName;
 use App\Models\User;
 use DateTimeInterface;
